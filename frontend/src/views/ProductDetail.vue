@@ -169,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useProductsStore } from "../stores/products";
 import { useCartStore } from "../stores/cart";
@@ -183,9 +183,25 @@ const product = computed(() =>
   productsStore.products.find((p) => p.id === parseInt(route.params.id)),
 );
 
-const selectedColor = ref(product.value?.colors[0] || "");
-const selectedSize = ref(product.value?.sizes[1] || "");
+const selectedColor = ref("");
+const selectedSize = ref("");
 const quantity = ref(1);
+
+watch(
+  product,
+  (value) => {
+    if (!value) return;
+    selectedColor.value = value.colors[0] || "";
+    selectedSize.value = value.sizes[0] || "";
+  },
+  { immediate: true },
+);
+
+onMounted(() => {
+  if (!productsStore.loaded) {
+    productsStore.fetchProducts();
+  }
+});
 
 const addToCart = () => {
   cartStore.addToCart(product.value, selectedSize.value, selectedColor.value, quantity.value);

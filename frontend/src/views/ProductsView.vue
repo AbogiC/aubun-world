@@ -107,14 +107,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import { useProductsStore } from "../stores/products";
 import ProductCard from "../components/ProductCard.vue";
 
+const route = useRoute();
 const productsStore = useProductsStore();
 const categories = computed(() => productsStore.categories);
 
-const selectedCategory = ref("All");
+const selectedCategory = ref(route.query.category || "All");
 const minPrice = ref(null);
 const maxPrice = ref(null);
 const selectedSizes = ref([]);
@@ -173,6 +175,19 @@ const resetFilters = () => {
   selectedSizes.value = [];
   sortBy.value = "featured";
 };
+
+watch(
+  () => route.query.category,
+  (category) => {
+    selectedCategory.value = category || "All";
+  },
+);
+
+onMounted(() => {
+  if (!productsStore.loaded) {
+    productsStore.fetchProducts();
+  }
+});
 </script>
 
 <style scoped>

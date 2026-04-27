@@ -1,9 +1,21 @@
 import { defineStore } from "pinia";
+import { api, getAuthToken } from "../lib/api";
+
+const STORAGE_KEY = "aubun_cart_items";
+
+function loadLocalItems() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
 
 export const useCartStore = defineStore("cart", {
   state: () => ({
-    items: [],
+    items: loadLocalItems(),
     discount: 0,
+    discountCode: null,
   }),
 
   getters: {
@@ -13,6 +25,32 @@ export const useCartStore = defineStore("cart", {
   },
 
   actions: {
+    persistLocalState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.items));
+    },
+
+    syncFromPayload(cart) {
+      this.items = cart.items.map((item) => ({
+        ...item,
+        id: item.productId,
+        serverId: item.id,
+      }));
+      this.discount = cart.discount;
+      this.discountCode = cart.discountCode;
+      this.persistLocalState();
+    },
+
+    async refreshFromApi() {
+      if (!getAuthToken()) return;
+
+      try {
+        const { cart } = await api.get("/cart");
+        this.syncFromPayload(cart);
+      } catch {
+        // Keep storefront usable even if the visitor is not logged in yet.
+      }
+    },
+
     addToCart(product, size, color, quantity = 1) {
       const existingItem = this.items.find(
         (item) => item.id === product.id && item.size === size && item.color === color,
@@ -31,12 +69,32 @@ export const useCartStore = defineStore("cart", {
           quantity,
         });
       }
+
+      this.persistLocalState();
+
+      if (getAuthToken()) {
+        api.post("/cart/items", {
+          product_id: product.id,
+          quantity,
+          size,
+          color,
+        }).then(({ cart }) => this.syncFromPayload(cart)).catch(() => {});
+      }
     },
 
     removeFromCart(productId, size, color) {
+      const existingItem = this.items.find(
+        (item) => item.id === productId && item.size === size && item.color === color,
+      );
+
       this.items = this.items.filter(
         (item) => !(item.id === productId && item.size === size && item.color === color),
       );
+      this.persistLocalState();
+
+      if (getAuthToken() && existingItem?.serverId) {
+        api.delete(`/cart/items/${existingItem.serverId}`).then(({ cart }) => this.syncFromPayload(cart)).catch(() => {});
+      }
     },
 
     updateQuantity(productId, size, color, quantity) {
@@ -45,14 +103,32 @@ export const useCartStore = defineStore("cart", {
       );
       if (item) {
         item.quantity = quantity;
+        this.persistLocalState();
+
+        if (getAuthToken() && item.serverId) {
+          api.patch(`/cart/items/${item.serverId}`, { quantity }).then(({ cart }) => this.syncFromPayload(cart)).catch(() => {});
+        }
       }
     },
 
     clearCart() {
       this.items = [];
+      this.discount = 0;
+      this.discountCode = null;
+      this.persistLocalState();
+
+      if (getAuthToken()) {
+        api.delete("/cart").then(({ cart }) => this.syncFromPayload(cart)).catch(() => {});
+      }
     },
 
-    applyDiscount(code) {
+    async applyDiscount(code) {
+      if (getAuthToken()) {
+        const { cart } = await api.post("/cart/apply-discount", { code });
+        this.syncFromPayload(cart);
+        return true;
+      }
+
       if (code === "LUXURY20") {
         this.discount = this.subtotal * 0.2;
         return true;

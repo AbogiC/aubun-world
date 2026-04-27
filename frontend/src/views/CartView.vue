@@ -150,13 +150,18 @@ const removeItem = (item) => {
   cartStore.removeFromCart(item.id, item.size, item.color);
 };
 
-const applyPromo = () => {
-  const success = cartStore.applyDiscount(promoCode.value);
-  if (success) {
-    alert("Discount applied successfully!");
-  } else {
-    alert("Invalid promo code");
+const applyPromo = async () => {
+  try {
+    const success = await cartStore.applyDiscount(promoCode.value);
+    if (success) {
+      alert("Discount applied successfully!");
+      return;
+    }
+  } catch {
+    // Fallback to the invalid-code message below.
   }
+
+  alert("Invalid promo code");
 };
 </script>
 
