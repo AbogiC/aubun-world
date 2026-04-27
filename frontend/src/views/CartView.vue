@@ -114,7 +114,9 @@
                 <small class="text-muted">Try code: LUXURY20 for 20% off</small>
               </div>
 
-              <button class="btn btn-luxury btn-lg w-100 mb-2">Proceed to Checkout</button>
+              <router-link to="/checkout" class="btn btn-luxury btn-lg w-100 mb-2">
+                Proceed to Checkout
+              </router-link>
 
               <router-link to="/products" class="btn btn-outline-luxury w-100">
                 Continue Shopping

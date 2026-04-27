@@ -53,9 +53,17 @@
         </ul>
 
         <div class="d-flex align-items-center gap-3">
+          <template v-if="authStore.isAuthenticated">
+            <div class="nav-account text-uppercase small">{{ userLabel }}</div>
+            <button class="btn btn-outline-dark btn-sm px-3" @click="logout">Logout</button>
+          </template>
+          <template v-else>
+            <router-link to="/login" class="btn btn-outline-dark btn-sm px-3">Login</router-link>
+            <router-link to="/register" class="btn btn-luxury btn-sm px-3">Register</router-link>
+          </template>
           <button
-            class="btn btn-luxury btn-sm position-relative nav-bag-btn"
-            @click="$router.push('/cart')"
+            class="btn btn-luxury btn-sm d-flex align-items-center justify-content-center position-relative nav-bag-btn"
+            @click="goToBag"
           >
             <i class="bi bi-bag fs-5"></i>
             <span
@@ -72,9 +80,29 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
+import { useRouter } from "vue-router";
 import { useCartStore } from "../stores/cart";
+import { useAuthStore } from "../stores/auth";
 
 const cartStore = useCartStore();
+const authStore = useAuthStore();
+const router = useRouter();
+const userLabel = computed(() => authStore.user?.name?.split(" ")[0] || "Account");
+
+const goToBag = () => {
+  if (!authStore.isAuthenticated) {
+    router.push({ path: "/login", query: { redirect: "/cart" } });
+    return;
+  }
+
+  router.push("/cart");
+};
+
+const logout = () => {
+  authStore.logout();
+  router.push("/");
+};
 </script>
 
 <style scoped>
@@ -137,5 +165,10 @@ const cartStore = useCartStore();
 .nav-badge {
   font-size: 0.65rem;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+}
+
+.nav-account {
+  letter-spacing: 0.18em;
+  opacity: 0.72;
 }
 </style>

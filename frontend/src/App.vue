@@ -18,15 +18,18 @@ import Navbar from "./components/Navbar.vue";
 import Footer from "./components/Footer.vue";
 import { useProductsStore } from "./stores/products";
 import { useCartStore } from "./stores/cart";
+import { useAuthStore } from "./stores/auth";
 
 const productsStore = useProductsStore();
 const cartStore = useCartStore();
+const authStore = useAuthStore();
 
-onMounted(() => {
+onMounted(async () => {
   if (!productsStore.loaded) {
     productsStore.fetchProducts();
   }
 
+  await authStore.initialize();
   cartStore.refreshFromApi();
 });
 </script>

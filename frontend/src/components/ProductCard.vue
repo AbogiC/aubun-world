@@ -48,16 +48,26 @@
 </template>
 
 <script setup>
+import { useRouter } from "vue-router";
 import { useCartStore } from "../stores/cart";
+import { useAuthStore } from "../stores/auth";
 
 const props = defineProps({
   product: Object,
 });
 
 const cartStore = useCartStore();
+const authStore = useAuthStore();
+const router = useRouter();
 
 const quickAdd = () => {
+  if (!authStore.isAuthenticated) {
+    router.push({ path: "/login", query: { redirect: "/cart" } });
+    return;
+  }
+
   cartStore.addToCart(props.product, "M", props.product.colors[0], 1);
+  router.push("/cart");
 };
 </script>
 
