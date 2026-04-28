@@ -2,7 +2,7 @@
 RewriteEngine On
 
 # API routes
-RewriteRule ^api/(.*)$ backend/index.php [L,QSA]
+RewriteRule ^api/(.*)$ backend/public/index.php [L,QSA]
 
 # Serve existing files
 RewriteCond %{REQUEST_FILENAME} -f [OR]
