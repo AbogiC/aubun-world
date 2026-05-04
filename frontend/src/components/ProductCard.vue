@@ -1,14 +1,14 @@
 <template>
-  <div class="col-md-6 col-lg-3 mb-4 fade-in-up">
+  <div class="col-md-6 col-lg-4 mb-4 fade-in-up">
     <div class="product-card hover-lift" @click="$router.push(`/product/${product.id}`)">
       <div class="product-image-wrapper position-relative overflow-hidden">
         <img :src="product.image" :alt="product.name" class="product-image" />
 
         <div class="product-actions position-absolute top-0 end-0 p-3">
-          <button class="btn btn-luxury btn-sm rounded-circle mb-2 action-btn" @click.stop="quickAdd">
-            <i class="bi bi-bag-plus"></i>
-          </button>
-        </div>
+           <button class="btn btn-luxury btn-sm mb-2 action-btn" @click.stop="quickAdd">
+             <i class="bi bi-bag-plus"></i>
+           </button>
+         </div>
 
         <div v-if="product.featured" class="position-absolute top-0 start-0 m-3">
           <span class="badge bg-dark">Featured</span>
@@ -112,6 +112,9 @@ const quickAdd = () => {
   width: 2.8rem;
   height: 2.8rem;
   border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .rating-stars {

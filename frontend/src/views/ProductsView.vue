@@ -91,8 +91,13 @@
             </select>
           </div>
 
-          <div class="row">
-            <ProductCard v-for="product in sortedProducts" :key="product.id" :product="product" />
+          <div class="row product-grid">
+            <ProductCard
+              v-for="(product, index) in sortedProducts"
+              :key="product.id"
+              :product="product"
+              :style="{ '--card-index': index }"
+            />
           </div>
 
           <div v-if="sortedProducts.length === 0" class="text-center py-5">
@@ -200,5 +205,78 @@ onMounted(() => {
 .filter-panel {
   background: rgba(255, 255, 255, 0.84);
   backdrop-filter: blur(14px);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(11, 11, 12, 0.08);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+}
+
+.product-grid :deep(.col-md-6.col-lg-4) {
+  animation: product-card-enter 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--card-index, 0) * 90ms);
+}
+
+.product-grid :deep(.product-card) {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  transition:
+    transform 260ms ease,
+    box-shadow 260ms ease,
+    border-color 260ms ease,
+    background-color 260ms ease;
+}
+
+.product-grid :deep(.product-image-wrapper) {
+  border-top-left-radius: 1.5rem;
+  border-top-right-radius: 1.5rem;
+}
+
+.product-grid :deep(.product-image) {
+  transition: transform 420ms ease, filter 420ms ease;
+}
+
+.product-grid :deep(.product-info) {
+  padding: 1.25rem 1.25rem 1.4rem;
+}
+
+.product-grid :deep(.product-card:hover) {
+  transform: translateY(-10px);
+  border-color: rgba(15, 23, 42, 0.16);
+  box-shadow: 0 28px 65px rgba(15, 23, 42, 0.16);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.product-grid :deep(.product-card:hover .product-image) {
+  transform: scale(1.04);
+  filter: saturate(1.05);
+}
+
+.product-grid :deep(.badge.bg-dark) {
+  border-radius: 999px;
+  padding: 0.5rem 0.85rem;
+  letter-spacing: 0.04em;
+}
+
+@keyframes product-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-grid :deep(.col-md-6.col-lg-4) {
+    animation: none;
+  }
+
+  .product-grid :deep(.product-card),
+  .product-grid :deep(.product-image) {
+    transition: none;
+  }
 }
 </style>
