@@ -29,9 +29,12 @@ export const useAuthStore = defineStore("auth", {
       try {
         const { user } = await api.get("/auth/me");
         this.user = user;
-      } catch {
-        setAuthToken(null);
+      } catch (error) {
         this.user = null;
+
+        if (error?.status === 401) {
+          setAuthToken(null);
+        }
       } finally {
         this.loading = false;
         this.ready = true;

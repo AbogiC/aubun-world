@@ -29,7 +29,13 @@ final class AuthService
 
     public function parseToken(string $token): array
     {
-        [$header, $payload, $signature] = explode('.', $token . '..', 3);
+        $parts = explode('.', $token);
+
+        if (count($parts) !== 3) {
+            $header = $payload = $signature = '';
+        } else {
+            [$header, $payload, $signature] = $parts;
+        }
 
         if ($header === '' || $payload === '' || $signature === '') {
             throw new RuntimeException('Malformed authentication token.', 401);

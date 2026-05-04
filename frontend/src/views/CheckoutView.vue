@@ -39,8 +39,16 @@
                 </div>
               </div>
 
-              <button type="submit" class="btn btn-luxury w-100 mt-4">
-                Place Order
+              <div v-if="errorMessage" class="alert alert-danger mt-4 mb-0">
+                {{ errorMessage }}
+              </div>
+
+              <button
+                type="submit"
+                class="btn btn-luxury w-100 mt-4"
+                :disabled="submitting || !cartStore.items.length"
+              >
+                {{ submitting ? "Processing Order..." : "Place Order" }}
               </button>
             </form>
           </div>
@@ -87,7 +95,7 @@
 </template>
 
 <script setup>
-import { computed, reactive } from "vue";
+import { computed, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useCartStore } from "../stores/cart";
@@ -95,6 +103,8 @@ import { useCartStore } from "../stores/cart";
 const router = useRouter();
 const authStore = useAuthStore();
 const cartStore = useCartStore();
+const submitting = ref(false);
+const errorMessage = ref("");
 const form = reactive({
   firstName: authStore.user?.name?.split(" ")[0] || "",
   lastName: authStore.user?.name?.split(" ").slice(1).join(" ") || "",
@@ -109,9 +119,23 @@ const totalWithShipping = computed(() =>
   cartStore.total + (cartStore.subtotal > 500 ? 0 : 25),
 );
 
-const placeOrder = () => {
-  alert("Order placed successfully. This checkout flow is ready for payment integration next.");
-  cartStore.clearCart();
-  router.push("/");
+const placeOrder = async () => {
+  if (!cartStore.items.length) {
+    errorMessage.value = "Your cart is empty.";
+    return;
+  }
+
+  submitting.value = true;
+  errorMessage.value = "";
+
+  try {
+    const order = await cartStore.checkout(form);
+    alert(`Order ${order.orderNumber} placed successfully.`);
+    router.push("/");
+  } catch (error) {
+    errorMessage.value = error.message || "Failed to place order.";
+  } finally {
+    submitting.value = false;
+  }
 };
 </script>

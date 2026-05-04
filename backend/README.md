@@ -40,3 +40,5 @@ php -S localhost:8000 -t public
 - `DELETE /api/cart/items/{id}`
 - `POST /api/cart/apply-discount`
 - `DELETE /api/cart`
+- `GET /api/orders`
+- `POST /api/orders/checkout`

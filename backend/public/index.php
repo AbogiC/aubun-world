@@ -6,6 +6,7 @@ use App\Config\Config;
 use App\Controllers\AuthController;
 use App\Controllers\CartController;
 use App\Controllers\CategoryController;
+use App\Controllers\OrderController;
 use App\Controllers\ProductController;
 use App\Core\Database;
 use App\Core\Request;
@@ -13,6 +14,7 @@ use App\Core\Response;
 use App\Core\Router;
 use App\Middleware\AuthMiddleware;
 use App\Repositories\CartRepository;
+use App\Repositories\OrderRepository;
 use App\Repositories\ProductRepository;
 use App\Repositories\UserRepository;
 use App\Services\AuthService;
@@ -57,11 +59,13 @@ $authService = new AuthService($config['app']['key']);
 $userRepository = new UserRepository($pdo);
 $productRepository = new ProductRepository($pdo);
 $cartRepository = new CartRepository($pdo, $productRepository);
+$orderRepository = new OrderRepository($pdo);
 
 $authController = new AuthController($userRepository, $authService);
 $productController = new ProductController($productRepository);
 $categoryController = new CategoryController($productRepository);
 $cartController = new CartController($cartRepository);
+$orderController = new OrderController($orderRepository, $cartRepository);
 $authMiddleware = new AuthMiddleware($authService, $userRepository);
 
 $router = new Router();
@@ -80,6 +84,8 @@ $router->patch('/api/cart/items/{id}', [$cartController, 'updateItem'], [$authMi
 $router->delete('/api/cart/items/{id}', [$cartController, 'deleteItem'], [$authMiddleware]);
 $router->post('/api/cart/apply-discount', [$cartController, 'applyDiscount'], [$authMiddleware]);
 $router->delete('/api/cart', [$cartController, 'clear'], [$authMiddleware]);
+$router->get('/api/orders', [$orderController, 'index'], [$authMiddleware]);
+$router->post('/api/orders/checkout', [$orderController, 'checkout'], [$authMiddleware]);
 
 try {
     $result = $router->dispatch($request);

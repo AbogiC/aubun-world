@@ -47,3 +47,40 @@ CREATE TABLE cart_items (
     CONSTRAINT fk_cart_items_cart FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE,
     CONSTRAINT fk_cart_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
+
+CREATE TABLE orders (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    order_number VARCHAR(40) NOT NULL UNIQUE,
+    status VARCHAR(30) NOT NULL DEFAULT 'pending',
+    customer_name VARCHAR(190) NOT NULL,
+    customer_email VARCHAR(190) NOT NULL,
+    shipping_address VARCHAR(255) NOT NULL,
+    shipping_city VARCHAR(120) NOT NULL,
+    shipping_country VARCHAR(120) NOT NULL,
+    shipping_postal_code VARCHAR(30) NOT NULL,
+    subtotal_amount DECIMAL(10,2) NOT NULL,
+    discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    shipping_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    total_amount DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE order_items (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    product_name VARCHAR(190) NOT NULL,
+    product_image VARCHAR(255) NOT NULL,
+    quantity INT UNSIGNED NOT NULL DEFAULT 1,
+    size VARCHAR(20) NOT NULL,
+    color VARCHAR(50) NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    line_total DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_order_items_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);

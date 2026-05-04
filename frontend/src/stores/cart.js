@@ -135,5 +135,11 @@ export const useCartStore = defineStore("cart", {
       }
       return false;
     },
+
+    async checkout(payload) {
+      const { order, cart } = await api.post("/orders/checkout", payload);
+      this.syncFromPayload(cart);
+      return order;
+    },
   },
 });
