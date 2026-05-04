@@ -49,6 +49,12 @@ const router = createRouter({
       name: "about",
       component: () => import("../views/AboutView.vue"),
     },
+    {
+      path: "/dashboard",
+      name: "dashboard",
+      component: () => import("../views/DashboardView.vue"),
+      meta: { requiresAuth: true, roles: ["manager", "admin"] },
+    },
   ],
   scrollBehavior() {
     return { top: 0 };
@@ -68,6 +74,10 @@ router.beforeEach(async (to) => {
 
   if (to.meta.guestOnly && authStore.isAuthenticated) {
     return to.query.redirect || "/cart";
+  }
+
+  if (to.meta.roles?.length && !to.meta.roles.includes(authStore.user?.role)) {
+    return "/";
   }
 });
 

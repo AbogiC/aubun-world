@@ -10,6 +10,8 @@ use RuntimeException;
 
 final class ProductController
 {
+    private const MANAGER_ROLES = ['manager', 'admin'];
+
     public function __construct(private readonly ProductRepository $products)
     {
     }
@@ -36,5 +38,124 @@ final class ProductController
         }
 
         return ['product' => $product];
+    }
+
+    public function store(Request $request): array
+    {
+        $this->assertManagerAccess($request);
+
+        return [
+            'message' => 'Product created successfully.',
+            'product' => $this->products->create($this->validatedPayload($request)),
+            'status' => 201,
+        ];
+    }
+
+    public function update(Request $request): array
+    {
+        $this->assertManagerAccess($request);
+        $id = (int) $request->attribute('id');
+
+        if (!$this->products->find($id)) {
+            throw new RuntimeException('Product not found.', 404);
+        }
+
+        return [
+            'message' => 'Product updated successfully.',
+            'product' => $this->products->update($id, $this->validatedPayload($request)),
+        ];
+    }
+
+    public function destroy(Request $request): array
+    {
+        $this->assertManagerAccess($request);
+        $id = (int) $request->attribute('id');
+
+        if (!$this->products->delete($id)) {
+            throw new RuntimeException('Product not found.', 404);
+        }
+
+        return [
+            'message' => 'Product deleted successfully.',
+        ];
+    }
+
+    private function assertManagerAccess(Request $request): void
+    {
+        $role = (string) ($request->attribute('user')['role'] ?? '');
+
+        if (!in_array($role, self::MANAGER_ROLES, true)) {
+            throw new RuntimeException('You are not allowed to manage products.', 403);
+        }
+    }
+
+    private function validatedPayload(Request $request): array
+    {
+        $name = trim((string) $request->input('name'));
+        $category = trim((string) $request->input('category'));
+        $image = trim((string) $request->input('image'));
+        $description = trim((string) $request->input('description'));
+        $sizes = $this->normalizedList($request->input('sizes', []));
+        $colors = $this->normalizedList($request->input('colors', []));
+        $price = (float) $request->input('price', 0);
+        $originalPriceInput = $request->input('originalPrice');
+        $originalPrice = $originalPriceInput === null || $originalPriceInput === '' ? null : (float) $originalPriceInput;
+        $rating = (float) $request->input('rating', 0);
+        $reviews = (int) $request->input('reviews', 0);
+        $featured = (bool) $request->input('featured', false);
+
+        if ($name === '' || $category === '' || $image === '' || $description === '') {
+            throw new RuntimeException('Name, category, image, and description are required.', 422);
+        }
+
+        if ($price <= 0) {
+            throw new RuntimeException('Price must be greater than zero.', 422);
+        }
+
+        if ($originalPrice !== null && $originalPrice < $price) {
+            throw new RuntimeException('Original price must be greater than or equal to price.', 422);
+        }
+
+        if ($sizes === []) {
+            throw new RuntimeException('At least one size is required.', 422);
+        }
+
+        if ($colors === []) {
+            throw new RuntimeException('At least one color is required.', 422);
+        }
+
+        if ($rating < 0 || $rating > 5) {
+            throw new RuntimeException('Rating must be between 0 and 5.', 422);
+        }
+
+        if ($reviews < 0) {
+            throw new RuntimeException('Reviews cannot be negative.', 422);
+        }
+
+        return [
+            'name' => $name,
+            'category' => $category,
+            'price' => $price,
+            'originalPrice' => $originalPrice,
+            'image' => $image,
+            'description' => $description,
+            'rating' => $rating,
+            'reviews' => $reviews,
+            'sizes' => $sizes,
+            'colors' => $colors,
+            'featured' => $featured,
+        ];
+    }
+
+    private function normalizedList(mixed $values): array
+    {
+        if (!is_array($values)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (mixed $value): string => trim((string) $value),
+            $values
+        )));
     }
 }

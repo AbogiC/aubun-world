@@ -30,12 +30,12 @@ final class UserRepository
         return $user ?: null;
     }
 
-    public function create(string $name, string $email, string $password): array
+    public function create(string $name, string $email, string $password, string $role = 'customer'): array
     {
         $statement = $this->pdo->prepare(
-            'INSERT INTO users (name, email, password, created_at, updated_at) VALUES (:name, :email, :password, NOW(), NOW())'
+            'INSERT INTO users (name, email, role, password, created_at, updated_at) VALUES (:name, :email, :role, :password, NOW(), NOW())'
         );
-        $statement->execute(compact('name', 'email', 'password'));
+        $statement->execute(compact('name', 'email', 'role', 'password'));
 
         return $this->findById((int) $this->pdo->lastInsertId());
     }

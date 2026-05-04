@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use JsonException;
 use PDO;
 
 final class ProductRepository
@@ -67,6 +68,55 @@ final class ProductRepository
         return array_merge(['All'], array_column($statement->fetchAll(), 'category'));
     }
 
+    public function create(array $payload): array
+    {
+        $statement = $this->pdo->prepare(
+            'INSERT INTO products (
+                name, category, price, original_price, image, description, rating, reviews, sizes, colors, featured, created_at, updated_at
+            ) VALUES (
+                :name, :category, :price, :original_price, :image, :description, :rating, :reviews, :sizes, :colors, :featured, NOW(), NOW()
+            )'
+        );
+        $statement->execute($this->persistedProduct($payload));
+
+        return $this->find((int) $this->pdo->lastInsertId());
+    }
+
+    public function update(int $id, array $payload): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'UPDATE products SET
+                name = :name,
+                category = :category,
+                price = :price,
+                original_price = :original_price,
+                image = :image,
+                description = :description,
+                rating = :rating,
+                reviews = :reviews,
+                sizes = :sizes,
+                colors = :colors,
+                featured = :featured,
+                updated_at = NOW()
+            WHERE id = :id'
+        );
+
+        $statement->execute([
+            'id' => $id,
+            ...$this->persistedProduct($payload),
+        ]);
+
+        return $this->find($id);
+    }
+
+    public function delete(int $id): bool
+    {
+        $statement = $this->pdo->prepare('DELETE FROM products WHERE id = :id');
+        $statement->execute(['id' => $id]);
+
+        return $statement->rowCount() > 0;
+    }
+
     private function mapProduct(array $product): array
     {
         $product['id'] = (int) $product['id'];
@@ -92,5 +142,26 @@ final class ProductRepository
             'newest' => 'ORDER BY created_at DESC, id DESC',
             default => 'ORDER BY featured DESC, id DESC',
         };
+    }
+
+    private function persistedProduct(array $payload): array
+    {
+        try {
+            return [
+                'name' => $payload['name'],
+                'category' => $payload['category'],
+                'price' => $payload['price'],
+                'original_price' => $payload['originalPrice'],
+                'image' => $payload['image'],
+                'description' => $payload['description'],
+                'rating' => $payload['rating'],
+                'reviews' => $payload['reviews'],
+                'sizes' => json_encode($payload['sizes'], JSON_THROW_ON_ERROR),
+                'colors' => json_encode($payload['colors'], JSON_THROW_ON_ERROR),
+                'featured' => $payload['featured'] ? 1 : 0,
+            ];
+        } catch (JsonException $exception) {
+            throw new \RuntimeException('Invalid product sizes or colors payload.', 422, $exception);
+        }
     }
 }

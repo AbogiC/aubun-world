@@ -11,6 +11,8 @@ use RuntimeException;
 
 final class AuthController
 {
+    private const ALLOWED_ROLES = ['customer', 'manager', 'admin'];
+
     public function __construct(
         private readonly UserRepository $users,
         private readonly AuthService $auth
@@ -22,16 +24,21 @@ final class AuthController
         $name = trim((string) $request->input('name'));
         $email = strtolower(trim((string) $request->input('email')));
         $password = (string) $request->input('password');
+        $role = strtolower(trim((string) ($request->input('role') ?? 'customer')));
 
         if ($name === '' || $email === '' || $password === '') {
             throw new RuntimeException('Name, email, and password are required.', 422);
+        }
+
+        if (!in_array($role, self::ALLOWED_ROLES, true)) {
+            throw new RuntimeException('Role must be one of: customer, manager, admin.', 422);
         }
 
         if ($this->users->findByEmail($email)) {
             throw new RuntimeException('Email address is already registered.', 409);
         }
 
-        $user = $this->users->create($name, $email, password_hash($password, PASSWORD_DEFAULT));
+        $user = $this->users->create($name, $email, password_hash($password, PASSWORD_DEFAULT), $role);
         $token = $this->auth->issueToken((int) $user['id'], $user['email']);
 
         return [

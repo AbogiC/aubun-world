@@ -13,6 +13,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Router;
 use App\Middleware\AuthMiddleware;
+use App\Middleware\RoleMiddleware;
 use App\Repositories\CartRepository;
 use App\Repositories\OrderRepository;
 use App\Repositories\ProductRepository;
@@ -67,6 +68,7 @@ $categoryController = new CategoryController($productRepository);
 $cartController = new CartController($cartRepository);
 $orderController = new OrderController($orderRepository, $cartRepository);
 $authMiddleware = new AuthMiddleware($authService, $userRepository);
+$managerRoleMiddleware = new RoleMiddleware(['manager', 'admin']);
 
 $router = new Router();
 
@@ -76,6 +78,9 @@ $router->get('/api/auth/me', [$authController, 'me'], [$authMiddleware]);
 
 $router->get('/api/products', [$productController, 'index']);
 $router->get('/api/products/{id}', [$productController, 'show']);
+$router->post('/api/products', [$productController, 'store'], [$authMiddleware, $managerRoleMiddleware]);
+$router->patch('/api/products/{id}', [$productController, 'update'], [$authMiddleware, $managerRoleMiddleware]);
+$router->delete('/api/products/{id}', [$productController, 'destroy'], [$authMiddleware, $managerRoleMiddleware]);
 $router->get('/api/categories', [$categoryController, 'index']);
 
 $router->get('/api/cart', [$cartController, 'show'], [$authMiddleware]);

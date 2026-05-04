@@ -50,6 +50,9 @@
           <li class="nav-item">
             <router-link to="/about" class="nav-link">About</router-link>
           </li>
+          <li v-if="canManageProducts" class="nav-item">
+            <router-link to="/dashboard" class="nav-link">Dashboard</router-link>
+          </li>
         </ul>
 
         <div class="d-flex align-items-center gap-3">
@@ -89,6 +92,9 @@ const cartStore = useCartStore();
 const authStore = useAuthStore();
 const router = useRouter();
 const userLabel = computed(() => authStore.user?.name?.split(" ")[0] || "Account");
+const canManageProducts = computed(() =>
+  ["manager", "admin"].includes(authStore.user?.role || ""),
+);
 
 const goToBag = () => {
   if (!authStore.isAuthenticated) {

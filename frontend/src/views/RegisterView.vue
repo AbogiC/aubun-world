@@ -22,6 +22,15 @@
               </div>
 
               <div class="mb-4">
+                <label class="form-label">Role</label>
+                <select v-model="form.role" class="form-select form-select-lg" required>
+                  <option value="customer">Customer</option>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div class="mb-4">
                 <label class="form-label">Password</label>
                 <input
                   v-model="form.password"
@@ -62,6 +71,7 @@ const errorMessage = ref("");
 const form = reactive({
   name: "",
   email: "",
+  role: "customer",
   password: "",
 });
 
