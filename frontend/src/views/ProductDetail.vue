@@ -11,15 +11,11 @@
 
       <div class="row">
         <div class="col-lg-6 mb-4">
-          <div
-            class="product-image surface d-flex align-items-center justify-content-center subtle-glow"
-            style="height: 600px"
-          >
-            <div class="text-center">
-              <i class="bi bi-bag-heart text-muted" style="font-size: 6rem"></i>
-              <p class="text-muted mt-3 text-uppercase letter-space">{{ product.name }}</p>
-            </div>
-          </div>
+          <img
+            :src="product.image"
+            :alt="product.name"
+            class="product-image surface subtle-glow"
+          />
         </div>
 
         <div class="col-lg-6">
@@ -222,6 +218,10 @@ const addToCart = () => {
 }
 
 .product-image {
+  display: block;
+  width: 100%;
+  height: 600px;
+  object-fit: cover;
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(236, 236, 234, 0.88)),
     radial-gradient(circle at top right, rgba(0, 0, 0, 0.08), transparent 35%);

@@ -2,12 +2,7 @@
   <div class="col-md-6 col-lg-3 mb-4 fade-in-up">
     <div class="product-card hover-lift" @click="$router.push(`/product/${product.id}`)">
       <div class="product-image-wrapper position-relative overflow-hidden">
-        <div class="product-image d-flex align-items-center justify-content-center" style="height: 400px">
-          <div class="text-center">
-            <i class="bi bi-box-seam text-muted" style="font-size: 4.5rem"></i>
-            <p class="text-muted mt-3">{{ product.name }}</p>
-          </div>
-        </div>
+        <img :src="product.image" :alt="product.name" class="product-image" />
 
         <div class="product-actions position-absolute top-0 end-0 p-3">
           <button class="btn btn-luxury btn-sm rounded-circle mb-2 action-btn" @click.stop="quickAdd">
@@ -104,17 +99,13 @@ const quickAdd = () => {
 }
 
 .product-image {
+  display: block;
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
   background:
     linear-gradient(135deg, rgba(12, 12, 13, 0.96), rgba(46, 46, 48, 0.82)),
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.1), transparent 40%);
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.product-image p {
-  color: rgba(255, 255, 255, 0.72) !important;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-size: 0.72rem;
 }
 
 .action-btn {

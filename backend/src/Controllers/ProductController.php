@@ -4,15 +4,22 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Response;
 use App\Core\Request;
 use App\Repositories\ProductRepository;
+use finfo;
 use RuntimeException;
 
 final class ProductController
 {
     private const MANAGER_ROLES = ['manager', 'admin'];
+    private const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    private const MAX_IMAGE_BYTES = 5_242_880;
 
-    public function __construct(private readonly ProductRepository $products)
+    public function __construct(
+        private readonly ProductRepository $products,
+        private readonly string $productImageDirectory
+    )
     {
     }
 
@@ -78,6 +85,74 @@ final class ProductController
         return [
             'message' => 'Product deleted successfully.',
         ];
+    }
+
+    public function uploadImage(Request $request): array
+    {
+        $this->assertManagerAccess($request);
+
+        $file = $request->file('image');
+
+        if (!$file || !isset($file['tmp_name'], $file['name'], $file['error'], $file['size'])) {
+            throw new RuntimeException('Product image is required.', 422);
+        }
+
+        if ((int) $file['error'] !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('Image upload failed.', 422);
+        }
+
+        if ((int) $file['size'] > self::MAX_IMAGE_BYTES) {
+            throw new RuntimeException('Image must be 5 MB or smaller.', 422);
+        }
+
+        $extension = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
+
+        if (!in_array($extension, self::ALLOWED_IMAGE_EXTENSIONS, true)) {
+            throw new RuntimeException('Only JPG, JPEG, PNG, WEBP, and GIF images are allowed.', 422);
+        }
+
+        $mimeType = $this->detectMimeType((string) $file['tmp_name']);
+
+        if (!str_starts_with($mimeType, 'image/')) {
+            throw new RuntimeException('Uploaded file must be an image.', 422);
+        }
+
+        if (
+            !is_dir($this->productImageDirectory)
+            && !mkdir($this->productImageDirectory, 0775, true)
+            && !is_dir($this->productImageDirectory)
+        ) {
+            throw new RuntimeException('Unable to create product image directory.', 500);
+        }
+
+        $filename = sprintf('%s.%s', bin2hex(random_bytes(16)), $extension);
+        $destination = $this->productImageDirectory . DIRECTORY_SEPARATOR . $filename;
+
+        if (!move_uploaded_file((string) $file['tmp_name'], $destination)) {
+            throw new RuntimeException('Unable to store uploaded image.', 500);
+        }
+
+        return [
+            'message' => 'Image uploaded successfully.',
+            'image' => [
+                'filename' => $filename,
+                'url' => '/api/product-images/' . rawurlencode($filename),
+            ],
+            'status' => 201,
+        ];
+    }
+
+    public function image(Request $request): never
+    {
+        $filename = basename((string) $request->attribute('filename'));
+        $path = $this->productImageDirectory . DIRECTORY_SEPARATOR . $filename;
+
+        if (!is_file($path)) {
+            throw new RuntimeException('Image not found.', 404);
+        }
+
+        Response::file($path, $this->detectMimeType($path));
+        exit;
     }
 
     private function assertManagerAccess(Request $request): void
@@ -157,5 +232,13 @@ final class ProductController
             static fn (mixed $value): string => trim((string) $value),
             $values
         )));
+    }
+
+    private function detectMimeType(string $path): string
+    {
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($path) ?: 'application/octet-stream';
+
+        return (string) $mimeType;
     }
 }

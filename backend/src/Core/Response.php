@@ -12,4 +12,12 @@ final class Response
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($body, JSON_UNESCAPED_SLASHES);
     }
+
+    public static function file(string $path, string $contentType): void
+    {
+        http_response_code(200);
+        header('Content-Type: ' . $contentType);
+        header('Content-Length: ' . (string) filesize($path));
+        readfile($path);
+    }
 }

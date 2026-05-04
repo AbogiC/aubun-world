@@ -59,11 +59,12 @@ $pdo = $database->connection();
 $authService = new AuthService($config['app']['key']);
 $userRepository = new UserRepository($pdo);
 $productRepository = new ProductRepository($pdo);
+$productImageDirectory = dirname(__DIR__) . '/store/products/image';
 $cartRepository = new CartRepository($pdo, $productRepository);
 $orderRepository = new OrderRepository($pdo);
 
 $authController = new AuthController($userRepository, $authService);
-$productController = new ProductController($productRepository);
+$productController = new ProductController($productRepository, $productImageDirectory);
 $categoryController = new CategoryController($productRepository);
 $cartController = new CartController($cartRepository);
 $orderController = new OrderController($orderRepository, $cartRepository);
@@ -78,6 +79,8 @@ $router->get('/api/auth/me', [$authController, 'me'], [$authMiddleware]);
 
 $router->get('/api/products', [$productController, 'index']);
 $router->get('/api/products/{id}', [$productController, 'show']);
+$router->get('/api/product-images/{filename}', [$productController, 'image']);
+$router->post('/api/products/upload-image', [$productController, 'uploadImage'], [$authMiddleware, $managerRoleMiddleware]);
 $router->post('/api/products', [$productController, 'store'], [$authMiddleware, $managerRoleMiddleware]);
 $router->patch('/api/products/{id}', [$productController, 'update'], [$authMiddleware, $managerRoleMiddleware]);
 $router->delete('/api/products/{id}', [$productController, 'destroy'], [$authMiddleware, $managerRoleMiddleware]);

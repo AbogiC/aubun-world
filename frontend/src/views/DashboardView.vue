@@ -63,8 +63,15 @@
                 </div>
 
                 <div class="col-md-6">
-                  <label class="form-label">Image URL</label>
-                  <input v-model="form.image" type="url" class="form-control" required />
+                  <label class="form-label">Product Photo</label>
+                  <input
+                    type="file"
+                    class="form-control"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    :disabled="uploadingImage"
+                    @change="handleImageChange"
+                  />
+                  <div class="form-text">Upload JPG, PNG, WEBP, or GIF up to 5 MB.</div>
                 </div>
 
                 <div class="col-md-6">
@@ -95,6 +102,18 @@
                 <div class="col-md-6">
                   <label class="form-label">Colors</label>
                   <input v-model="form.colors" type="text" class="form-control" placeholder="Black, White, Gray" required />
+                </div>
+
+                <div class="col-12">
+                  <div v-if="form.image" class="image-preview">
+                    <img :src="form.image" alt="Product preview" class="image-preview__img" />
+                    <button type="button" class="btn btn-outline-dark btn-sm" @click="clearImage">
+                      Remove Image
+                    </button>
+                  </div>
+                  <div v-else class="image-preview image-preview--empty">
+                    Product image preview will appear here after upload.
+                  </div>
                 </div>
 
                 <div class="col-12">
@@ -209,6 +228,7 @@ const saving = ref(false);
 const deletingId = ref(null);
 const editingProductId = ref(null);
 const search = ref("");
+const uploadingImage = ref(false);
 const feedback = reactive({
   type: "success",
   message: "",
@@ -260,6 +280,10 @@ const serializeList = (value) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const clearImage = () => {
+  form.image = "";
+};
+
 const hydrateForm = (product) => {
   Object.assign(form, {
     name: product.name,
@@ -283,6 +307,33 @@ const fetchProducts = async () => {
     await productsStore.fetchProducts();
   } finally {
     loading.value = false;
+  }
+};
+
+const handleImageChange = async (event) => {
+  const file = event.target.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  uploadingImage.value = true;
+  feedback.message = "";
+
+  try {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const { image } = await api.post("/products/upload-image", formData);
+    form.image = image.url;
+    feedback.type = "success";
+    feedback.message = "Image uploaded successfully.";
+  } catch (error) {
+    feedback.type = "error";
+    feedback.message = error.message;
+  } finally {
+    uploadingImage.value = false;
+    event.target.value = "";
   }
 };
 
@@ -392,6 +443,32 @@ onMounted(fetchProducts);
   color: var(--ink-muted);
 }
 
+.image-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px dashed rgba(11, 11, 12, 0.18);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.image-preview--empty {
+  justify-content: center;
+  color: var(--ink-muted);
+  min-height: 120px;
+  text-align: center;
+}
+
+.image-preview__img {
+  width: 96px;
+  height: 112px;
+  object-fit: cover;
+  border-radius: 0.9rem;
+  background: rgba(11, 11, 12, 0.06);
+}
+
 .search-input {
   min-width: 260px;
   padding-left: 2.5rem;
@@ -451,6 +528,16 @@ onMounted(fetchProducts);
 @media (max-width: 767px) {
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .image-preview {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .image-preview__img {
+    width: 100%;
+    height: 240px;
   }
 
   .search-input {

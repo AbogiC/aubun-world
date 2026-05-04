@@ -40,3 +40,5 @@ __screenshots__/
 
 .env
 .env.example
+backend/store/products/image/*
+!backend/store/products/image/.gitkeep

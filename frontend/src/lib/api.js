@@ -1,6 +1,20 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 const TOKEN_KEY = "aubun_auth_token";
 
+export function resolveAssetUrl(path) {
+  if (!path) return "";
+
+  if (/^https?:\/\//i.test(path) || path.startsWith("data:")) {
+    return path;
+  }
+
+  if (path.startsWith("//")) {
+    return `${window.location.protocol}${path}`;
+  }
+
+  return new URL(path, window.location.origin).toString();
+}
+
 export function getAuthToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -17,9 +31,12 @@ export function setAuthToken(token) {
 async function request(path, options = {}) {
   const token = getAuthToken();
   const headers = {
-    "Content-Type": "application/json",
     ...(options.headers || {}),
   };
+
+  if (!(options.body instanceof FormData) && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -47,7 +64,7 @@ export const api = {
   post: (path, body) =>
     request(path, {
       method: "POST",
-      body: JSON.stringify(body),
+      body: body instanceof FormData ? body : JSON.stringify(body),
     }),
   patch: (path, body) =>
     request(path, {

@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { api } from "../lib/api";
+import { api, resolveAssetUrl } from "../lib/api";
 
 export const useProductsStore = defineStore("products", {
   state: () => ({
@@ -38,7 +38,10 @@ export const useProductsStore = defineStore("products", {
           api.get("/categories"),
         ]);
 
-        this.products = products;
+        this.products = products.map((product) => ({
+          ...product,
+          image: resolveAssetUrl(product.image),
+        }));
         this.categories = categories;
         this.loaded = true;
       } catch (error) {
