@@ -35,9 +35,9 @@ final class CartRepository
         ];
     }
 
-    public function upsertItem(int $userId, array $payload): void
+    public function upsertItem(int $userId, array $payload, ?string $customerCountry = null): void
     {
-        $product = $this->products->find((int) $payload['product_id']);
+        $product = $this->products->find((int) $payload['product_id'], $customerCountry);
 
         if (!$product) {
             throw new RuntimeException('Product not found.', 404);

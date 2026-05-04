@@ -27,7 +27,7 @@ final class CartController
             'quantity' => (int) $request->input('quantity', 1),
             'size' => (string) $request->input('size'),
             'color' => (string) $request->input('color'),
-        ]);
+        ], $this->normalizedCountry($request->header('X-Customer-Country')));
 
         return $this->carts->cartPayload($userId);
     }
@@ -62,5 +62,12 @@ final class CartController
         $this->carts->clear($userId);
 
         return $this->carts->cartPayload($userId);
+    }
+
+    private function normalizedCountry(?string $country): ?string
+    {
+        $value = trim((string) $country);
+
+        return $value !== '' ? $value : null;
     }
 }

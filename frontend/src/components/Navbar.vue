@@ -2,10 +2,11 @@
   <nav class="navbar navbar-expand-lg luxury-navbar sticky-top">
     <div class="container">
       <router-link to="/" class="navbar-brand">
-        <span class="brand-text">NOIR ELEGANCE</span>
+        <span class="brand-text">AUBUN WORLD</span>
       </router-link>
 
       <button
+        ref="togglerButton"
         class="navbar-toggler border-0"
         type="button"
         data-bs-toggle="collapse"
@@ -14,44 +15,23 @@
         <span class="navbar-toggler-icon"></span>
       </button>
 
-      <div class="collapse navbar-collapse" id="navbarNav">
+      <div ref="collapseElement" class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mx-auto">
           <li class="nav-item">
-            <router-link to="/" class="nav-link">Home</router-link>
+            <router-link to="/" class="nav-link" @click="closeNavbarMenu">Home</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/products" class="nav-link">Collection</router-link>
-          </li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-              Categories
-            </a>
-            <ul class="dropdown-menu">
-              <li><router-link to="/products" class="dropdown-item">All Products</router-link></li>
-              <li><hr class="dropdown-divider" /></li>
-              <li>
-                <router-link to="/products?category=Dresses" class="dropdown-item">
-                  Dresses
-                </router-link>
-              </li>
-              <li>
-                <router-link to="/products?category=Outerwear" class="dropdown-item">
-                  Outerwear
-                </router-link>
-              </li>
-              <li>
-                <router-link to="/products?category=Pants" class="dropdown-item">Pants</router-link>
-              </li>
-              <li>
-                <router-link to="/products?category=Shirts" class="dropdown-item">Shirts</router-link>
-              </li>
-            </ul>
+            <router-link to="/products" class="nav-link" @click="closeNavbarMenu"
+              >Collection</router-link
+            >
           </li>
           <li class="nav-item">
-            <router-link to="/about" class="nav-link">About</router-link>
+            <router-link to="/about" class="nav-link" @click="closeNavbarMenu">About</router-link>
           </li>
           <li v-if="canManageProducts" class="nav-item">
-            <router-link to="/dashboard" class="nav-link">Dashboard</router-link>
+            <router-link to="/dashboard" class="nav-link" @click="closeNavbarMenu"
+              >Dashboard</router-link
+            >
           </li>
         </ul>
 
@@ -62,7 +42,6 @@
           </template>
           <template v-else>
             <router-link to="/login" class="btn btn-outline-dark btn-sm px-3">Login</router-link>
-            <router-link to="/register" class="btn btn-luxury btn-sm px-3">Register</router-link>
           </template>
           <button
             class="btn btn-luxury btn-sm d-flex align-items-center justify-content-center position-relative nav-bag-btn"
@@ -83,7 +62,8 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { Collapse } from "bootstrap";
 import { useRouter } from "vue-router";
 import { useCartStore } from "../stores/cart";
 import { useAuthStore } from "../stores/auth";
@@ -91,10 +71,24 @@ import { useAuthStore } from "../stores/auth";
 const cartStore = useCartStore();
 const authStore = useAuthStore();
 const router = useRouter();
+const collapseElement = ref(null);
+const togglerButton = ref(null);
 const userLabel = computed(() => authStore.user?.name?.split(" ")[0] || "Account");
-const canManageProducts = computed(() =>
-  ["manager", "admin"].includes(authStore.user?.role || ""),
-);
+const canManageProducts = computed(() => ["manager", "admin"].includes(authStore.user?.role || ""));
+
+const closeNavbarMenu = () => {
+  if (!collapseElement.value || !togglerButton.value) {
+    return;
+  }
+
+  const togglerVisible = window.getComputedStyle(togglerButton.value).display !== "none";
+
+  if (!togglerVisible || !collapseElement.value.classList.contains("show")) {
+    return;
+  }
+
+  Collapse.getOrCreateInstance(collapseElement.value).hide();
+};
 
 const goToBag = () => {
   if (!authStore.isAuthenticated) {
@@ -120,10 +114,7 @@ const logout = () => {
 }
 
 .brand-text {
-  font-family:
-    Georgia,
-    "Times New Roman",
-    serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.55rem;
   font-weight: 700;
   letter-spacing: 0.28em;

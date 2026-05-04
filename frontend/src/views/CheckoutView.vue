@@ -8,6 +8,33 @@
             <h1 class="mb-4">Complete Your Order</h1>
 
             <form @submit.prevent="placeOrder">
+              <div class="location-panel surface-subtle p-3 p-md-4 mb-4">
+                <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center">
+                  <div>
+                    <h2 class="h5 mb-2">Use your current location</h2>
+                    <p class="text-muted mb-0">
+                      Allow location access to auto-fill your shipping city, country, and postal code.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-outline-dark align-self-start align-self-md-center"
+                    :disabled="locating"
+                    @click="requestLocation"
+                  >
+                    {{ locating ? "Detecting..." : "Use My Location" }}
+                  </button>
+                </div>
+
+                <div
+                  v-if="locationMessage"
+                  class="alert mb-0 mt-3"
+                  :class="locationAlertClass"
+                >
+                  {{ locationMessage }}
+                </div>
+              </div>
+
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">First Name</label>
@@ -97,6 +124,7 @@
 <script setup>
 import { computed, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
+import { getBrowserLocation, lookupLocationByIp, reverseGeocode } from "../lib/location";
 import { useAuthStore } from "../stores/auth";
 import { useCartStore } from "../stores/cart";
 
@@ -105,6 +133,9 @@ const authStore = useAuthStore();
 const cartStore = useCartStore();
 const submitting = ref(false);
 const errorMessage = ref("");
+const locating = ref(false);
+const locationMessage = ref("Your browser can ask permission to detect your current area.");
+const locationAlertClass = ref("alert-secondary");
 const form = reactive({
   firstName: authStore.user?.name?.split(" ")[0] || "",
   lastName: authStore.user?.name?.split(" ").slice(1).join(" ") || "",
@@ -118,6 +149,69 @@ const form = reactive({
 const totalWithShipping = computed(() =>
   cartStore.total + (cartStore.subtotal > 500 ? 0 : 25),
 );
+
+const applyLocationToForm = (location) => {
+  if (!form.address && location.address) {
+    form.address = location.address;
+  }
+
+  if (location.city) {
+    form.city = location.city;
+  }
+
+  if (location.country) {
+    form.country = location.country;
+  }
+
+  if (location.postalCode) {
+    form.postalCode = location.postalCode;
+  }
+};
+
+const fillFromIpFallback = async (message) => {
+  const location = await lookupLocationByIp();
+  applyLocationToForm(location);
+  locationAlertClass.value = "alert-warning";
+  locationMessage.value =
+    message || "We used your IP address to estimate your area. Please review the shipping details.";
+};
+
+const requestLocation = async () => {
+  locating.value = true;
+  locationAlertClass.value = "alert-secondary";
+  locationMessage.value = "Waiting for your browser location permission...";
+
+  try {
+    const position = await getBrowserLocation();
+    const location = await reverseGeocode(
+      position.coords.latitude,
+      position.coords.longitude,
+    );
+
+    applyLocationToForm(location);
+    locationAlertClass.value = "alert-success";
+    locationMessage.value =
+      "Location access granted. We filled the available shipping details from your current area.";
+  } catch (error) {
+    const deniedPermission =
+      error?.code === 1 ||
+      /denied|permission/i.test(error?.message || "");
+
+    try {
+      await fillFromIpFallback(
+        deniedPermission
+          ? "Precise location was not allowed, so we estimated your area from your IP address."
+          : "We could not get your precise location, so we estimated your area from your IP address.",
+      );
+    } catch {
+      locationAlertClass.value = "alert-danger";
+      locationMessage.value =
+        "Location lookup is unavailable right now. You can still enter the shipping address manually.";
+    }
+  } finally {
+    locating.value = false;
+  }
+};
 
 const placeOrder = async () => {
   if (!cartStore.items.length) {
@@ -139,3 +233,11 @@ const placeOrder = async () => {
   }
 };
 </script>
+
+<style scoped>
+.location-panel {
+  border: 1px solid rgba(11, 11, 12, 0.08);
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(11, 11, 12, 0.03), rgba(188, 154, 109, 0.08));
+}
+</style>

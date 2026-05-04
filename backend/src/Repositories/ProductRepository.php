@@ -6,6 +6,8 @@ namespace App\Repositories;
 
 use JsonException;
 use PDO;
+use RuntimeException;
+use Throwable;
 
 final class ProductRepository
 {
@@ -13,7 +15,7 @@ final class ProductRepository
     {
     }
 
-    public function all(array $filters = []): array
+    public function all(array $filters = [], ?string $customerCountry = null): array
     {
         $conditions = [];
         $params = [];
@@ -49,16 +51,26 @@ final class ProductRepository
         $statement = $this->pdo->prepare($sql);
         $statement->execute($params);
 
-        return array_map([$this, 'mapProduct'], $statement->fetchAll());
+        return $this->mapProducts($statement->fetchAll(), $customerCountry);
     }
 
-    public function find(int $id): ?array
+    public function find(int $id, ?string $customerCountry = null): ?array
     {
         $statement = $this->pdo->prepare('SELECT * FROM products WHERE id = :id LIMIT 1');
         $statement->execute(['id' => $id]);
         $product = $statement->fetch();
 
-        return $product ? $this->mapProduct($product) : null;
+        if (!$product) {
+            return null;
+        }
+
+        $countryPrices = $this->countryPricesByProductIds([(int) $product['id']]);
+
+        return $this->mapProduct(
+            $product,
+            $countryPrices[(int) $product['id']] ?? [],
+            $customerCountry
+        );
     }
 
     public function categories(): array
@@ -70,43 +82,70 @@ final class ProductRepository
 
     public function create(array $payload): array
     {
-        $statement = $this->pdo->prepare(
-            'INSERT INTO products (
-                name, category, price, original_price, image, description, rating, reviews, sizes, colors, featured, created_at, updated_at
-            ) VALUES (
-                :name, :category, :price, :original_price, :image, :description, :rating, :reviews, :sizes, :colors, :featured, NOW(), NOW()
-            )'
-        );
-        $statement->execute($this->persistedProduct($payload));
+        try {
+            $this->pdo->beginTransaction();
 
-        return $this->find((int) $this->pdo->lastInsertId());
+            $statement = $this->pdo->prepare(
+                'INSERT INTO products (
+                    name, category, price, original_price, image, description, rating, reviews, sizes, colors, featured, created_at, updated_at
+                ) VALUES (
+                    :name, :category, :price, :original_price, :image, :description, :rating, :reviews, :sizes, :colors, :featured, NOW(), NOW()
+                )'
+            );
+            $statement->execute($this->persistedProduct($payload));
+
+            $productId = (int) $this->pdo->lastInsertId();
+            $this->replaceCountryPrices($productId, $payload['countryPrices'] ?? []);
+            $this->pdo->commit();
+
+            return $this->find($productId);
+        } catch (Throwable $exception) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            throw $exception;
+        }
     }
 
     public function update(int $id, array $payload): ?array
     {
-        $statement = $this->pdo->prepare(
-            'UPDATE products SET
-                name = :name,
-                category = :category,
-                price = :price,
-                original_price = :original_price,
-                image = :image,
-                description = :description,
-                rating = :rating,
-                reviews = :reviews,
-                sizes = :sizes,
-                colors = :colors,
-                featured = :featured,
-                updated_at = NOW()
-            WHERE id = :id'
-        );
+        try {
+            $this->pdo->beginTransaction();
 
-        $statement->execute([
-            'id' => $id,
-            ...$this->persistedProduct($payload),
-        ]);
+            $statement = $this->pdo->prepare(
+                'UPDATE products SET
+                    name = :name,
+                    category = :category,
+                    price = :price,
+                    original_price = :original_price,
+                    image = :image,
+                    description = :description,
+                    rating = :rating,
+                    reviews = :reviews,
+                    sizes = :sizes,
+                    colors = :colors,
+                    featured = :featured,
+                    updated_at = NOW()
+                WHERE id = :id'
+            );
 
-        return $this->find($id);
+            $statement->execute([
+                'id' => $id,
+                ...$this->persistedProduct($payload),
+            ]);
+
+            $this->replaceCountryPrices($id, $payload['countryPrices'] ?? []);
+            $this->pdo->commit();
+
+            return $this->find($id);
+        } catch (Throwable $exception) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            throw $exception;
+        }
     }
 
     public function delete(int $id): bool
@@ -117,10 +156,30 @@ final class ProductRepository
         return $statement->rowCount() > 0;
     }
 
-    private function mapProduct(array $product): array
+    private function mapProducts(array $products, ?string $customerCountry = null): array
+    {
+        $productIds = array_map(
+            static fn (array $product): int => (int) $product['id'],
+            $products
+        );
+        $countryPrices = $this->countryPricesByProductIds($productIds);
+
+        return array_map(
+            fn (array $product): array => $this->mapProduct(
+                $product,
+                $countryPrices[(int) $product['id']] ?? [],
+                $customerCountry
+            ),
+            $products
+        );
+    }
+
+    private function mapProduct(array $product, array $countryPrices = [], ?string $customerCountry = null): array
     {
         $product['id'] = (int) $product['id'];
-        $product['price'] = (float) $product['price'];
+        $product['basePrice'] = (float) $product['price'];
+        $product['countryPrices'] = $countryPrices;
+        $product['price'] = $this->effectivePrice($product['basePrice'], $countryPrices, $customerCountry);
         $product['originalPrice'] = $product['original_price'] !== null ? (float) $product['original_price'] : null;
         $product['rating'] = (float) $product['rating'];
         $product['reviews'] = (int) $product['reviews'];
@@ -161,7 +220,74 @@ final class ProductRepository
                 'featured' => $payload['featured'] ? 1 : 0,
             ];
         } catch (JsonException $exception) {
-            throw new \RuntimeException('Invalid product sizes or colors payload.', 422, $exception);
+            throw new RuntimeException('Invalid product sizes or colors payload.', 422, $exception);
         }
+    }
+
+    private function replaceCountryPrices(int $productId, array $countryPrices): void
+    {
+        $delete = $this->pdo->prepare('DELETE FROM price_country WHERE product_id = :product_id');
+        $delete->execute(['product_id' => $productId]);
+
+        if ($countryPrices === []) {
+            return;
+        }
+
+        $insert = $this->pdo->prepare(
+            'INSERT INTO price_country (product_id, country_name, price, created_at, updated_at)
+             VALUES (:product_id, :country_name, :price, NOW(), NOW())'
+        );
+
+        foreach ($countryPrices as $entry) {
+            $insert->execute([
+                'product_id' => $productId,
+                'country_name' => $entry['countryName'],
+                'price' => $entry['price'],
+            ]);
+        }
+    }
+
+    private function countryPricesByProductIds(array $productIds): array
+    {
+        if ($productIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($productIds), '?'));
+        $statement = $this->pdo->prepare(
+            "SELECT product_id, country_name, price
+             FROM price_country
+             WHERE product_id IN ($placeholders)
+             ORDER BY country_name ASC"
+        );
+        $statement->execute($productIds);
+
+        $grouped = [];
+
+        foreach ($statement->fetchAll() as $row) {
+            $productId = (int) $row['product_id'];
+            $grouped[$productId] ??= [];
+            $grouped[$productId][] = [
+                'countryName' => $row['country_name'],
+                'price' => (float) $row['price'],
+            ];
+        }
+
+        return $grouped;
+    }
+
+    private function effectivePrice(float $basePrice, array $countryPrices, ?string $customerCountry): float
+    {
+        if ($customerCountry === null) {
+            return $basePrice;
+        }
+
+        foreach ($countryPrices as $entry) {
+            if (strcasecmp((string) $entry['countryName'], $customerCountry) === 0) {
+                return (float) $entry['price'];
+            }
+        }
+
+        return $basePrice;
     }
 }

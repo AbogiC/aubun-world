@@ -25,6 +25,8 @@ final class ProductController
 
     public function index(Request $request): array
     {
+        $country = $this->normalizedCountry($request->header('X-Customer-Country'));
+
         return [
             'products' => $this->products->all([
                 'category' => $request->queryParam('category'),
@@ -32,13 +34,16 @@ final class ProductController
                 'min_price' => $request->queryParam('min_price'),
                 'max_price' => $request->queryParam('max_price'),
                 'sort' => $request->queryParam('sort'),
-            ]),
+            ], $country),
         ];
     }
 
     public function show(Request $request): array
     {
-        $product = $this->products->find((int) $request->attribute('id'));
+        $product = $this->products->find(
+            (int) $request->attribute('id'),
+            $this->normalizedCountry($request->header('X-Customer-Country'))
+        );
 
         if (!$product) {
             throw new RuntimeException('Product not found.', 404);
@@ -178,6 +183,7 @@ final class ProductController
         $rating = (float) $request->input('rating', 0);
         $reviews = (int) $request->input('reviews', 0);
         $featured = (bool) $request->input('featured', false);
+        $countryPrices = $this->normalizedCountryPrices($request->input('countryPrices', []));
 
         if ($name === '' || $category === '' || $image === '' || $description === '') {
             throw new RuntimeException('Name, category, image, and description are required.', 422);
@@ -219,6 +225,7 @@ final class ProductController
             'sizes' => $sizes,
             'colors' => $colors,
             'featured' => $featured,
+            'countryPrices' => $countryPrices,
         ];
     }
 
@@ -240,5 +247,63 @@ final class ProductController
         $mimeType = $finfo->file($path) ?: 'application/octet-stream';
 
         return (string) $mimeType;
+    }
+
+    private function normalizedCountryPrices(mixed $values): array
+    {
+        if (!is_array($values)) {
+            return [];
+        }
+
+        $countryPrices = [];
+        $seenCountries = [];
+
+        foreach ($values as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $countryName = trim((string) ($entry['countryName'] ?? ''));
+            $priceValue = $entry['price'] ?? null;
+
+            if ($countryName === '' && ($priceValue === null || $priceValue === '')) {
+                continue;
+            }
+
+            if ($countryName === '') {
+                throw new RuntimeException('Country name is required for country-based pricing.', 422);
+            }
+
+            if ($priceValue === null || $priceValue === '') {
+                throw new RuntimeException('Country-based price is required.', 422);
+            }
+
+            $normalizedKey = strtolower($countryName);
+
+            if (isset($seenCountries[$normalizedKey])) {
+                throw new RuntimeException('Each country can only be added once per product.', 422);
+            }
+
+            $price = (float) $priceValue;
+
+            if ($price <= 0) {
+                throw new RuntimeException('Country-based price must be greater than zero.', 422);
+            }
+
+            $countryPrices[] = [
+                'countryName' => $countryName,
+                'price' => $price,
+            ];
+            $seenCountries[$normalizedKey] = true;
+        }
+
+        return $countryPrices;
+    }
+
+    private function normalizedCountry(?string $country): ?string
+    {
+        $value = trim((string) $country);
+
+        return $value !== '' ? $value : null;
     }
 }

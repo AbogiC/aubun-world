@@ -3,7 +3,7 @@
     <div class="container">
       <div class="row">
         <div class="col-lg-4 mb-4">
-          <h3 class="brand-text mb-3">NOIR ELEGANCE</h3>
+          <h3 class="brand-text mb-3">AUBUN WORLD</h3>
           <p class="opacity-75">
             Crafting timeless elegance through exceptional design and unparalleled quality since
             2010.
@@ -98,15 +98,14 @@
 }
 
 .brand-text {
-  font-family:
-    Georgia,
-    "Times New Roman",
-    serif;
+  font-family: Georgia, "Times New Roman", serif;
   letter-spacing: 0.2em;
 }
 
 .luxury-footer a {
-  transition: opacity 220ms ease, transform 220ms ease;
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
 }
 
 .luxury-footer a:hover {

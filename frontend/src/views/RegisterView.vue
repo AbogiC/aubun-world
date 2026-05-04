@@ -13,21 +13,22 @@
             <form @submit.prevent="submit">
               <div class="mb-3">
                 <label class="form-label">Full Name</label>
-                <input v-model="form.name" type="text" class="form-control form-control-lg" required />
+                <input
+                  v-model="form.name"
+                  type="text"
+                  class="form-control form-control-lg"
+                  required
+                />
               </div>
 
               <div class="mb-3">
                 <label class="form-label">Email Address</label>
-                <input v-model="form.email" type="email" class="form-control form-control-lg" required />
-              </div>
-
-              <div class="mb-4">
-                <label class="form-label">Role</label>
-                <select v-model="form.role" class="form-select form-select-lg" required>
-                  <option value="customer">Customer</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
-                </select>
+                <input
+                  v-model="form.email"
+                  type="email"
+                  class="form-control form-control-lg"
+                  required
+                />
               </div>
 
               <div class="mb-4">

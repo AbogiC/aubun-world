@@ -1,5 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 const TOKEN_KEY = "aubun_auth_token";
+const CUSTOMER_LOCATION_KEY = "aubun_customer_location";
 
 export function resolveAssetUrl(path) {
   if (!path) return "";
@@ -28,10 +29,19 @@ export function setAuthToken(token) {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+function getCustomerCountry() {
+  try {
+    const location = JSON.parse(localStorage.getItem(CUSTOMER_LOCATION_KEY) || "null");
+    return location?.country || "";
+  } catch {
+    return "";
+  }
+}
+
 async function request(path, options = {}) {
   const token = getAuthToken();
   const headers = {
-    ...(options.headers || {}),
+    ...options.headers,
   };
 
   if (!(options.body instanceof FormData) && !headers["Content-Type"]) {
@@ -40,6 +50,12 @@ async function request(path, options = {}) {
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+  }
+
+  const country = getCustomerCountry();
+
+  if (country) {
+    headers["X-Customer-Country"] = country;
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
