@@ -39,10 +39,10 @@
     </section>
 
     <section class="py-5 bg-light">
-      <div class="container">
+      <div ref="statsSectionRef" class="container">
         <div class="row text-center">
-          <div v-for="stat in stats" :key="stat.label" class="col-md-3 mb-3">
-            <h3 class="display-4 fw-bold mb-2">{{ stat.value }}</h3>
+          <div v-for="(stat, index) in stats" :key="stat.label" class="col-md-3 mb-3">
+            <h3 class="display-4 fw-bold mb-2">{{ displayedStats[index] }}</h3>
             <p class="text-muted text-uppercase">{{ stat.label }}</p>
           </div>
         </div>
@@ -74,12 +74,20 @@
 </template>
 
 <script setup>
+import { onBeforeUnmount, onMounted, ref } from "vue";
+
 const stats = [
   { value: "14+", label: "Years of Excellence" },
   { value: "50+", label: "Countries Worldwide" },
   { value: "100k+", label: "Happy Clients" },
   { value: "250+", label: "Exclusive Designs" },
 ];
+
+const statsSectionRef = ref(null);
+const displayedStats = ref(stats.map(() => "0"));
+let statsObserver;
+let animationFrameId;
+let hasAnimatedStats = false;
 
 const team = [
   { name: "Sophia Laurent", role: "Founder & Creative Director" },
@@ -89,6 +97,88 @@ const team = [
   { name: "Olivia Park", role: "Sustainability Officer" },
   { name: "David Thompson", role: "Customer Experience" },
 ];
+
+const parseStatValue = (value) => {
+  const match = value.match(/^(\d+)([a-zA-Z]*)(\+?)$/);
+
+  if (!match) {
+    return {
+      numericValue: Number.parseInt(value, 10) || 0,
+      suffix: "",
+      plus: "",
+    };
+  }
+
+  return {
+    numericValue: Number.parseInt(match[1], 10),
+    suffix: match[2] || "",
+    plus: match[3] || "",
+  };
+};
+
+const formatAnimatedStat = (currentValue, stat) => {
+  const { suffix, plus } = parseStatValue(stat.value);
+  return `${currentValue}${suffix}${plus}`;
+};
+
+const startStatsAnimation = () => {
+  if (hasAnimatedStats) {
+    return;
+  }
+
+  hasAnimatedStats = true;
+
+  const duration = 1800;
+  const startTime = performance.now();
+
+  const tick = (currentTime) => {
+    const progress = Math.min((currentTime - startTime) / duration, 1);
+    const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+    displayedStats.value = stats.map((stat) => {
+      const { numericValue } = parseStatValue(stat.value);
+      const currentValue = Math.round(numericValue * easedProgress);
+      return formatAnimatedStat(currentValue, stat);
+    });
+
+    if (progress < 1) {
+      animationFrameId = window.requestAnimationFrame(tick);
+      return;
+    }
+
+    displayedStats.value = stats.map((stat) => stat.value);
+  };
+
+  animationFrameId = window.requestAnimationFrame(tick);
+};
+
+onMounted(() => {
+  statsObserver = new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) {
+        return;
+      }
+
+      startStatsAnimation();
+      statsObserver?.disconnect();
+    },
+    {
+      threshold: 0.35,
+    },
+  );
+
+  if (statsSectionRef.value) {
+    statsObserver.observe(statsSectionRef.value);
+  }
+});
+
+onBeforeUnmount(() => {
+  statsObserver?.disconnect();
+
+  if (animationFrameId) {
+    window.cancelAnimationFrame(animationFrameId);
+  }
+});
 </script>
 
 <style scoped>
