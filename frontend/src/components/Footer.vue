@@ -9,10 +9,20 @@
             2010.
           </p>
           <div class="d-flex gap-3 mt-3">
-            <a href="#" class="text-white"><i class="bi bi-instagram fs-5"></i></a>
-            <a href="#" class="text-white"><i class="bi bi-facebook fs-5"></i></a>
-            <a href="#" class="text-white"><i class="bi bi-pinterest fs-5"></i></a>
-            <a href="#" class="text-white"><i class="bi bi-twitter-x fs-5"></i></a>
+            <a href="https://www.instagram.com/aubunworld?igsh=bWd1N2tzZzEzdXVz" class="text-white"
+              ><i class="bi bi-instagram fs-5"></i
+            ></a>
+            <a href="https://www.tiktok.com/@aubunworld?_r=1&_t=ZS-966Xm9zhcuI" class="text-white"
+              ><i class="bi bi-tiktok fs-5"></i
+            ></a>
+            <a href="https://www.threads.com/@aubunworld" class="text-white"
+              ><i class="bi bi-threads fs-5"></i
+            ></a>
+            <a
+              href="https://x.com/aubunworld?s=21&t=7AODALjFtnvF_lIj8QCQ0Q&fbclid=PAb21jcARmnmRleHRuA2FlbQIxMQBzcnRjBmFwcF9pZA81NjcwNjczNDMzNTI0MjcAAad4FmRRVUkBiKQpI78ZOUzpDsNKu9BnRD47YgyVGdT_S-MwevTg4ECmHfH4Fw_aem_XuhvQes5mEef4y23U8nKrA"
+              class="text-white"
+              ><i class="bi bi-twitter-x fs-5"></i
+            ></a>
           </div>
         </div>
 
@@ -68,7 +78,7 @@
             <i class="bi bi-geo-alt me-2"></i>123 Fashion Ave<br />New York, NY 10001
           </p>
           <p class="opacity-75 small"><i class="bi bi-telephone me-2"></i>+1 (555) 123-4567</p>
-          <p class="opacity-75 small"><i class="bi bi-envelope me-2"></i>info@noirelegance.com</p>
+          <p class="opacity-75 small"><i class="bi bi-envelope me-2"></i>info@aubunworld.com</p>
         </div>
       </div>
 
@@ -76,7 +86,7 @@
 
       <div class="row">
         <div class="col-md-6 text-center text-md-start">
-          <p class="mb-0 small opacity-50">&copy; 2024 Noir Elegance. All rights reserved.</p>
+          <p class="mb-0 small opacity-50">&copy; 2026 Aubun World. All rights reserved.</p>
         </div>
         <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
           <i class="bi bi-credit-card fs-5 me-2 opacity-50"></i>
