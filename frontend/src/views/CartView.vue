@@ -14,49 +14,56 @@
                 class="cart-item border-bottom pb-3 mb-3"
               >
                 <div class="row align-items-center">
-                  <div class="col-md-2">
-                    <div
-                      class="cart-thumb d-flex align-items-center justify-content-center"
-                      style="height: 100px"
-                    >
-                      <i class="bi bi-box-seam text-muted" style="font-size: 2rem"></i>
-                    </div>
-                  </div>
-                  <div class="col-md-4">
-                    <h6 class="mb-1">{{ item.name }}</h6>
-                    <p class="text-muted small mb-1">
-                      Size: {{ item.size }} | Color: {{ item.color }}
-                    </p>
-                  </div>
-                  <div class="col-md-2">
-                    <div class="d-flex align-items-center">
-                      <button
-                        @click="updateQuantity(item, item.quantity - 1)"
-                        class="btn btn-outline-dark btn-sm"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        v-model="item.quantity"
-                        class="form-control form-control-sm text-center mx-2"
-                        style="width: 60px"
-                        min="1"
-                        @change="updateQuantity(item, item.quantity)"
-                      />
-                      <button @click="updateQuantity(item, item.quantity + 1)" class="btn btn-outline-dark btn-sm">
-                        +
-                      </button>
-                    </div>
-                  </div>
-                  <div class="col-md-2">
-                    <p class="mb-0 fw-bold">${{ (item.price * item.quantity).toLocaleString() }}</p>
-                  </div>
-                  <div class="col-md-2 text-end">
-                    <button @click="removeItem(item)" class="btn btn-outline-danger btn-sm">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
+                   <div class="col-md-2">
+                     <div class="cart-thumb">
+                       <img :src="item.image" :alt="item.name" class="cart-item-image" />
+                     </div>
+                   </div>
+                   <div class="col-md-4">
+                     <h6 class="mb-1">{{ item.name }}</h6>
+                     <p class="text-muted small mb-1">
+                       Size: {{ item.size }} | Color: {{ item.color }}
+                     </p>
+                     <div class="d-flex align-items-center gap-2 mt-2">
+                       <div class="quantity-controls">
+                         <button
+                           @click="updateQuantity(item, item.quantity - 1)"
+                           class="btn btn-outline-dark btn-sm"
+                           :disabled="item.quantity <= 1"
+                         >
+                           -
+                         </button>
+                         <input
+                           type="number"
+                           v-model.number="item.quantity"
+                           class="form-control form-control-sm text-center"
+                           min="1"
+                           @change="updateQuantity(item, item.quantity)"
+                         />
+                         <button
+                           @click="updateQuantity(item, item.quantity + 1)"
+                           class="btn btn-outline-dark btn-sm"
+                         >
+                           +
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                   <div class="col-md-2 d-flex align-items-center">
+                     <div class="price-info text-end ms-auto">
+                       <p class="unit-price text-muted small mb-0">
+                         ${{ item.price.toLocaleString() }} × {{ item.quantity }}
+                       </p>
+                       <p class="total-price mb-0 fw-bold fs-5">
+                         ${{ (item.price * item.quantity).toLocaleString() }}
+                       </p>
+                     </div>
+                   </div>
+                   <div class="col-md-2 d-flex align-items-center justify-content-end">
+                     <button @click="removeItem(item)" class="btn btn-outline-danger btn-sm" title="Remove item">
+                       <i class="bi bi-trash"></i>
+                     </button>
+                   </div>
                 </div>
               </div>
             </div>
@@ -75,11 +82,6 @@
               <div class="d-flex justify-content-between mb-2">
                 <span>Subtotal</span>
                 <span>${{ cartStore.subtotal.toLocaleString() }}</span>
-              </div>
-
-              <div class="d-flex justify-content-between mb-2">
-                <span>Shipping</span>
-                <span>{{ cartStore.subtotal > 500 ? "Free" : "$25.00" }}</span>
               </div>
 
               <div
@@ -130,7 +132,9 @@
         <i class="bi bi-bag-x display-1 text-muted"></i>
         <h2 class="mt-4">Your bag is empty</h2>
         <p class="text-muted">Looks like you haven't added anything to your bag yet.</p>
-        <router-link to="/products" class="btn btn-luxury btn-lg mt-3"> Start Shopping </router-link>
+        <router-link to="/products" class="btn btn-luxury btn-lg mt-3">
+          Start Shopping
+        </router-link>
       </div>
     </div>
   </div>
@@ -175,10 +179,51 @@ const applyPromo = async () => {
 }
 
 .cart-thumb {
+  height: 100px;
+}
+
+.cart-item-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(236, 236, 234, 0.86)),
     radial-gradient(circle at top right, rgba(0, 0, 0, 0.08), transparent 35%);
   border: 1px solid rgba(11, 11, 12, 0.08);
   border-radius: 1rem;
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 180px;
+}
+
+.quantity-controls input {
+  width: 70px !important;
+  flex-shrink: 0;
+  -moz-appearance: textfield;
+}
+
+.quantity-controls input::-webkit-outer-spin-button,
+.quantity-controls input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.price-info {
+  min-width: 100px;
+}
+
+.unit-price {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.total-price {
+  font-size: 1.25rem;
+  color: #111;
 }
 </style>

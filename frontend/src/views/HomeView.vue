@@ -1,14 +1,14 @@
 <template>
-  <div class="home">
+  <div ref="homeRootRef" class="home">
     <HeroSection />
 
-    <section class="py-5">
-      <div class="container">
-        <div class="section-title">
+    <section class="home-section home-section-category py-5" data-reveal-section>
+      <div class="container section-shell">
+        <div class="section-title section-heading">
           <h2>Shop by Category</h2>
           <p class="text-muted">Curated collections for every occasion</p>
         </div>
-        <div class="row g-3">
+        <div class="row g-3 section-content">
           <div v-for="(cat, index) in categories" :key="index" class="col-6 col-md-4 col-lg-2">
             <div
               class="category-card text-center p-4 surface hover-lift reveal"
@@ -25,15 +25,15 @@
       </div>
     </section>
 
-    <section class="py-5 bg-white">
-      <div class="container">
-        <div class="section-title">
+    <section class="home-section home-section-featured py-5 bg-white" data-reveal-section>
+      <div class="container section-shell">
+        <div class="section-title section-heading">
           <div>
             <h2>Featured Collection</h2>
             <p class="text-muted">Handpicked pieces for the discerning taste</p>
           </div>
         </div>
-        <div class="featured-carousel">
+        <div class="featured-carousel section-content">
           <div class="featured-carousel-row">
             <ProductCard
               v-for="(product, index) in featuredProducts"
@@ -43,7 +43,7 @@
             />
           </div>
         </div>
-        <div class="text-center mt-4">
+        <div class="text-center mt-4 section-cta">
           <router-link to="/products" class="btn btn-luxury btn-lg px-5">
             View All Products
           </router-link>
@@ -51,12 +51,12 @@
       </div>
     </section>
 
-    <section class="py-5 bg-light">
-      <div class="container">
-        <div class="section-title">
+    <section class="home-section home-section-testimonials py-5 bg-light" data-reveal-section>
+      <div class="container section-shell">
+        <div class="section-title section-heading">
           <h2>What Our Clients Say</h2>
         </div>
-        <div class="row">
+        <div class="row section-content">
           <div v-for="(testimonial, index) in testimonials" :key="index" class="col-md-4 mb-4">
             <div
               class="testimonial-card text-center p-4 surface h-100 hover-lift reveal"
@@ -82,14 +82,16 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useProductsStore } from "../stores/products";
 import HeroSection from "../components/HeroSection.vue";
 import ProductCard from "../components/ProductCard.vue";
 import Newsletter from "../components/Newsletter.vue";
 
+const homeRootRef = ref(null);
 const productsStore = useProductsStore();
 const featuredProducts = computed(() => productsStore.featuredProducts);
+let sectionObserver;
 
 const categories = ["Dresses", "Outerwear", "Pants", "Shirts", "Blazers", "Knitwear"];
 
@@ -122,9 +124,141 @@ const getCategoryIcon = (cat) => {
   };
   return icons[cat] || "bi bi-grid";
 };
+
+onMounted(() => {
+  const sections = homeRootRef.value?.querySelectorAll("[data-reveal-section]");
+
+  if (!sections?.length) {
+    return;
+  }
+
+  sectionObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) {
+          return;
+        }
+
+        entry.target.classList.add("is-visible");
+        sectionObserver?.unobserve(entry.target);
+      });
+    },
+    {
+      threshold: 0.2,
+      rootMargin: "0px 0px -10% 0px",
+    },
+  );
+
+  sections.forEach((section) => {
+    sectionObserver.observe(section);
+  });
+});
+
+onBeforeUnmount(() => {
+  sectionObserver?.disconnect();
+});
 </script>
 
 <style scoped>
+.home {
+  background:
+    radial-gradient(circle at top center, rgba(201, 168, 106, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(249, 247, 243, 0.92));
+}
+
+.home-section {
+  position: relative;
+  opacity: 0;
+  transform: translateY(44px);
+  filter: blur(10px);
+  transition:
+    opacity 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 760ms ease;
+}
+
+.home-section::before {
+  content: "";
+  position: absolute;
+  inset: 1.5rem 2rem;
+  border-radius: 2rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at top right, rgba(201, 168, 106, 0.09), transparent 42%);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.98);
+  transition:
+    opacity 760ms ease,
+    transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-section.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+.home-section.is-visible::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.section-shell {
+  position: relative;
+  z-index: 1;
+}
+
+.section-heading,
+.section-content,
+.section-cta {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 620ms ease,
+    transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-section.is-visible .section-heading {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 70ms;
+}
+
+.home-section.is-visible .section-content {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 170ms;
+}
+
+.home-section.is-visible .section-cta {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 260ms;
+}
+
+.home-section-featured::after,
+.home-section-testimonials::after {
+  content: "";
+  position: absolute;
+  width: min(24vw, 18rem);
+  height: min(24vw, 18rem);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(201, 168, 106, 0.14), transparent 70%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.home-section-featured::after {
+  top: 1rem;
+  right: 3rem;
+}
+
+.home-section-testimonials::after {
+  bottom: 2rem;
+  left: 3rem;
+}
+
 .featured-carousel {
   padding-bottom: 1rem;
   overflow-x: auto;
@@ -140,6 +274,11 @@ const getCategoryIcon = (cat) => {
   gap: 1.25rem;
   min-width: max-content;
   padding: 0.35rem 0.25rem 1rem;
+}
+
+.home-section.is-visible .featured-carousel-row :deep(.col-md-6.col-lg-4) {
+  animation: luxuryCardRise 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--card-index, 0) * 110ms + 180ms);
 }
 
 .featured-carousel::-webkit-scrollbar {
@@ -279,17 +418,66 @@ const getCategoryIcon = (cat) => {
 .category-card {
   cursor: pointer;
   border: 1px solid rgba(11, 11, 12, 0.08);
+  border-radius: 1.35rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 245, 240, 0.92)),
+    radial-gradient(circle at top, rgba(201, 168, 106, 0.08), transparent 56%);
+  box-shadow: 0 14px 34px rgba(17, 17, 17, 0.05);
+  transition:
+    border-color 220ms ease,
+    transform 220ms ease,
+    box-shadow 220ms ease;
 }
 
 .category-card:hover {
   border-color: rgba(11, 11, 12, 0.22);
+  box-shadow: 0 22px 44px rgba(17, 17, 17, 0.09);
 }
 
 .testimonial-card {
   border: 1px solid rgba(11, 11, 12, 0.08);
+  border-radius: 1.6rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 243, 236, 0.92)),
+    radial-gradient(circle at top left, rgba(201, 168, 106, 0.08), transparent 42%);
+  box-shadow: 0 18px 40px rgba(17, 17, 17, 0.05);
+  transition:
+    transform 240ms ease,
+    box-shadow 240ms ease,
+    border-color 240ms ease;
 }
 
 .testimonial-card:hover {
   transform: translateY(-6px);
+  border-color: rgba(180, 147, 88, 0.24);
+  box-shadow: 0 26px 54px rgba(17, 17, 17, 0.1);
+}
+
+@keyframes luxuryCardRise {
+  from {
+    opacity: 0;
+    transform: translateY(38px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-section,
+  .home-section::before,
+  .section-heading,
+  .section-content,
+  .section-cta,
+  .featured-carousel :deep(.col-md-6.col-lg-4),
+  .category-card,
+  .testimonial-card {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
 }
 </style>
