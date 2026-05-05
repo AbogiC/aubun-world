@@ -73,6 +73,11 @@ const router = createRouter({
       component: () => import("../views/ProfileView.vue"),
       meta: { requiresAuth: true },
     },
+    {
+      path: "/verify-email",
+      name: "verify-email",
+      component: () => import("../views/VerifyEmailView.vue"),
+    },
   ],
   scrollBehavior() {
     return { top: 0 };

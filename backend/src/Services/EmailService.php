@@ -11,14 +11,14 @@ final class EmailService
     public function __construct(
         private readonly string $fromEmail = 'noreply@aubunworld.com',
         private readonly string $fromName = 'AUBUN WORLD',
-        private readonly string $baseUrl = 'http://localhost:5174'
+        private readonly string $baseUrl = 'http://localhost:5173'
     ) {
     }
 
     public function sendVerificationEmail(string $toEmail, string $toName, string $verificationToken): void
     {
         $verifyUrl = sprintf(
-            '%s/api/auth/verify-email?token=%s',
+            '%s/verify-email?token=%s',
             rtrim($this->baseUrl, '/'),
             urlencode($verificationToken)
         );

@@ -41,6 +41,30 @@ export const useAuthStore = defineStore("auth", {
       }
     },
 
+    async refreshUser() {
+      const token = getAuthToken();
+      if (!token) {
+        this.user = null;
+        this.ready = true;
+        return;
+      }
+
+      this.loading = true;
+
+      try {
+        const { user } = await api.get("/auth/me");
+        this.user = user;
+      } catch (error) {
+        this.user = null;
+
+        if (error?.status === 401) {
+          setAuthToken(null);
+        }
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async login(credentials) {
       this.loading = true;
       this.error = null;

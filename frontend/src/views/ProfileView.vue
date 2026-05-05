@@ -344,7 +344,8 @@ const startCooldown = () => {
   }, 1000);
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await authStore.refreshUser();
   initializeForms();
 });
 </script>

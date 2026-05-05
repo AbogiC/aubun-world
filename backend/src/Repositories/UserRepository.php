@@ -51,8 +51,10 @@ final class UserRepository
             $user['shipping_address'] = null;
         }
 
-        // Add email_verified boolean
-        $user['email_verified'] = isset($user['email_verified_at']) && $user['email_verified_at'] !== null;
+        // Add email_verified boolean (both snake_case and camelCase for frontend compatibility)
+        $isVerified = isset($user['email_verified_at']) && $user['email_verified_at'] !== null;
+        $user['email_verified'] = $isVerified;
+        $user['emailVerified'] = $isVerified;
 
         return $user;
     }
