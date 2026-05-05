@@ -36,6 +36,37 @@ CREATE TABLE price_country (
     CONSTRAINT uq_price_country_product_country UNIQUE (product_id, country_name)
 );
 
+CREATE TABLE shop_country (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    country_name VARCHAR(120) NOT NULL UNIQUE,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE shipping_country_mapping (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    shop_country_id INT UNSIGNED NOT NULL,
+    continent_name VARCHAR(120) NOT NULL,
+    destination_country_name VARCHAR(120) NOT NULL UNIQUE,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_shipping_country_mapping_shop_country FOREIGN KEY (shop_country_id) REFERENCES shop_country(id) ON DELETE CASCADE
+);
+
+CREATE TABLE shipping_rate_tiers (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    shipping_country_mapping_id INT UNSIGNED NOT NULL,
+    tier_name VARCHAR(120) NOT NULL,
+    min_distance_km DECIMAL(10,2) NOT NULL DEFAULT 0,
+    max_distance_km DECIMAL(10,2) NULL,
+    shipping_cost DECIMAL(10,2) NOT NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_shipping_rate_tiers_mapping FOREIGN KEY (shipping_country_mapping_id) REFERENCES shipping_country_mapping(id) ON DELETE CASCADE
+);
+
 CREATE TABLE carts (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNSIGNED NOT NULL UNIQUE,
@@ -71,6 +102,8 @@ CREATE TABLE orders (
     shipping_city VARCHAR(120) NOT NULL,
     shipping_country VARCHAR(120) NOT NULL,
     shipping_postal_code VARCHAR(30) NOT NULL,
+    shipping_shop_country VARCHAR(120) NULL,
+    shipping_tier_name VARCHAR(120) NULL,
     subtotal_amount DECIMAL(10,2) NOT NULL,
     discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
     shipping_amount DECIMAL(10,2) NOT NULL DEFAULT 0,

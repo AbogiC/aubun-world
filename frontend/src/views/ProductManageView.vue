@@ -5,10 +5,15 @@
         <div class="row align-items-center g-4">
           <div class="col-lg-8">
             <p class="section-kicker mb-2">Sales Management</p>
-            <h1 class="display-5 mb-3">Product Dashboard</h1>
+            <h1 class="display-5 mb-3">Product Management</h1>
             <p class="text-muted mb-0">
               Add new arrivals, refine catalog data, and retire products from the collection without leaving the storefront workflow.
             </p>
+            <div class="mt-4">
+              <router-link to="/dashboard/shipping" class="btn btn-outline-dark">
+                Open Shipping Settings
+              </router-link>
+            </div>
           </div>
           <div class="col-lg-4">
             <div class="stats-grid">

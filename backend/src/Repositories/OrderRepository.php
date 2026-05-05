@@ -10,7 +10,10 @@ use Throwable;
 
 final class OrderRepository
 {
-    public function __construct(private readonly PDO $pdo)
+    public function __construct(
+        private readonly PDO $pdo,
+        private readonly ShippingRepository $shipping
+    )
     {
     }
 
@@ -26,6 +29,7 @@ final class OrderRepository
         $city = trim((string) ($payload['city'] ?? ''));
         $country = trim((string) ($payload['country'] ?? ''));
         $postalCode = trim((string) ($payload['postal_code'] ?? ''));
+        $shippingRateId = (int) ($payload['shipping_rate_id'] ?? 0);
 
         if ($customerName === '' || $email === '' || $address === '' || $city === '' || $country === '' || $postalCode === '') {
             throw new RuntimeException('Checkout data is incomplete.', 422);
@@ -43,7 +47,31 @@ final class OrderRepository
             0.0
         );
         $discount = (float) $cart['discount_amount'];
-        $shipping = $subtotal > 500 ? 0.0 : 25.0;
+        $availableRates = $this->shipping->shippingOptionsForCountry($country);
+
+        if ($availableRates === null || $availableRates['shippingRates'] === []) {
+            throw new RuntimeException('Shipping is not available for the selected country yet.', 422);
+        }
+
+        $selectedRate = null;
+
+        if (count($availableRates['shippingRates']) === 1 && $shippingRateId <= 0) {
+            $selectedRate = $availableRates['shippingRates'][0];
+        } else {
+            if ($shippingRateId <= 0) {
+                throw new RuntimeException('Please choose a shipping option.', 422);
+            }
+
+            $selected = $this->shipping->shippingRateForCountry($country, $shippingRateId);
+
+            if ($selected === null) {
+                throw new RuntimeException('Selected shipping option is not valid for this country.', 422);
+            }
+
+            $selectedRate = $selected['shippingRate'];
+        }
+
+        $shipping = (float) $selectedRate['shippingCost'];
         $total = max($subtotal - $discount, 0) + $shipping;
 
         try {
@@ -54,10 +82,12 @@ final class OrderRepository
                 'INSERT INTO orders (
                     user_id, order_number, status, customer_name, customer_email,
                     shipping_address, shipping_city, shipping_country, shipping_postal_code,
+                    shipping_shop_country, shipping_tier_name,
                     subtotal_amount, discount_amount, shipping_amount, total_amount, created_at, updated_at
                  ) VALUES (
                     :user_id, :order_number, :status, :customer_name, :customer_email,
                     :shipping_address, :shipping_city, :shipping_country, :shipping_postal_code,
+                    :shipping_shop_country, :shipping_tier_name,
                     :subtotal_amount, :discount_amount, :shipping_amount, :total_amount, NOW(), NOW()
                  )'
             );
@@ -71,6 +101,8 @@ final class OrderRepository
                 'shipping_city' => $city,
                 'shipping_country' => $country,
                 'shipping_postal_code' => $postalCode,
+                'shipping_shop_country' => $availableRates['shopCountryName'],
+                'shipping_tier_name' => $selectedRate['tierName'],
                 'subtotal_amount' => $subtotal,
                 'discount_amount' => $discount,
                 'shipping_amount' => $shipping,
@@ -146,6 +178,8 @@ final class OrderRepository
             'shippingCity' => $order['shipping_city'],
             'shippingCountry' => $order['shipping_country'],
             'shippingPostalCode' => $order['shipping_postal_code'],
+            'shippingShopCountry' => $order['shipping_shop_country'],
+            'shippingTierName' => $order['shipping_tier_name'],
             'subtotal' => (float) $order['subtotal_amount'],
             'discount' => (float) $order['discount_amount'],
             'shipping' => (float) $order['shipping_amount'],

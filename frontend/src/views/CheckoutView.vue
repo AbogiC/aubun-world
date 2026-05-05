@@ -66,6 +66,54 @@
                 </div>
               </div>
 
+              <div class="shipping-options-panel surface-subtle p-3 p-md-4 mt-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                  <div>
+                    <h2 class="h5 mb-2">Shipping Options</h2>
+                    <p class="text-muted mb-0">
+                      We use your shipping country to match the nearest available shop route.
+                    </p>
+                  </div>
+                  <div v-if="shippingQuote.shopCountryName" class="shipping-origin">
+                    Ships from {{ shippingQuote.shopCountryName }}
+                  </div>
+                </div>
+
+                <div v-if="shippingLoading" class="text-muted mt-3">
+                  Loading shipping options...
+                </div>
+
+                <div v-else-if="shippingQuote.message" class="alert mt-3 mb-0" :class="shippingQuote.alertClass">
+                  {{ shippingQuote.message }}
+                </div>
+
+                <div v-if="shippingOptions.length" class="shipping-option-list mt-3">
+                  <label
+                    v-for="option in shippingOptions"
+                    :key="`shipping-option-${option.id}`"
+                    class="shipping-option"
+                    :class="{ 'shipping-option--active': selectedShippingRateId === option.id }"
+                  >
+                    <input
+                      v-model="selectedShippingRateId"
+                      class="form-check-input"
+                      type="radio"
+                      name="shipping-rate"
+                      :value="option.id"
+                    />
+                    <div class="shipping-option__body">
+                      <div class="d-flex justify-content-between gap-3 flex-wrap">
+                        <div>
+                          <div class="fw-semibold">{{ option.tierName }}</div>
+                          <div class="small text-muted">{{ formatDistanceRange(option) }}</div>
+                        </div>
+                        <div class="fw-semibold">${{ Number(option.shippingCost).toLocaleString() }}</div>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <div v-if="errorMessage" class="alert alert-danger mt-4 mb-0">
                 {{ errorMessage }}
               </div>
@@ -73,7 +121,7 @@
               <button
                 type="submit"
                 class="btn btn-luxury w-100 mt-4"
-                :disabled="submitting || !cartStore.items.length"
+                :disabled="submitting || !cartStore.items.length || !canPlaceOrder"
               >
                 {{ submitting ? "Processing Order..." : "Place Order" }}
               </button>
@@ -104,7 +152,7 @@
             </div>
             <div class="d-flex justify-content-between mb-2">
               <span>Shipping</span>
-              <span>{{ cartStore.subtotal > 500 ? "Free" : "$25.00" }}</span>
+              <span>{{ shippingSummaryLabel }}</span>
             </div>
             <div v-if="cartStore.discount" class="d-flex justify-content-between text-success mb-2">
               <span>Discount</span>
@@ -122,8 +170,9 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+import { api } from "../lib/api";
 import { getBrowserLocation, lookupLocationByIp, reverseGeocode } from "../lib/location";
 import { useAuthStore } from "../stores/auth";
 import { useCartStore } from "../stores/cart";
@@ -134,8 +183,18 @@ const cartStore = useCartStore();
 const submitting = ref(false);
 const errorMessage = ref("");
 const locating = ref(false);
+const shippingLoading = ref(false);
+const shippingOptions = ref([]);
+const selectedShippingRateId = ref(null);
+const latestShippingLookup = ref(0);
 const locationMessage = ref("Your browser can ask permission to detect your current area.");
 const locationAlertClass = ref("alert-secondary");
+const shippingQuote = reactive({
+  shopCountryName: "",
+  message: "Enter or detect your shipping country to see available delivery options.",
+  alertClass: "alert-secondary",
+  available: false,
+});
 const form = reactive({
   firstName: authStore.user?.name?.split(" ")[0] || "",
   lastName: authStore.user?.name?.split(" ").slice(1).join(" ") || "",
@@ -146,9 +205,41 @@ const form = reactive({
   postalCode: "",
 });
 
-const totalWithShipping = computed(() =>
-  cartStore.total + (cartStore.subtotal > 500 ? 0 : 25),
+const selectedShippingOption = computed(() =>
+  shippingOptions.value.find((option) => option.id === selectedShippingRateId.value) || null,
 );
+const shippingAmount = computed(() => selectedShippingOption.value?.shippingCost ?? 0);
+const shippingSummaryLabel = computed(() => {
+  if (shippingLoading.value) {
+    return "Loading...";
+  }
+
+  if (selectedShippingOption.value) {
+    return `$${Number(selectedShippingOption.value.shippingCost).toLocaleString()}`;
+  }
+
+  if (form.country.trim() === "") {
+    return "Select country";
+  }
+
+  if (!shippingQuote.available) {
+    return "Unavailable";
+  }
+
+  return "Choose option";
+});
+const totalWithShipping = computed(() => cartStore.total + shippingAmount.value);
+const canPlaceOrder = computed(() => {
+  if (!form.country.trim() || shippingLoading.value) {
+    return false;
+  }
+
+  if (!shippingQuote.available) {
+    return false;
+  }
+
+  return selectedShippingRateId.value !== null;
+});
 
 const applyLocationToForm = (location) => {
   if (!form.address && location.address) {
@@ -165,6 +256,75 @@ const applyLocationToForm = (location) => {
 
   if (location.postalCode) {
     form.postalCode = location.postalCode;
+  }
+};
+
+const resetShippingQuote = (message = "Enter or detect your shipping country to see available delivery options.") => {
+  shippingOptions.value = [];
+  selectedShippingRateId.value = null;
+  shippingQuote.shopCountryName = "";
+  shippingQuote.message = message;
+  shippingQuote.alertClass = "alert-secondary";
+  shippingQuote.available = false;
+};
+
+const fetchShippingOptions = async (country) => {
+  const normalizedCountry = country.trim();
+  const requestId = latestShippingLookup.value + 1;
+  latestShippingLookup.value = requestId;
+
+  if (!normalizedCountry) {
+    resetShippingQuote();
+    return;
+  }
+
+  shippingLoading.value = true;
+  errorMessage.value = "";
+
+  try {
+    const payload = await api.get(`/shipping-options?country=${encodeURIComponent(normalizedCountry)}`);
+
+    if (latestShippingLookup.value !== requestId) {
+      return;
+    }
+
+    shippingQuote.shopCountryName = payload.shopCountryName || "";
+    shippingQuote.available = Boolean(payload.available);
+    shippingOptions.value = payload.shippingOptions || [];
+
+    if (!payload.available || shippingOptions.value.length === 0) {
+      selectedShippingRateId.value = null;
+      shippingQuote.alertClass = "alert-danger";
+      shippingQuote.message = `Shipping is not available for ${normalizedCountry} yet.`;
+      return;
+    }
+
+    if (shippingOptions.value.length === 1) {
+      selectedShippingRateId.value = shippingOptions.value[0].id;
+      shippingQuote.alertClass = "alert-success";
+      shippingQuote.message = `1 shipping option is available for ${payload.country}.`;
+      return;
+    }
+
+    const stillValid = shippingOptions.value.some((option) => option.id === selectedShippingRateId.value);
+    selectedShippingRateId.value = stillValid ? selectedShippingRateId.value : null;
+    shippingQuote.alertClass = "alert-warning";
+    shippingQuote.message = `${shippingOptions.value.length} shipping options are available for ${payload.country}. Please choose one.`;
+  } catch (error) {
+    if (latestShippingLookup.value !== requestId) {
+      return;
+    }
+
+    selectedShippingRateId.value = null;
+    shippingOptions.value = [];
+    shippingQuote.shopCountryName = "";
+    shippingQuote.available = false;
+    shippingQuote.alertClass = "alert-danger";
+    shippingQuote.message = error.message || "Unable to load shipping options.";
+  } finally {
+    if (latestShippingLookup.value === requestId) {
+      shippingLoading.value = false;
+    }
   }
 };
 
@@ -219,11 +379,19 @@ const placeOrder = async () => {
     return;
   }
 
+  if (!canPlaceOrder.value) {
+    errorMessage.value = "Please choose an available shipping option before placing your order.";
+    return;
+  }
+
   submitting.value = true;
   errorMessage.value = "";
 
   try {
-    const order = await cartStore.checkout(form);
+    const order = await cartStore.checkout({
+      ...form,
+      shippingRateId: selectedShippingRateId.value,
+    });
     alert(`Order ${order.orderNumber} placed successfully.`);
     router.push("/");
   } catch (error) {
@@ -232,6 +400,25 @@ const placeOrder = async () => {
     submitting.value = false;
   }
 };
+
+const formatDistanceRange = (option) => {
+  if (option.maxDistanceKm === null) {
+    return `${Number(option.minDistanceKm).toLocaleString()}+ km distance band`;
+  }
+
+  return `${Number(option.minDistanceKm).toLocaleString()}-${Number(option.maxDistanceKm).toLocaleString()} km distance band`;
+};
+
+watch(
+  () => form.country,
+  (country) => {
+    fetchShippingOptions(country);
+  },
+);
+
+onMounted(() => {
+  fetchShippingOptions(form.country);
+});
 </script>
 
 <style scoped>
@@ -239,5 +426,43 @@ const placeOrder = async () => {
   border: 1px solid rgba(11, 11, 12, 0.08);
   border-radius: 1rem;
   background: linear-gradient(135deg, rgba(11, 11, 12, 0.03), rgba(188, 154, 109, 0.08));
+}
+
+.shipping-options-panel {
+  border: 1px solid rgba(11, 11, 12, 0.08);
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(11, 11, 12, 0.03), rgba(255, 255, 255, 0.92));
+}
+
+.shipping-origin {
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.shipping-option-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.shipping-option {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(11, 11, 12, 0.08);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+}
+
+.shipping-option--active {
+  border-color: rgba(11, 11, 12, 0.28);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.shipping-option__body {
+  flex: 1;
 }
 </style>

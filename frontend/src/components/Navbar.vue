@@ -28,10 +28,40 @@
           <li class="nav-item">
             <router-link to="/about" class="nav-link" @click="closeNavbarMenu">About</router-link>
           </li>
-          <li v-if="canManageProducts" class="nav-item">
-            <router-link to="/dashboard" class="nav-link" @click="closeNavbarMenu"
-              >Dashboard</router-link
+          <li
+            v-if="canManageProducts"
+            class="nav-item nav-item--dropdown"
+            :class="{ show: dashboardMenuOpen }"
+          >
+            <button
+              type="button"
+              class="nav-link nav-link--button"
+              :class="{ 'router-link-active': isDashboardSection }"
+              @click="toggleDashboardMenu"
             >
+              Dashboard
+              <i
+                class="bi bi-chevron-down nav-dropdown-icon"
+                :class="{ 'nav-dropdown-icon--open': dashboardMenuOpen }"
+              ></i>
+            </button>
+
+            <div v-if="dashboardMenuOpen" class="dashboard-dropdown-menu">
+              <router-link
+                to="/dashboard/products"
+                class="dashboard-dropdown-item"
+                @click="navigateFromDashboardMenu"
+              >
+                Products
+              </router-link>
+              <router-link
+                to="/dashboard/shipping"
+                class="dashboard-dropdown-item"
+                @click="navigateFromDashboardMenu"
+              >
+                Shipping
+              </router-link>
+            </div>
           </li>
         </ul>
 
@@ -64,17 +94,20 @@
 <script setup>
 import { computed, ref } from "vue";
 import { Collapse } from "bootstrap";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useCartStore } from "../stores/cart";
 import { useAuthStore } from "../stores/auth";
 
 const cartStore = useCartStore();
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 const collapseElement = ref(null);
 const togglerButton = ref(null);
+const dashboardMenuOpen = ref(false);
 const userLabel = computed(() => authStore.user?.name?.split(" ")[0] || "Account");
 const canManageProducts = computed(() => ["manager", "admin"].includes(authStore.user?.role || ""));
+const isDashboardSection = computed(() => route.path.startsWith("/dashboard"));
 
 const closeNavbarMenu = () => {
   if (!collapseElement.value || !togglerButton.value) {
@@ -99,8 +132,18 @@ const goToBag = () => {
   router.push("/cart");
 };
 
+const toggleDashboardMenu = () => {
+  dashboardMenuOpen.value = !dashboardMenuOpen.value;
+};
+
+const navigateFromDashboardMenu = () => {
+  dashboardMenuOpen.value = false;
+  closeNavbarMenu();
+};
+
 const logout = () => {
   authStore.logout();
+  dashboardMenuOpen.value = false;
   router.push("/");
 };
 </script>
@@ -132,6 +175,14 @@ const logout = () => {
   opacity: 0.82;
 }
 
+.nav-link--button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: transparent;
+  border: 0;
+}
+
 .nav-link::after {
   content: "";
   position: absolute;
@@ -153,6 +204,54 @@ const logout = () => {
   opacity: 1;
 }
 
+.nav-item--dropdown {
+  position: relative;
+}
+
+.nav-dropdown-icon {
+  font-size: 0.8rem;
+  transition: transform 0.22s ease;
+}
+
+.nav-dropdown-icon--open {
+  transform: rotate(180deg);
+}
+
+.dashboard-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  left: 0;
+  min-width: 220px;
+  padding: 0.65rem;
+  border: 1px solid rgba(11, 11, 12, 0.08);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(14px);
+  display: grid;
+  gap: 0.35rem;
+  z-index: 20;
+}
+
+.dashboard-dropdown-item {
+  display: block;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.85rem;
+  color: #1a1a1a;
+  text-decoration: none;
+  font-size: 0.84rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  opacity: 0.82;
+}
+
+.dashboard-dropdown-item:hover,
+.dashboard-dropdown-item.router-link-active {
+  background: rgba(11, 11, 12, 0.06);
+  opacity: 1;
+}
+
 .nav-bag-btn {
   min-width: 3rem;
   height: 3rem;
@@ -167,5 +266,13 @@ const logout = () => {
 .nav-account {
   letter-spacing: 0.18em;
   opacity: 0.72;
+}
+
+@media (max-width: 991px) {
+  .dashboard-dropdown-menu {
+    position: static;
+    margin: 0.5rem 10px 0;
+    min-width: 0;
+  }
 }
 </style>

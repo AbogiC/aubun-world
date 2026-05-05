@@ -52,7 +52,19 @@ const router = createRouter({
     {
       path: "/dashboard",
       name: "dashboard",
-      component: () => import("../views/DashboardView.vue"),
+      redirect: "/dashboard/products",
+      meta: { requiresAuth: true, roles: ["manager", "admin"] },
+    },
+    {
+      path: "/dashboard/products",
+      name: "product-manage",
+      component: () => import("../views/ProductManageView.vue"),
+      meta: { requiresAuth: true, roles: ["manager", "admin"] },
+    },
+    {
+      path: "/dashboard/shipping",
+      name: "shipping-settings",
+      component: () => import("../views/ShippingSettingsView.vue"),
       meta: { requiresAuth: true, roles: ["manager", "admin"] },
     },
   ],

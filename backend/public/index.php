@@ -8,6 +8,7 @@ use App\Controllers\CartController;
 use App\Controllers\CategoryController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
+use App\Controllers\ShippingController;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
@@ -17,6 +18,7 @@ use App\Middleware\RoleMiddleware;
 use App\Repositories\CartRepository;
 use App\Repositories\OrderRepository;
 use App\Repositories\ProductRepository;
+use App\Repositories\ShippingRepository;
 use App\Repositories\UserRepository;
 use App\Services\AuthService;
 
@@ -61,13 +63,15 @@ $userRepository = new UserRepository($pdo);
 $productRepository = new ProductRepository($pdo);
 $productImageDirectory = dirname(__DIR__) . '/store/products/image';
 $cartRepository = new CartRepository($pdo, $productRepository);
-$orderRepository = new OrderRepository($pdo);
+$shippingRepository = new ShippingRepository($pdo);
+$orderRepository = new OrderRepository($pdo, $shippingRepository);
 
 $authController = new AuthController($userRepository, $authService);
 $productController = new ProductController($productRepository, $productImageDirectory);
 $categoryController = new CategoryController($productRepository);
 $cartController = new CartController($cartRepository);
 $orderController = new OrderController($orderRepository, $cartRepository);
+$shippingController = new ShippingController($shippingRepository);
 $authMiddleware = new AuthMiddleware($authService, $userRepository);
 $managerRoleMiddleware = new RoleMiddleware(['manager', 'admin']);
 
@@ -94,6 +98,11 @@ $router->post('/api/cart/apply-discount', [$cartController, 'applyDiscount'], [$
 $router->delete('/api/cart', [$cartController, 'clear'], [$authMiddleware]);
 $router->get('/api/orders', [$orderController, 'index'], [$authMiddleware]);
 $router->post('/api/orders/checkout', [$orderController, 'checkout'], [$authMiddleware]);
+$router->get('/api/shipping-options', [$shippingController, 'options'], [$authMiddleware]);
+$router->get('/api/shipping-settings', [$shippingController, 'index'], [$authMiddleware, $managerRoleMiddleware]);
+$router->post('/api/shop-countries', [$shippingController, 'storeShopCountry'], [$authMiddleware, $managerRoleMiddleware]);
+$router->delete('/api/shop-countries/{id}', [$shippingController, 'destroyShopCountry'], [$authMiddleware, $managerRoleMiddleware]);
+$router->post('/api/shipping-settings/sync', [$shippingController, 'syncMappings'], [$authMiddleware, $managerRoleMiddleware]);
 
 try {
     $result = $router->dispatch($request);

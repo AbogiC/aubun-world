@@ -36,6 +36,7 @@ final class OrderController
             'city' => (string) $request->input('city'),
             'country' => (string) $request->input('country'),
             'postal_code' => (string) $request->input('postalCode'),
+            'shipping_rate_id' => $request->input('shippingRateId'),
         ]);
 
         return [
