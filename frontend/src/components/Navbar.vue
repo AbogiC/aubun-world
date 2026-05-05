@@ -67,7 +67,7 @@
 
         <div class="d-flex align-items-center gap-3">
           <template v-if="authStore.isAuthenticated">
-            <div class="nav-account text-uppercase small">{{ userLabel }}</div>
+            <router-link to="/profile" class="nav-account text-uppercase small text-decoration-none">{{ userLabel }}</router-link>
             <button class="btn btn-outline-dark btn-sm px-3" @click="logout">Logout</button>
           </template>
           <template v-else>

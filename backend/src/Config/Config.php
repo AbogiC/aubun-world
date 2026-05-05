@@ -10,6 +10,7 @@ final class Config
     {
         $defaults = [
             'APP_KEY' => 'replace-this-secret-key',
+            'BASE_URL' => 'http://localhost:5173',
             'DB_HOST' => '127.0.0.1',
             'DB_PORT' => '3306',
             'DB_DATABASE' => 'aubun_world',
@@ -37,6 +38,7 @@ final class Config
         return [
             'app' => [
                 'key' => $env['APP_KEY'],
+                'base_url' => $env['BASE_URL'] ?? 'http://localhost:5173',
             ],
             'db' => [
                 'host' => $env['DB_HOST'],

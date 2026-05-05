@@ -54,6 +54,17 @@ final class AuthService
         return $decoded;
     }
 
+    public function generateVerificationToken(): string
+    {
+        return bin2hex(random_bytes(32));
+    }
+
+    public function generateTokenExpiry(): string
+    {
+        $expiry = new \DateTimeImmutable('+24 hours');
+        return $expiry->format('Y-m-d H:i:s');
+    }
+
     private function sign(string $data): string
     {
         return $this->base64UrlEncode(hash_hmac('sha256', $data, $this->secret, true));

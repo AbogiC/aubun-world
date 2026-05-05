@@ -21,6 +21,7 @@ use App\Repositories\ProductRepository;
 use App\Repositories\ShippingRepository;
 use App\Repositories\UserRepository;
 use App\Services\AuthService;
+use App\Services\EmailService;
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Customer-Country');
@@ -59,6 +60,11 @@ $database = new Database($config['db']);
 $pdo = $database->connection();
 
 $authService = new AuthService($config['app']['key']);
+$emailService = new EmailService(
+    'noreply@aubunworld.com',
+    'AUBUN WORLD',
+    $config['app']['base_url']
+);
 $userRepository = new UserRepository($pdo);
 $productRepository = new ProductRepository($pdo);
 $productImageDirectory = dirname(__DIR__) . '/store/products/image';
@@ -66,7 +72,7 @@ $cartRepository = new CartRepository($pdo, $productRepository);
 $shippingRepository = new ShippingRepository($pdo);
 $orderRepository = new OrderRepository($pdo, $shippingRepository);
 
-$authController = new AuthController($userRepository, $authService);
+$authController = new AuthController($userRepository, $authService, $emailService);
 $productController = new ProductController($productRepository, $productImageDirectory);
 $categoryController = new CategoryController($productRepository);
 $cartController = new CartController($cartRepository);
@@ -80,6 +86,11 @@ $router = new Router();
 $router->post('/api/auth/register', [$authController, 'register']);
 $router->post('/api/auth/login', [$authController, 'login']);
 $router->get('/api/auth/me', [$authController, 'me'], [$authMiddleware]);
+$router->get('/api/auth/verify-email', [$authController, 'verifyEmail']);
+$router->post('/api/auth/resend-verification', [$authController, 'resendVerification'], [$authMiddleware]);
+$router->patch('/api/auth/profile', [$authController, 'updateProfile'], [$authMiddleware]);
+$router->post('/api/auth/change-password', [$authController, 'changePassword'], [$authMiddleware]);
+$router->patch('/api/auth/shipping-address', [$authController, 'updateShippingAddress'], [$authMiddleware]);
 
 $router->get('/api/products', [$productController, 'index']);
 $router->get('/api/products/{id}', [$productController, 'show']);

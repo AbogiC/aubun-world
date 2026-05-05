@@ -4,6 +4,10 @@ CREATE TABLE users (
     email VARCHAR(190) NOT NULL UNIQUE,
     role ENUM('customer', 'manager', 'admin') NOT NULL DEFAULT 'customer',
     password VARCHAR(255) NOT NULL,
+    email_verified_at TIMESTAMP NULL DEFAULT NULL,
+    verification_token VARCHAR(255) NULL DEFAULT NULL,
+    verification_token_expires_at TIMESTAMP NULL DEFAULT NULL,
+    shipping_address JSON NULL DEFAULT NULL,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

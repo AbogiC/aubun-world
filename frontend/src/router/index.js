@@ -67,6 +67,12 @@ const router = createRouter({
       component: () => import("../views/ShippingSettingsView.vue"),
       meta: { requiresAuth: true, roles: ["manager", "admin"] },
     },
+    {
+      path: "/profile",
+      name: "profile",
+      component: () => import("../views/ProfileView.vue"),
+      meta: { requiresAuth: true },
+    },
   ],
   scrollBehavior() {
     return { top: 0 };

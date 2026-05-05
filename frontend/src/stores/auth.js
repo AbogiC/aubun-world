@@ -85,5 +85,65 @@ export const useAuthStore = defineStore("auth", {
       this.error = null;
       useCartStore().clearCart();
     },
+
+    async updateProfile(payload) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const { user } = await api.patch("/auth/profile", payload);
+        this.user = user;
+        return user;
+      } catch (error) {
+        this.error = error.message;
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async changePassword(payload) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        await api.post("/auth/change-password", payload);
+      } catch (error) {
+        this.error = error.message;
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async updateShippingAddress(payload) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const { shippingAddress } = await api.patch("/auth/shipping-address", payload);
+        this.user.shippingAddress = shippingAddress;
+        return shippingAddress;
+      } catch (error) {
+        this.error = error.message;
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async resendVerificationEmail() {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        await api.post("/auth/resend-verification");
+      } catch (error) {
+        this.error = error.message;
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
   },
 });
