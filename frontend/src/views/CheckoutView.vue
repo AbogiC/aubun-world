@@ -7,7 +7,7 @@
             <p class="section-kicker mb-3">Secure Checkout</p>
             <h1 class="mb-4">Complete Your Order</h1>
 
-            <form @submit.prevent="placeOrder">
+            <form ref="checkoutFormRef" @submit.prevent>
               <div class="location-panel surface-subtle p-3 p-md-4 mb-4">
                 <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center">
                   <div>
@@ -118,13 +118,36 @@
                 {{ errorMessage }}
               </div>
 
-              <button
-                type="submit"
-                class="btn btn-luxury w-100 mt-4"
-                :disabled="submitting || !cartStore.items.length || !canPlaceOrder"
-              >
-                {{ submitting ? "Processing Order..." : "Place Order" }}
-              </button>
+              <div class="surface-subtle p-3 p-md-4 mt-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-center">
+                  <div>
+                    <h2 class="h5 mb-2">Pay with PayPal</h2>
+                    <p class="text-muted mb-0">
+                      Complete checkout with the PayPal flow from your example: create order first, then capture payment.
+                    </p>
+                  </div>
+                  <div v-if="paypalLoading" class="text-muted small">Loading PayPal...</div>
+                </div>
+
+                <div v-if="paypalErrorMessage" class="alert alert-danger mt-3 mb-0">
+                  {{ paypalErrorMessage }}
+                </div>
+
+                <div v-if="!paypalEnabled && !paypalLoading" class="alert alert-warning mt-3 mb-0">
+                  PayPal checkout is not configured yet. Add your PayPal client credentials on the backend first.
+                </div>
+
+                <div
+                  v-show="paypalEnabled"
+                  id="paypal-button-container"
+                  class="mt-3"
+                  :class="{ 'paypal-button-container--busy': submitting }"
+                ></div>
+
+                <div v-if="paypalResultMessage" class="alert alert-success mt-3 mb-0">
+                  {{ paypalResultMessage }}
+                </div>
+              </div>
             </form>
           </div>
         </div>
@@ -180,10 +203,18 @@ import { useCartStore } from "../stores/cart";
 const router = useRouter();
 const authStore = useAuthStore();
 const cartStore = useCartStore();
+const checkoutFormRef = ref(null);
 const submitting = ref(false);
 const errorMessage = ref("");
 const locating = ref(false);
 const shippingLoading = ref(false);
+const paypalLoading = ref(false);
+const paypalEnabled = ref(false);
+const paypalClientId = ref("");
+const paypalCurrencyCode = ref("USD");
+const paypalErrorMessage = ref("");
+const paypalResultMessage = ref("");
+const paypalButtonsRendered = ref(false);
 const shippingOptions = ref([]);
 const selectedShippingRateId = ref(null);
 const latestShippingLookup = ref(0);
@@ -229,6 +260,10 @@ const shippingSummaryLabel = computed(() => {
   return "Choose option";
 });
 const totalWithShipping = computed(() => cartStore.total + shippingAmount.value);
+const checkoutPayload = computed(() => ({
+  ...form,
+  shippingRateId: selectedShippingRateId.value,
+}));
 const canPlaceOrder = computed(() => {
   if (!form.country.trim() || shippingLoading.value) {
     return false;
@@ -373,40 +408,179 @@ const requestLocation = async () => {
   }
 };
 
-const placeOrder = async () => {
-  if (!cartStore.items.length) {
-    errorMessage.value = "Your cart is empty.";
-    return;
-  }
-
-  if (!canPlaceOrder.value) {
-    errorMessage.value = "Please choose an available shipping option before placing your order.";
-    return;
-  }
-
-  submitting.value = true;
-  errorMessage.value = "";
-
-  try {
-    const order = await cartStore.checkout({
-      ...form,
-      shippingRateId: selectedShippingRateId.value,
-    });
-    alert(`Order ${order.orderNumber} placed successfully.`);
-    router.push("/");
-  } catch (error) {
-    errorMessage.value = error.message || "Failed to place order.";
-  } finally {
-    submitting.value = false;
-  }
-};
-
 const formatDistanceRange = (option) => {
   if (option.maxDistanceKm === null) {
     return `${Number(option.minDistanceKm).toLocaleString()}+ km distance band`;
   }
 
   return `${Number(option.minDistanceKm).toLocaleString()}-${Number(option.maxDistanceKm).toLocaleString()} km distance band`;
+};
+
+const validateCheckoutBeforePayment = () => {
+  paypalResultMessage.value = "";
+
+  if (checkoutFormRef.value && !checkoutFormRef.value.reportValidity()) {
+    errorMessage.value = "Please complete all required checkout fields before continuing to PayPal.";
+    return false;
+  }
+
+  if (!cartStore.items.length) {
+    errorMessage.value = "Your cart is empty.";
+    return false;
+  }
+
+  if (!canPlaceOrder.value) {
+    errorMessage.value = "Please choose an available shipping option before placing your order.";
+    return false;
+  }
+
+  errorMessage.value = "";
+  return true;
+};
+
+const loadPayPalSdk = (clientId, currencyCode) =>
+  new Promise((resolve, reject) => {
+    const existingScript = document.querySelector("#paypal-sdk-script");
+
+    if (existingScript) {
+      if (window.paypal?.Buttons) {
+        resolve(window.paypal);
+        return;
+      }
+
+      existingScript.addEventListener("load", () => resolve(window.paypal), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("Failed to load the PayPal SDK.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "paypal-sdk-script";
+    script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=${encodeURIComponent(currencyCode)}`;
+    script.async = true;
+    script.onload = () => resolve(window.paypal);
+    script.onerror = () => reject(new Error("Failed to load the PayPal SDK."));
+    document.head.appendChild(script);
+  });
+
+const renderPayPalButtons = async () => {
+  if (!paypalEnabled.value || paypalButtonsRendered.value || !paypalClientId.value) {
+    return;
+  }
+
+  paypalLoading.value = true;
+
+  try {
+    await loadPayPalSdk(paypalClientId.value, paypalCurrencyCode.value);
+
+    if (!window.paypal?.Buttons) {
+      throw new Error("PayPal SDK is unavailable.");
+    }
+
+    await window.paypal.Buttons({
+      style: {
+        shape: "rect",
+        layout: "vertical",
+        color: "gold",
+        label: "paypal",
+      },
+      async onClick(_data, actions) {
+        if (!validateCheckoutBeforePayment()) {
+          return actions.reject();
+        }
+
+        paypalErrorMessage.value = "";
+        return actions.resolve();
+      },
+      async createOrder() {
+        submitting.value = true;
+        paypalErrorMessage.value = "";
+
+        try {
+          const orderData = await cartStore.createPayPalOrder(checkoutPayload.value);
+
+          if (orderData.id) {
+            return orderData.id;
+          }
+
+          const errorDetail = orderData?.details?.[0];
+          const errorMessageText = errorDetail
+            ? `${errorDetail.issue} ${errorDetail.description} (${orderData.debug_id})`
+            : JSON.stringify(orderData);
+
+          throw new Error(errorMessageText);
+        } catch (error) {
+          paypalErrorMessage.value = error.message || "Could not initiate PayPal checkout.";
+          throw error;
+        } finally {
+          submitting.value = false;
+        }
+      },
+      async onApprove(data, actions) {
+        submitting.value = true;
+        paypalErrorMessage.value = "";
+        paypalResultMessage.value = "";
+
+        try {
+          const { order, paypalOrder } = await cartStore.capturePayPalOrder(data.orderID, checkoutPayload.value);
+          const errorDetail = paypalOrder?.details?.[0];
+
+          if (errorDetail?.issue === "INSTRUMENT_DECLINED") {
+            return actions.restart();
+          }
+
+          if (errorDetail) {
+            throw new Error(`${errorDetail.description} (${paypalOrder.debug_id})`);
+          }
+
+          if (!paypalOrder.purchase_units) {
+            throw new Error(JSON.stringify(paypalOrder));
+          }
+
+          const transaction =
+            paypalOrder.purchase_units?.[0]?.payments?.captures?.[0] ||
+            paypalOrder.purchase_units?.[0]?.payments?.authorizations?.[0];
+
+          paypalResultMessage.value = transaction
+            ? `Transaction ${transaction.status}: ${transaction.id}`
+            : `Order ${order.orderNumber} placed successfully.`;
+
+          alert(`Order ${order.orderNumber} placed successfully.`);
+          router.push("/");
+        } catch (error) {
+          paypalErrorMessage.value = error.message || "Sorry, your transaction could not be processed.";
+        } finally {
+          submitting.value = false;
+        }
+      },
+    }).render("#paypal-button-container");
+
+    paypalButtonsRendered.value = true;
+  } catch (error) {
+    paypalErrorMessage.value = error.message || "Unable to initialize PayPal checkout.";
+  } finally {
+    paypalLoading.value = false;
+  }
+};
+
+const initPayPalCheckout = async () => {
+  paypalLoading.value = true;
+  paypalErrorMessage.value = "";
+
+  try {
+    const config = await api.get("/orders/paypal-config");
+    paypalEnabled.value = Boolean(config.enabled && config.clientId);
+    paypalClientId.value = config.clientId || "";
+    paypalCurrencyCode.value = config.currencyCode || "USD";
+
+    if (paypalEnabled.value) {
+      await renderPayPalButtons();
+    }
+  } catch (error) {
+    paypalEnabled.value = false;
+    paypalErrorMessage.value = error.message || "Unable to load PayPal checkout settings.";
+  } finally {
+    paypalLoading.value = false;
+  }
 };
 
 watch(
@@ -418,6 +592,7 @@ watch(
 
 onMounted(() => {
   fetchShippingOptions(form.country);
+  initPayPalCheckout();
 });
 </script>
 
@@ -464,5 +639,10 @@ onMounted(() => {
 
 .shipping-option__body {
   flex: 1;
+}
+
+.paypal-button-container--busy {
+  opacity: 0.72;
+  pointer-events: none;
 }
 </style>

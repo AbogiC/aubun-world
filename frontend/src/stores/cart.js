@@ -141,5 +141,15 @@ export const useCartStore = defineStore("cart", {
       this.syncFromPayload(cart);
       return order;
     },
+
+    async createPayPalOrder(payload) {
+      return api.post("/orders", payload);
+    },
+
+    async capturePayPalOrder(orderId, payload) {
+      const { order, cart, paypalOrder } = await api.post(`/orders/${orderId}/capture`, payload);
+      this.syncFromPayload(cart);
+      return { order, paypalOrder };
+    },
   },
 });

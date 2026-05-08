@@ -19,60 +19,20 @@ final class OrderRepository
 
     public function createFromCart(int $userId, array $payload): array
     {
-        $customerName = trim(sprintf(
-            '%s %s',
-            (string) ($payload['first_name'] ?? ''),
-            (string) ($payload['last_name'] ?? '')
-        ));
-        $email = strtolower(trim((string) ($payload['email'] ?? '')));
-        $address = trim((string) ($payload['address'] ?? ''));
-        $city = trim((string) ($payload['city'] ?? ''));
-        $country = trim((string) ($payload['country'] ?? ''));
-        $postalCode = trim((string) ($payload['postal_code'] ?? ''));
-        $shippingRateId = (int) ($payload['shipping_rate_id'] ?? 0);
-
-        if ($customerName === '' || $email === '' || $address === '' || $city === '' || $country === '' || $postalCode === '') {
-            throw new RuntimeException('Checkout data is incomplete.', 422);
-        }
-
-        $cart = $this->cartWithItems($userId);
-
-        if ($cart['items'] === []) {
-            throw new RuntimeException('Your cart is empty.', 422);
-        }
-
-        $subtotal = array_reduce(
-            $cart['items'],
-            static fn (float $sum, array $item): float => $sum + $item['line_total'],
-            0.0
-        );
-        $discount = (float) $cart['discount_amount'];
-        $availableRates = $this->shipping->shippingOptionsForCountry($country);
-
-        if ($availableRates === null || $availableRates['shippingRates'] === []) {
-            throw new RuntimeException('Shipping is not available for the selected country yet.', 422);
-        }
-
-        $selectedRate = null;
-
-        if (count($availableRates['shippingRates']) === 1 && $shippingRateId <= 0) {
-            $selectedRate = $availableRates['shippingRates'][0];
-        } else {
-            if ($shippingRateId <= 0) {
-                throw new RuntimeException('Please choose a shipping option.', 422);
-            }
-
-            $selected = $this->shipping->shippingRateForCountry($country, $shippingRateId);
-
-            if ($selected === null) {
-                throw new RuntimeException('Selected shipping option is not valid for this country.', 422);
-            }
-
-            $selectedRate = $selected['shippingRate'];
-        }
-
-        $shipping = (float) $selectedRate['shippingCost'];
-        $total = max($subtotal - $discount, 0) + $shipping;
+        $checkout = $this->prepareCheckoutFromCart($userId, $payload);
+        $customerName = $checkout['customer_name'];
+        $email = $checkout['email'];
+        $address = $checkout['address'];
+        $city = $checkout['city'];
+        $country = $checkout['country'];
+        $postalCode = $checkout['postal_code'];
+        $cart = $checkout['cart'];
+        $subtotal = $checkout['subtotal'];
+        $discount = $checkout['discount'];
+        $selectedRate = $checkout['selected_rate'];
+        $shipping = $checkout['shipping'];
+        $total = $checkout['total'];
+        $availableRates = $checkout['available_rates'];
 
         try {
             $this->pdo->beginTransaction();
@@ -143,6 +103,78 @@ final class OrderRepository
 
             throw $exception;
         }
+    }
+
+    public function prepareCheckoutFromCart(int $userId, array $payload): array
+    {
+        $customerName = trim(sprintf(
+            '%s %s',
+            (string) ($payload['first_name'] ?? ''),
+            (string) ($payload['last_name'] ?? '')
+        ));
+        $email = strtolower(trim((string) ($payload['email'] ?? '')));
+        $address = trim((string) ($payload['address'] ?? ''));
+        $city = trim((string) ($payload['city'] ?? ''));
+        $country = trim((string) ($payload['country'] ?? ''));
+        $postalCode = trim((string) ($payload['postal_code'] ?? ''));
+        $shippingRateId = (int) ($payload['shipping_rate_id'] ?? 0);
+
+        if ($customerName === '' || $email === '' || $address === '' || $city === '' || $country === '' || $postalCode === '') {
+            throw new RuntimeException('Checkout data is incomplete.', 422);
+        }
+
+        $cart = $this->cartWithItems($userId);
+
+        if ($cart['items'] === []) {
+            throw new RuntimeException('Your cart is empty.', 422);
+        }
+
+        $subtotal = array_reduce(
+            $cart['items'],
+            static fn (float $sum, array $item): float => $sum + $item['line_total'],
+            0.0
+        );
+        $discount = (float) $cart['discount_amount'];
+        $availableRates = $this->shipping->shippingOptionsForCountry($country);
+
+        if ($availableRates === null || $availableRates['shippingRates'] === []) {
+            throw new RuntimeException('Shipping is not available for the selected country yet.', 422);
+        }
+
+        if (count($availableRates['shippingRates']) === 1 && $shippingRateId <= 0) {
+            $selectedRate = $availableRates['shippingRates'][0];
+        } else {
+            if ($shippingRateId <= 0) {
+                throw new RuntimeException('Please choose a shipping option.', 422);
+            }
+
+            $selected = $this->shipping->shippingRateForCountry($country, $shippingRateId);
+
+            if ($selected === null) {
+                throw new RuntimeException('Selected shipping option is not valid for this country.', 422);
+            }
+
+            $selectedRate = $selected['shippingRate'];
+        }
+
+        $shipping = (float) $selectedRate['shippingCost'];
+        $total = max($subtotal - $discount, 0) + $shipping;
+
+        return [
+            'customer_name' => $customerName,
+            'email' => $email,
+            'address' => $address,
+            'city' => $city,
+            'country' => $country,
+            'postal_code' => $postalCode,
+            'cart' => $cart,
+            'subtotal' => $subtotal,
+            'discount' => $discount,
+            'available_rates' => $availableRates,
+            'selected_rate' => $selectedRate,
+            'shipping' => $shipping,
+            'total' => $total,
+        ];
     }
 
     public function allByUser(int $userId): array

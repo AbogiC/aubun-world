@@ -16,6 +16,10 @@ final class Config
             'DB_DATABASE' => 'aubun_world',
             'DB_USERNAME' => 'root',
             'DB_PASSWORD' => '',
+            'PAYPAL_CLIENT_ID' => '',
+            'PAYPAL_CLIENT_SECRET' => '',
+            'PAYPAL_BASE_URL' => 'https://api-m.sandbox.paypal.com',
+            'PAYPAL_CURRENCY' => 'USD',
         ];
 
         $env = $defaults;
@@ -46,6 +50,12 @@ final class Config
                 'database' => $env['DB_DATABASE'],
                 'username' => $env['DB_USERNAME'],
                 'password' => $env['DB_PASSWORD'],
+            ],
+            'paypal' => [
+                'client_id' => $env['PAYPAL_CLIENT_ID'] ?? '',
+                'client_secret' => $env['PAYPAL_CLIENT_SECRET'] ?? '',
+                'base_url' => $env['PAYPAL_BASE_URL'] ?? 'https://api-m.sandbox.paypal.com',
+                'currency' => strtoupper($env['PAYPAL_CURRENCY'] ?? 'USD'),
             ],
         ];
     }
