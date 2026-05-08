@@ -78,6 +78,14 @@ final class PayPalOrderService
         );
     }
 
+    public function getOrder(string $orderId): array
+    {
+        return $this->request(
+            'GET',
+            sprintf('/v2/checkout/orders/%s', rawurlencode($orderId))
+        );
+    }
+
     private function request(string $method, string $path, array|\stdClass|null $body = null, array $headers = []): array
     {
         if (!$this->isConfigured()) {

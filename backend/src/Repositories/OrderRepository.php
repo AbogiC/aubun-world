@@ -20,6 +20,7 @@ final class OrderRepository
     public function createFromCart(int $userId, array $payload): array
     {
         $checkout = $this->prepareCheckoutFromCart($userId, $payload);
+        $status = trim((string) ($payload['status'] ?? 'pending')) ?: 'pending';
         $customerName = $checkout['customer_name'];
         $email = $checkout['email'];
         $address = $checkout['address'];
@@ -54,7 +55,7 @@ final class OrderRepository
             $insertOrder->execute([
                 'user_id' => $userId,
                 'order_number' => $orderNumber,
-                'status' => 'pending',
+                'status' => $status,
                 'customer_name' => $customerName,
                 'customer_email' => $email,
                 'shipping_address' => $address,

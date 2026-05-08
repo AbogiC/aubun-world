@@ -76,12 +76,17 @@ final class OrderController
         $userId = (int) $request->attribute('user')['id'];
         $paypalOrderId = (string) $request->attribute('orderID');
         $capture = $this->paypal->captureOrder($paypalOrderId);
-        $order = $this->orders->createFromCart($userId, $this->checkoutPayload($request));
+        $paypalOrder = $this->paypal->getOrder($paypalOrderId);
+        $order = $this->orders->createFromCart($userId, [
+            ...$this->checkoutPayload($request),
+            'status' => $this->resolveOrderStatus($paypalOrder),
+        ]);
 
         return [
             'message' => 'Order placed successfully.',
             'order' => $order,
             'paypalOrder' => $capture,
+            'paypalOrderDetails' => $paypalOrder,
             ...$this->carts->cartPayload($userId),
         ];
     }
@@ -114,5 +119,12 @@ final class OrderController
         if (!$this->paypal->isConfigured()) {
             throw new RuntimeException('PayPal checkout is not configured yet.', 503);
         }
+    }
+
+    private function resolveOrderStatus(array $paypalOrder): string
+    {
+        return strtoupper((string) ($paypalOrder['status'] ?? '')) === 'COMPLETED'
+            ? 'paid'
+            : 'pending';
     }
 }
