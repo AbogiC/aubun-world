@@ -102,9 +102,9 @@
 .luxury-footer {
   position: relative;
   background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 35%),
-    linear-gradient(180deg, #111112 0%, #050506 100%);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+    radial-gradient(circle at top left, rgba(254, 181, 17, 0.16), transparent 35%),
+    linear-gradient(180deg, #6c1823 0%, #4d1018 100%);
+  border-top: 1px solid rgba(254, 181, 17, 0.16);
 }
 
 .brand-text {

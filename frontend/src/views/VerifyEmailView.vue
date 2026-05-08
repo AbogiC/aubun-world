@@ -165,8 +165,8 @@ onMounted(() => {
 <style scoped>
 .verify-email-page {
   background:
-    radial-gradient(circle at top center, rgba(201, 168, 106, 0.06), transparent 32%),
-    linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(249, 247, 243, 0.94));
+    radial-gradient(circle at top center, rgba(254, 181, 17, 0.16), transparent 32%),
+    linear-gradient(180deg, rgba(255, 241, 184, 1), rgba(254, 181, 17, 0.38));
   min-height: 60vh;
   display: flex;
   align-items: center;
@@ -194,29 +194,29 @@ onMounted(() => {
 }
 
 .btn-luxury {
-  background: linear-gradient(180deg, #151516, #09090a);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+  background: linear-gradient(180deg, #6c1823, #4d1018);
+  color: #feb511;
+  border: 1px solid rgba(254, 181, 17, 0.16);
+  box-shadow: 0 16px 32px rgba(77, 16, 24, 0.2);
 }
 .btn-luxury:hover {
   transform: translateY(-2px);
-  box-shadow: 0 22px 38px rgba(0, 0, 0, 0.24);
-  color: white;
+  box-shadow: 0 22px 38px rgba(77, 16, 24, 0.28);
+  color: #feb511;
 }
 
 .btn-outline-luxury {
-  background-color: rgba(255, 255, 255, 0.72);
+  background-color: rgba(255, 241, 184, 0.72);
   color: var(--primary-black);
-  border: 1px solid rgba(11, 11, 12, 0.22);
+  border: 1px solid rgba(77, 16, 24, 0.22);
   backdrop-filter: blur(12px);
 }
 .btn-outline-luxury:hover {
   transform: translateY(-2px);
   background: var(--primary-black);
-  color: white;
+  color: #feb511;
   border-color: var(--primary-black);
-  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 18px 32px rgba(77, 16, 24, 0.18);
 }
 
 .d-grid {

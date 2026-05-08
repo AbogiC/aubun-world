@@ -778,8 +778,8 @@ onMounted(fetchSettings);
 <style scoped>
 .shipping-hero {
   background:
-    radial-gradient(circle at top right, rgba(0, 0, 0, 0.12), transparent 32%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(238, 236, 232, 0.88));
+    radial-gradient(circle at top right, rgba(77, 16, 24, 0.16), transparent 32%),
+    linear-gradient(145deg, rgba(255, 241, 184, 0.94), rgba(254, 181, 17, 0.42));
 }
 
 .shipping-metrics {
@@ -790,9 +790,9 @@ onMounted(fetchSettings);
 
 .metric-card {
   padding: 1rem;
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.64);
+  background: rgba(255, 241, 184, 0.64);
 }
 
 .metric-card strong {
@@ -821,18 +821,18 @@ onMounted(fetchSettings);
 .continent-card,
 .rule-card {
   padding: 1rem;
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 241, 184, 0.72);
 }
 
 .status-switch,
 .tiers-panel,
 .mapping-toolbar {
   padding: 1rem;
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 241, 184, 0.72);
 }
 
 .shop-card,
@@ -857,7 +857,7 @@ onMounted(fetchSettings);
 .selection-chip {
   padding: 0.45rem 0.8rem;
   border-radius: 999px;
-  background: rgba(11, 11, 12, 0.08);
+  background: rgba(77, 16, 24, 0.1);
   font-size: 0.85rem;
 }
 
@@ -890,15 +890,15 @@ onMounted(fetchSettings);
   gap: 0.7rem;
   align-items: flex-start;
   padding: 0.85rem 0.9rem;
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 0.95rem;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 241, 184, 0.78);
   cursor: pointer;
 }
 
 .country-option--active {
-  border-color: rgba(11, 11, 12, 0.32);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+  border-color: rgba(77, 16, 24, 0.32);
+  box-shadow: 0 10px 22px rgba(77, 16, 24, 0.12);
 }
 
 .country-option__body {
@@ -928,7 +928,7 @@ onMounted(fetchSettings);
 
 .tier-summary__row {
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(11, 11, 12, 0.08);
+  border-top: 1px solid rgba(77, 16, 24, 0.08);
   font-size: 0.92rem;
 }
 

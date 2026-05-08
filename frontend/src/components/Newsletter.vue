@@ -47,7 +47,7 @@ const subscribe = () => {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.45));
+  background: linear-gradient(135deg, rgba(255, 241, 184, 0.5), rgba(77, 16, 24, 0.08));
   pointer-events: none;
 }
 

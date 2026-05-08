@@ -69,8 +69,8 @@ const quickAdd = () => {
 <style scoped>
 .product-card {
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(11, 11, 12, 0.1);
+  background: rgba(255, 241, 184, 0.82);
+  border: 1px solid rgba(77, 16, 24, 0.1);
   overflow: hidden;
 }
 
@@ -104,8 +104,8 @@ const quickAdd = () => {
   height: 400px;
   object-fit: cover;
   background:
-    linear-gradient(135deg, rgba(12, 12, 13, 0.96), rgba(46, 46, 48, 0.82)),
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.1), transparent 40%);
+    linear-gradient(135deg, rgba(77, 16, 24, 0.96), rgba(108, 24, 35, 0.82)),
+    radial-gradient(circle at top right, rgba(254, 181, 17, 0.14), transparent 40%);
 }
 
 .action-btn {
@@ -118,6 +118,6 @@ const quickAdd = () => {
 }
 
 .rating-stars {
-  color: #111;
+  color: var(--primary-black);
 }
 </style>

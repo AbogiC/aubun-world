@@ -423,15 +423,15 @@ onMounted(() => {
 
 <style scoped>
 .location-panel {
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 1rem;
-  background: linear-gradient(135deg, rgba(11, 11, 12, 0.03), rgba(188, 154, 109, 0.08));
+  background: linear-gradient(135deg, rgba(77, 16, 24, 0.06), rgba(254, 181, 17, 0.18));
 }
 
 .shipping-options-panel {
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 1rem;
-  background: linear-gradient(135deg, rgba(11, 11, 12, 0.03), rgba(255, 255, 255, 0.92));
+  background: linear-gradient(135deg, rgba(77, 16, 24, 0.06), rgba(255, 241, 184, 0.92));
 }
 
 .shipping-origin {
@@ -451,15 +451,15 @@ onMounted(() => {
   gap: 0.9rem;
   align-items: flex-start;
   padding: 0.9rem 1rem;
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 241, 184, 0.78);
   cursor: pointer;
 }
 
 .shipping-option--active {
-  border-color: rgba(11, 11, 12, 0.28);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  border-color: rgba(77, 16, 24, 0.28);
+  box-shadow: 0 12px 24px rgba(77, 16, 24, 0.12);
 }
 
 .shipping-option__body {

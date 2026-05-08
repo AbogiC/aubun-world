@@ -198,16 +198,16 @@ onMounted(() => {
 <style scoped>
 .page-hero {
   background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.88), rgba(236, 236, 235, 0.95) 60%, rgba(224, 224, 222, 0.98));
-  border-bottom: 1px solid rgba(11, 11, 12, 0.08);
+    radial-gradient(circle at top, rgba(255, 241, 184, 0.94), rgba(254, 181, 17, 0.58) 60%, rgba(77, 16, 24, 0.16));
+  border-bottom: 1px solid rgba(77, 16, 24, 0.1);
 }
 
 .filter-panel {
-  background: rgba(255, 255, 255, 0.84);
+  background: rgba(255, 241, 184, 0.84);
   backdrop-filter: blur(14px);
   border-radius: 1.5rem;
-  border: 1px solid rgba(11, 11, 12, 0.08);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
+  box-shadow: 0 24px 60px rgba(77, 16, 24, 0.12);
 }
 
 .product-grid :deep(.col-md-6.col-lg-4) {
@@ -217,8 +217,8 @@ onMounted(() => {
 
 .product-grid :deep(.product-card) {
   border-radius: 1.5rem;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.1);
+  box-shadow: 0 18px 40px rgba(77, 16, 24, 0.12);
   transition:
     transform 260ms ease,
     box-shadow 260ms ease,
@@ -241,9 +241,9 @@ onMounted(() => {
 
 .product-grid :deep(.product-card:hover) {
   transform: translateY(-10px);
-  border-color: rgba(15, 23, 42, 0.16);
-  box-shadow: 0 28px 65px rgba(15, 23, 42, 0.16);
-  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(77, 16, 24, 0.18);
+  box-shadow: 0 28px 65px rgba(77, 16, 24, 0.18);
+  background: rgba(255, 241, 184, 0.94);
 }
 
 .product-grid :deep(.product-card:hover .product-image) {

@@ -223,8 +223,8 @@ const addToCart = () => {
   height: 600px;
   object-fit: cover;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(236, 236, 234, 0.88)),
-    radial-gradient(circle at top right, rgba(0, 0, 0, 0.08), transparent 35%);
+    linear-gradient(145deg, rgba(255, 241, 184, 0.95), rgba(254, 181, 17, 0.48)),
+    radial-gradient(circle at top right, rgba(77, 16, 24, 0.1), transparent 35%);
 }
 
 .breadcrumb {

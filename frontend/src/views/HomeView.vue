@@ -162,8 +162,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .home {
   background:
-    radial-gradient(circle at top center, rgba(201, 168, 106, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(249, 247, 243, 0.92));
+    radial-gradient(circle at top center, rgba(254, 181, 17, 0.2), transparent 28%),
+    linear-gradient(180deg, rgba(255, 241, 184, 0.98), rgba(254, 181, 17, 0.62));
 }
 
 .home-section {
@@ -183,8 +183,8 @@ onBeforeUnmount(() => {
   inset: 1.5rem 2rem;
   border-radius: 2rem;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0)),
-    radial-gradient(circle at top right, rgba(201, 168, 106, 0.09), transparent 42%);
+    linear-gradient(145deg, rgba(255, 241, 184, 0.38), rgba(255, 241, 184, 0)),
+    radial-gradient(circle at top right, rgba(77, 16, 24, 0.08), transparent 42%);
   pointer-events: none;
   opacity: 0;
   transform: scale(0.98);
@@ -244,7 +244,7 @@ onBeforeUnmount(() => {
   width: min(24vw, 18rem);
   height: min(24vw, 18rem);
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(201, 168, 106, 0.14), transparent 70%);
+  background: radial-gradient(circle, rgba(77, 16, 24, 0.16), transparent 70%);
   filter: blur(10px);
   pointer-events: none;
 }
@@ -265,7 +265,7 @@ onBeforeUnmount(() => {
   overflow-y: visible;
   scroll-snap-type: x mandatory;
   scrollbar-width: thin;
-  scrollbar-color: rgba(180, 147, 88, 0.5) rgba(17, 17, 17, 0.08);
+  scrollbar-color: rgba(77, 16, 24, 0.55) rgba(254, 181, 17, 0.18);
 }
 
 .featured-carousel-row {
@@ -286,12 +286,12 @@ onBeforeUnmount(() => {
 }
 
 .featured-carousel::-webkit-scrollbar-track {
-  background: rgba(17, 17, 17, 0.08);
+  background: rgba(77, 16, 24, 0.08);
   border-radius: 999px;
 }
 
 .featured-carousel::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, rgba(143, 112, 57, 0.6), rgba(201, 168, 106, 0.88));
+  background: linear-gradient(90deg, rgba(77, 16, 24, 0.7), rgba(254, 181, 17, 0.92));
   border-radius: 999px;
 }
 
@@ -307,13 +307,13 @@ onBeforeUnmount(() => {
 .featured-carousel :deep(.product-card) {
   position: relative;
   border-radius: 1.75rem;
-  border: 1px solid rgba(180, 147, 88, 0.22);
+  border: 1px solid rgba(77, 16, 24, 0.18);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 243, 236, 0.96)),
-    radial-gradient(circle at top, rgba(201, 168, 106, 0.12), transparent 48%);
+    linear-gradient(180deg, rgba(255, 241, 184, 0.98), rgba(254, 181, 17, 0.3)),
+    radial-gradient(circle at top, rgba(77, 16, 24, 0.12), transparent 48%);
   box-shadow:
-    0 18px 45px rgba(17, 17, 17, 0.08),
-    0 2px 10px rgba(201, 168, 106, 0.12);
+    0 18px 45px rgba(77, 16, 24, 0.12),
+    0 2px 10px rgba(254, 181, 17, 0.2);
   overflow: hidden;
   isolation: isolate;
   transform: translateY(calc(var(--card-index, 0) * 2px));
@@ -329,16 +329,16 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent 34%, transparent 68%, rgba(201, 168, 106, 0.12));
+    linear-gradient(135deg, rgba(255, 241, 184, 0.22), transparent 34%, transparent 68%, rgba(77, 16, 24, 0.12));
   opacity: 0.85;
   pointer-events: none;
 }
 
 .featured-carousel :deep(.product-card:hover) {
-  border-color: rgba(180, 147, 88, 0.42);
+  border-color: rgba(77, 16, 24, 0.38);
   box-shadow:
-    0 28px 60px rgba(17, 17, 17, 0.12),
-    0 10px 24px rgba(201, 168, 106, 0.16);
+    0 28px 60px rgba(77, 16, 24, 0.16),
+    0 10px 24px rgba(254, 181, 17, 0.2);
   transform: translateY(-10px);
 }
 
@@ -362,12 +362,12 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: 1;
   padding: 1.4rem 1.4rem 1.55rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.72));
+  background: linear-gradient(180deg, rgba(255, 241, 184, 0.18), rgba(255, 241, 184, 0.82));
 }
 
 .featured-carousel :deep(.section-kicker) {
   letter-spacing: 0.16em;
-  color: rgba(110, 83, 35, 0.88);
+  color: rgba(77, 16, 24, 0.76);
 }
 
 .featured-carousel :deep(h5) {
@@ -376,24 +376,24 @@ onBeforeUnmount(() => {
 }
 
 .featured-carousel :deep(.price) {
-  color: #16120d;
+  color: var(--primary-black);
 }
 
 .featured-carousel :deep(.badge.bg-dark) {
   border-radius: 999px;
   padding: 0.5rem 0.8rem;
-  background: rgba(17, 17, 17, 0.88) !important;
+  background: rgba(77, 16, 24, 0.9) !important;
   backdrop-filter: blur(10px);
 }
 
 .featured-carousel :deep(.action-btn) {
-  background: rgba(255, 255, 255, 0.88);
-  color: #111;
-  box-shadow: 0 10px 22px rgba(17, 17, 17, 0.12);
+  background: rgba(255, 241, 184, 0.92);
+  color: var(--primary-black);
+  box-shadow: 0 10px 22px rgba(77, 16, 24, 0.14);
 }
 
 .featured-carousel :deep(.action-btn:hover) {
-  background: #fff;
+  background: var(--soft-white);
 }
 
 @media (max-width: 991.98px) {
@@ -417,12 +417,12 @@ onBeforeUnmount(() => {
 
 .category-card {
   cursor: pointer;
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.1);
   border-radius: 1.35rem;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 245, 240, 0.92)),
-    radial-gradient(circle at top, rgba(201, 168, 106, 0.08), transparent 56%);
-  box-shadow: 0 14px 34px rgba(17, 17, 17, 0.05);
+    linear-gradient(180deg, rgba(255, 241, 184, 0.96), rgba(254, 181, 17, 0.3)),
+    radial-gradient(circle at top, rgba(77, 16, 24, 0.08), transparent 56%);
+  box-shadow: 0 14px 34px rgba(77, 16, 24, 0.08);
   transition:
     border-color 220ms ease,
     transform 220ms ease,
@@ -430,17 +430,17 @@ onBeforeUnmount(() => {
 }
 
 .category-card:hover {
-  border-color: rgba(11, 11, 12, 0.22);
-  box-shadow: 0 22px 44px rgba(17, 17, 17, 0.09);
+  border-color: rgba(77, 16, 24, 0.26);
+  box-shadow: 0 22px 44px rgba(77, 16, 24, 0.12);
 }
 
 .testimonial-card {
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 1.6rem;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 243, 236, 0.92)),
-    radial-gradient(circle at top left, rgba(201, 168, 106, 0.08), transparent 42%);
-  box-shadow: 0 18px 40px rgba(17, 17, 17, 0.05);
+    linear-gradient(180deg, rgba(255, 241, 184, 0.94), rgba(254, 181, 17, 0.26)),
+    radial-gradient(circle at top left, rgba(77, 16, 24, 0.08), transparent 42%);
+  box-shadow: 0 18px 40px rgba(77, 16, 24, 0.08);
   transition:
     transform 240ms ease,
     box-shadow 240ms ease,
@@ -449,8 +449,8 @@ onBeforeUnmount(() => {
 
 .testimonial-card:hover {
   transform: translateY(-6px);
-  border-color: rgba(180, 147, 88, 0.24);
-  box-shadow: 0 26px 54px rgba(17, 17, 17, 0.1);
+  border-color: rgba(77, 16, 24, 0.24);
+  box-shadow: 0 26px 54px rgba(77, 16, 24, 0.14);
 }
 
 @keyframes luxuryCardRise {

@@ -184,18 +184,18 @@ onBeforeUnmount(() => {
 <style scoped>
 .about-hero {
   background:
-    linear-gradient(180deg, rgba(8, 8, 9, 0.98), rgba(20, 20, 22, 0.94)),
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 45%);
+    linear-gradient(180deg, rgba(77, 16, 24, 0.98), rgba(108, 24, 35, 0.94)),
+    radial-gradient(circle at top, rgba(254, 181, 17, 0.12), transparent 45%);
 }
 
 .about-visual,
 .team-avatar {
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(236, 236, 234, 0.86)),
-    radial-gradient(circle at top right, rgba(0, 0, 0, 0.08), transparent 35%);
+    linear-gradient(145deg, rgba(255, 241, 184, 0.94), rgba(254, 181, 17, 0.82)),
+    radial-gradient(circle at top right, rgba(77, 16, 24, 0.1), transparent 35%);
 }
 
 .team-card {
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
 }
 </style>

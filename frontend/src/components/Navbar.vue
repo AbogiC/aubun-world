@@ -9,8 +9,10 @@
         ref="togglerButton"
         class="navbar-toggler border-0"
         type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarNav"
+        aria-controls="navbarNav"
+        :aria-expanded="isNavbarOpen ? 'true' : 'false'"
+        aria-label="Toggle navigation"
+        @click="toggleNavbarMenu"
       >
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -65,9 +67,13 @@
           </li>
         </ul>
 
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3 mt-1">
           <template v-if="authStore.isAuthenticated">
-            <router-link to="/profile" class="nav-account text-uppercase small text-decoration-none">{{ userLabel }}</router-link>
+            <router-link
+              to="/profile"
+              class="nav-account text-uppercase small text-decoration-none"
+              >{{ userLabel }}</router-link
+            >
             <button class="btn btn-outline-dark btn-sm px-3" @click="logout">Logout</button>
           </template>
           <template v-else>
@@ -105,9 +111,32 @@ const route = useRoute();
 const collapseElement = ref(null);
 const togglerButton = ref(null);
 const dashboardMenuOpen = ref(false);
+const isNavbarOpen = ref(false);
 const userLabel = computed(() => authStore.user?.name?.split(" ")[0] || "Account");
 const canManageProducts = computed(() => ["manager", "admin"].includes(authStore.user?.role || ""));
 const isDashboardSection = computed(() => route.path.startsWith("/dashboard"));
+
+const syncNavbarOpenState = () => {
+  isNavbarOpen.value = collapseElement.value?.classList.contains("show") ?? false;
+};
+
+const toggleNavbarMenu = () => {
+  if (!collapseElement.value || !togglerButton.value) {
+    return;
+  }
+
+  const togglerVisible = window.getComputedStyle(togglerButton.value).display !== "none";
+
+  if (!togglerVisible) {
+    return;
+  }
+
+  const collapse = Collapse.getOrCreateInstance(collapseElement.value);
+  collapse.toggle();
+
+  // Bootstrap updates the `show` class asynchronously during transitions.
+  window.setTimeout(syncNavbarOpenState, 0);
+};
 
 const closeNavbarMenu = () => {
   if (!collapseElement.value || !togglerButton.value) {
@@ -121,6 +150,8 @@ const closeNavbarMenu = () => {
   }
 
   Collapse.getOrCreateInstance(collapseElement.value).hide();
+  isNavbarOpen.value = false;
+  dashboardMenuOpen.value = false;
 };
 
 const goToBag = () => {
@@ -150,10 +181,10 @@ const logout = () => {
 
 <style scoped>
 .luxury-navbar {
-  background: rgba(255, 255, 255, 0.82);
-  border-bottom: 1px solid rgba(11, 11, 12, 0.08);
+  background: rgba(255, 241, 184, 0.82);
+  border-bottom: 1px solid rgba(77, 16, 24, 0.12);
   backdrop-filter: blur(18px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 12px 30px rgba(77, 16, 24, 0.08);
 }
 
 .brand-text {
@@ -161,14 +192,14 @@ const logout = () => {
   font-size: 1.55rem;
   font-weight: 700;
   letter-spacing: 0.28em;
-  color: #1a1a1a;
+  color: var(--primary-black);
 }
 
 .nav-link {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  color: #1a1a1a !important;
+  color: var(--primary-black) !important;
   margin: 0 10px;
   transition: all 0.3s ease;
   position: relative;
@@ -190,7 +221,7 @@ const logout = () => {
   height: 1px;
   bottom: 0;
   left: 0;
-  background-color: #1a1a1a;
+  background-color: var(--primary-black);
   transition: width 0.3s ease;
 }
 
@@ -223,10 +254,10 @@ const logout = () => {
   left: 0;
   min-width: 220px;
   padding: 0.65rem;
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.12);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 241, 184, 0.96);
+  box-shadow: 0 18px 36px rgba(77, 16, 24, 0.12);
   backdrop-filter: blur(14px);
   display: grid;
   gap: 0.35rem;
@@ -237,18 +268,20 @@ const logout = () => {
   display: block;
   padding: 0.75rem 0.9rem;
   border-radius: 0.85rem;
-  color: #1a1a1a;
+  color: var(--primary-black);
   text-decoration: none;
   font-size: 0.84rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  transition: background-color 0.2s ease, opacity 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
   opacity: 0.82;
 }
 
 .dashboard-dropdown-item:hover,
 .dashboard-dropdown-item.router-link-active {
-  background: rgba(11, 11, 12, 0.06);
+  background: rgba(77, 16, 24, 0.08);
   opacity: 1;
 }
 
@@ -260,12 +293,13 @@ const logout = () => {
 
 .nav-badge {
   font-size: 0.65rem;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 18px rgba(77, 16, 24, 0.24);
 }
 
 .nav-account {
   letter-spacing: 0.18em;
   opacity: 0.72;
+  color: var(--primary-black);
 }
 
 @media (max-width: 991px) {

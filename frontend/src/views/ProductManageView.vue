@@ -762,8 +762,8 @@ onMounted(fetchProducts);
 <style scoped>
 .dashboard-hero {
   background:
-    radial-gradient(circle at top right, rgba(0, 0, 0, 0.12), transparent 32%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(238, 236, 232, 0.88));
+    radial-gradient(circle at top right, rgba(77, 16, 24, 0.16), transparent 32%),
+    linear-gradient(145deg, rgba(255, 241, 184, 0.94), rgba(254, 181, 17, 0.42));
 }
 
 .stats-grid {
@@ -774,9 +774,9 @@ onMounted(fetchProducts);
 
 .metric-card {
   padding: 1rem;
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.64);
+  background: rgba(255, 241, 184, 0.64);
 }
 
 .metric-card strong {
@@ -794,9 +794,9 @@ onMounted(fetchProducts);
 
 .country-pricing-panel {
   padding: 1rem;
-  border: 1px dashed rgba(11, 11, 12, 0.16);
+  border: 1px dashed rgba(77, 16, 24, 0.2);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.62);
+  background: rgba(255, 241, 184, 0.62);
 }
 
 .country-pricing-empty {
@@ -815,9 +815,9 @@ onMounted(fetchProducts);
   justify-content: space-between;
   gap: 1rem;
   padding: 0.9rem 1rem;
-  border: 1px solid rgba(11, 11, 12, 0.1);
+  border: 1px solid rgba(77, 16, 24, 0.12);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.74);
+  background: rgba(255, 241, 184, 0.74);
 }
 
 .country-price-chip__actions {
@@ -841,7 +841,7 @@ onMounted(fetchProducts);
   inset: 0;
   z-index: 1050;
   padding: 1.5rem;
-  background: rgba(11, 11, 12, 0.38);
+  background: rgba(77, 16, 24, 0.38);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -871,9 +871,9 @@ onMounted(fetchProducts);
   gap: 1rem;
   align-items: flex-end;
   padding: 1rem;
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 241, 184, 0.72);
 }
 
 .country-modal__toolbar-input {
@@ -896,7 +896,7 @@ onMounted(fetchProducts);
 .country-modal__selection-chip {
   padding: 0.45rem 0.8rem;
   border-radius: 999px;
-  background: rgba(11, 11, 12, 0.08);
+  background: rgba(77, 16, 24, 0.1);
   font-size: 0.85rem;
 }
 
@@ -916,10 +916,10 @@ onMounted(fetchProducts);
 }
 
 .country-continent {
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 1rem;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 241, 184, 0.68);
 }
 
 .country-continent__header {
@@ -941,15 +941,15 @@ onMounted(fetchProducts);
   gap: 0.7rem;
   align-items: flex-start;
   padding: 0.85rem 0.9rem;
-  border: 1px solid rgba(11, 11, 12, 0.08);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 0.95rem;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 241, 184, 0.78);
   cursor: pointer;
 }
 
 .country-option--active {
-  border-color: rgba(11, 11, 12, 0.3);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+  border-color: rgba(77, 16, 24, 0.3);
+  box-shadow: 0 10px 22px rgba(77, 16, 24, 0.12);
 }
 
 .country-option__body {
@@ -978,9 +978,9 @@ onMounted(fetchProducts);
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem;
-  border: 1px dashed rgba(11, 11, 12, 0.18);
+  border: 1px dashed rgba(77, 16, 24, 0.22);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.56);
+  background: rgba(255, 241, 184, 0.56);
 }
 
 .image-preview--empty {
@@ -995,7 +995,7 @@ onMounted(fetchProducts);
   height: 112px;
   object-fit: cover;
   border-radius: 0.9rem;
-  background: rgba(11, 11, 12, 0.06);
+  background: rgba(77, 16, 24, 0.08);
 }
 
 .search-input {
@@ -1039,11 +1039,11 @@ onMounted(fetchProducts);
   height: 84px;
   object-fit: cover;
   border-radius: 1rem;
-  background: rgba(11, 11, 12, 0.06);
+  background: rgba(77, 16, 24, 0.08);
 }
 
 .empty-state {
-  border: 1px dashed rgba(11, 11, 12, 0.14);
+  border: 1px dashed rgba(77, 16, 24, 0.18);
   border-radius: 1.25rem;
   margin-top: 1rem;
 }

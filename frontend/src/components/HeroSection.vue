@@ -67,15 +67,15 @@
   flex-direction: column;
   justify-content: center;
   background:
-    linear-gradient(135deg, rgba(8, 8, 9, 0.98), rgba(27, 27, 29, 0.88)),
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.12), transparent 35%);
+    linear-gradient(135deg, rgba(77, 16, 24, 0.98), rgba(108, 24, 35, 0.9)),
+    radial-gradient(circle at top right, rgba(254, 181, 17, 0.16), transparent 35%);
 }
 
 .hero-copy::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.05), transparent 36%);
+  background: linear-gradient(120deg, rgba(254, 181, 17, 0.08), transparent 36%);
   pointer-events: none;
 }
 
@@ -83,7 +83,7 @@
   position: relative;
   min-height: 720px;
   background:
-    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(235, 235, 233, 0.92) 30%, rgba(208, 208, 206, 0.9) 100%);
+    radial-gradient(circle at 30% 30%, rgba(255, 241, 184, 0.98), rgba(254, 181, 17, 0.86) 34%, rgba(77, 16, 24, 0.22) 100%);
 }
 
 .hero-image {
@@ -103,7 +103,7 @@
 .orb-one {
   width: 280px;
   height: 280px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.95), rgba(0, 0, 0, 0.1));
+  background: radial-gradient(circle, rgba(255, 241, 184, 0.95), rgba(77, 16, 24, 0.16));
   top: 10%;
   right: 10%;
 }
@@ -111,7 +111,7 @@
 .orb-two {
   width: 180px;
   height: 180px;
-  background: radial-gradient(circle, rgba(0, 0, 0, 0.18), transparent 70%);
+  background: radial-gradient(circle, rgba(77, 16, 24, 0.22), transparent 70%);
   left: 12%;
   bottom: 14%;
   animation-delay: -2.5s;
@@ -123,8 +123,8 @@
   right: 10%;
   bottom: 12%;
   padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.74);
-  border: 1px solid rgba(11, 11, 12, 0.14);
+  background: rgba(255, 241, 184, 0.8);
+  border: 1px solid rgba(77, 16, 24, 0.14);
 }
 
 .hero-card-top {
@@ -133,7 +133,7 @@
   font-size: 0.72rem;
   letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: #5d5d63;
+  color: rgba(77, 16, 24, 0.72);
   margin-bottom: 1.25rem;
 }
 
@@ -141,17 +141,17 @@
   width: 88px;
   height: 88px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #09090a, #2b2b2d);
+  background: linear-gradient(135deg, #4d1018, #6c1823);
   display: grid;
   place-items: center;
   margin-bottom: 1.25rem;
-  color: #fff;
+  color: #feb511;
   font-size: 2rem;
 }
 
 .hero-card p {
   margin-bottom: 0;
-  color: #1e1e20;
+  color: var(--primary-black);
   font-size: 1rem;
 }
 
@@ -163,7 +163,7 @@
 
 .hero-metrics div {
   padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid rgba(254, 181, 17, 0.28);
 }
 
 .hero-metrics strong {
@@ -181,7 +181,7 @@
   font-size: 0.75rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(254, 181, 17, 0.76);
 }
 
 @keyframes float {

@@ -353,8 +353,8 @@ onMounted(async () => {
 <style scoped>
 .profile-page {
   background:
-    radial-gradient(circle at top center, rgba(201, 168, 106, 0.06), transparent 32%),
-    linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(249, 247, 243, 0.94));
+    radial-gradient(circle at top center, rgba(254, 181, 17, 0.16), transparent 32%),
+    linear-gradient(180deg, rgba(255, 241, 184, 1), rgba(254, 181, 17, 0.34));
   min-height: 60vh;
 }
 
@@ -363,7 +363,7 @@ onMounted(async () => {
 }
 
 .profile-section:not(:last-child) {
-  border-bottom: 1px solid rgba(11, 11, 12, 0.08);
+  border-bottom: 1px solid rgba(77, 16, 24, 0.08);
   margin-bottom: 2rem;
 }
 

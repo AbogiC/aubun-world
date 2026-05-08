@@ -188,9 +188,9 @@ const applyPromo = async () => {
   height: 100%;
   object-fit: cover;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(236, 236, 234, 0.86)),
-    radial-gradient(circle at top right, rgba(0, 0, 0, 0.08), transparent 35%);
-  border: 1px solid rgba(11, 11, 12, 0.08);
+    linear-gradient(145deg, rgba(255, 241, 184, 0.94), rgba(254, 181, 17, 0.82)),
+    radial-gradient(circle at top right, rgba(77, 16, 24, 0.1), transparent 35%);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 1rem;
 }
 
@@ -224,6 +224,6 @@ const applyPromo = async () => {
 
 .total-price {
   font-size: 1.25rem;
-  color: #111;
+  color: var(--primary-black);
 }
 </style>
