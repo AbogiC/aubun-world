@@ -12,6 +12,8 @@ use RuntimeException;
 
 final class OrderController
 {
+    private const MANAGER_ROLES = ['manager', 'admin'];
+
     public function __construct(
         private readonly OrderRepository $orders,
         private readonly CartRepository $carts,
@@ -21,10 +23,14 @@ final class OrderController
 
     public function index(Request $request): array
     {
-        $userId = (int) $request->attribute('user')['id'];
+        $user = $request->attribute('user');
+        $userId = (int) ($user['id'] ?? 0);
+        $role = (string) ($user['role'] ?? '');
 
         return [
-            'orders' => $this->orders->allByUser($userId),
+            'orders' => in_array($role, self::MANAGER_ROLES, true)
+                ? $this->orders->all()
+                : $this->orders->allByUser($userId),
         ];
     }
 

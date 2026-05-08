@@ -186,6 +186,14 @@ final class OrderRepository
         return array_map(fn (array $order): array => $this->mapOrder($order), $orders);
     }
 
+    public function all(): array
+    {
+        $statement = $this->pdo->query('SELECT * FROM orders ORDER BY id DESC');
+        $orders = $statement->fetchAll();
+
+        return array_map(fn (array $order): array => $this->mapOrder($order), $orders);
+    }
+
     private function findById(int $orderId, int $userId): ?array
     {
         $statement = $this->pdo->prepare('SELECT * FROM orders WHERE id = :id AND user_id = :user_id LIMIT 1');
@@ -202,6 +210,7 @@ final class OrderRepository
     {
         return [
             'id' => (int) $order['id'],
+            'userId' => (int) $order['user_id'],
             'orderNumber' => $order['order_number'],
             'status' => $order['status'],
             'customerName' => $order['customer_name'],

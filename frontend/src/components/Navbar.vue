@@ -30,6 +30,9 @@
           <li class="nav-item">
             <router-link to="/about" class="nav-link" @click="closeNavbarMenu">About</router-link>
           </li>
+          <li v-if="canViewAllOrders" class="nav-item">
+            <router-link to="/orders" class="nav-link" @click="closeNavbarMenu">All Orders</router-link>
+          </li>
           <li
             v-if="canManageProducts"
             class="nav-item nav-item--dropdown"
@@ -69,11 +72,38 @@
 
         <div class="d-flex align-items-center gap-3 mt-1">
           <template v-if="authStore.isAuthenticated">
-            <router-link
-              to="/profile"
-              class="nav-account text-uppercase small text-decoration-none"
-              >{{ userLabel }}</router-link
-            >
+            <div class="nav-item nav-item--dropdown" :class="{ show: accountMenuOpen }">
+              <button
+                type="button"
+                class="nav-account nav-link nav-link--button text-uppercase small"
+                :class="{ 'router-link-active': isAccountSection }"
+                @click="toggleAccountMenu"
+              >
+                {{ userLabel }}
+                <i
+                  class="bi bi-chevron-down nav-dropdown-icon"
+                  :class="{ 'nav-dropdown-icon--open': accountMenuOpen }"
+                ></i>
+              </button>
+
+              <div v-if="accountMenuOpen" class="dashboard-dropdown-menu dashboard-dropdown-menu--account">
+                <router-link
+                  to="/profile"
+                  class="dashboard-dropdown-item"
+                  @click="navigateFromAccountMenu"
+                >
+                  Profile
+                </router-link>
+                <router-link
+                  v-if="!canViewAllOrders"
+                  to="/orders"
+                  class="dashboard-dropdown-item"
+                  @click="navigateFromAccountMenu"
+                >
+                  Orders
+                </router-link>
+              </div>
+            </div>
             <button class="btn btn-outline-dark btn-sm px-3" @click="logout">Logout</button>
           </template>
           <template v-else>
@@ -98,7 +128,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { Collapse } from "bootstrap";
 import { useRoute, useRouter } from "vue-router";
 import { useCartStore } from "../stores/cart";
@@ -111,10 +141,13 @@ const route = useRoute();
 const collapseElement = ref(null);
 const togglerButton = ref(null);
 const dashboardMenuOpen = ref(false);
+const accountMenuOpen = ref(false);
 const isNavbarOpen = ref(false);
 const userLabel = computed(() => authStore.user?.name?.split(" ")[0] || "Account");
 const canManageProducts = computed(() => ["manager", "admin"].includes(authStore.user?.role || ""));
+const canViewAllOrders = computed(() => ["manager", "admin"].includes(authStore.user?.role || ""));
 const isDashboardSection = computed(() => route.path.startsWith("/dashboard"));
+const isAccountSection = computed(() => ["/profile", "/orders"].includes(route.path));
 
 const syncNavbarOpenState = () => {
   isNavbarOpen.value = collapseElement.value?.classList.contains("show") ?? false;
@@ -152,6 +185,7 @@ const closeNavbarMenu = () => {
   Collapse.getOrCreateInstance(collapseElement.value).hide();
   isNavbarOpen.value = false;
   dashboardMenuOpen.value = false;
+  accountMenuOpen.value = false;
 };
 
 const goToBag = () => {
@@ -164,6 +198,7 @@ const goToBag = () => {
 };
 
 const toggleDashboardMenu = () => {
+  accountMenuOpen.value = false;
   dashboardMenuOpen.value = !dashboardMenuOpen.value;
 };
 
@@ -172,11 +207,30 @@ const navigateFromDashboardMenu = () => {
   closeNavbarMenu();
 };
 
+const toggleAccountMenu = () => {
+  dashboardMenuOpen.value = false;
+  accountMenuOpen.value = !accountMenuOpen.value;
+};
+
+const navigateFromAccountMenu = () => {
+  accountMenuOpen.value = false;
+  closeNavbarMenu();
+};
+
 const logout = () => {
   authStore.logout();
   dashboardMenuOpen.value = false;
+  accountMenuOpen.value = false;
   router.push("/");
 };
+
+watch(
+  () => route.fullPath,
+  () => {
+    dashboardMenuOpen.value = false;
+    accountMenuOpen.value = false;
+  },
+);
 </script>
 
 <style scoped>
@@ -300,6 +354,13 @@ const logout = () => {
   letter-spacing: 0.18em;
   opacity: 0.72;
   color: var(--primary-black);
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard-dropdown-menu--account {
+  left: auto;
+  right: 0;
 }
 
 @media (max-width: 991px) {
@@ -307,6 +368,10 @@ const logout = () => {
     position: static;
     margin: 0.5rem 10px 0;
     min-width: 0;
+  }
+
+  .dashboard-dropdown-menu--account {
+    right: auto;
   }
 }
 </style>
