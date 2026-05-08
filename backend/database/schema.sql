@@ -100,6 +100,7 @@ CREATE TABLE orders (
     user_id INT UNSIGNED NOT NULL,
     order_number VARCHAR(40) NOT NULL UNIQUE,
     status VARCHAR(30) NOT NULL DEFAULT 'pending',
+    paypal_order_id VARCHAR(32) NULL,
     customer_name VARCHAR(190) NOT NULL,
     customer_email VARCHAR(190) NOT NULL,
     shipping_address VARCHAR(255) NOT NULL,

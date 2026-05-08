@@ -26,11 +26,12 @@ final class OrderController
         $user = $request->attribute('user');
         $userId = (int) ($user['id'] ?? 0);
         $role = (string) ($user['role'] ?? '');
+        $orders = in_array($role, self::MANAGER_ROLES, true)
+            ? $this->orders->all()
+            : $this->orders->allByUser($userId);
 
         return [
-            'orders' => in_array($role, self::MANAGER_ROLES, true)
-                ? $this->orders->all()
-                : $this->orders->allByUser($userId),
+            'orders' => $this->refreshPendingOrders($orders),
         ];
     }
 
@@ -80,6 +81,7 @@ final class OrderController
         $order = $this->orders->createFromCart($userId, [
             ...$this->checkoutPayload($request),
             'status' => $this->resolveOrderStatus($paypalOrder),
+            'paypal_order_id' => $paypalOrderId,
         ]);
 
         return [
@@ -126,5 +128,40 @@ final class OrderController
         return strtoupper((string) ($paypalOrder['status'] ?? '')) === 'COMPLETED'
             ? 'paid'
             : 'pending';
+    }
+
+    private function refreshPendingOrders(array $orders): array
+    {
+        if (!$this->paypal->isConfigured()) {
+            return $orders;
+        }
+
+        foreach ($orders as &$order) {
+            if (($order['status'] ?? '') !== 'pending') {
+                continue;
+            }
+
+            $paypalOrderId = trim((string) ($order['paypalOrderId'] ?? ''));
+
+            if ($paypalOrderId === '') {
+                continue;
+            }
+
+            try {
+                $paypalOrder = $this->paypal->getOrder($paypalOrderId);
+                $resolvedStatus = $this->resolveOrderStatus($paypalOrder);
+
+                if ($resolvedStatus === 'paid') {
+                    $this->orders->updateStatus((int) $order['id'], $resolvedStatus);
+                    $order['status'] = $resolvedStatus;
+                }
+            } catch (\Throwable) {
+                // Keep the order visible even if PayPal status refresh fails.
+            }
+        }
+
+        unset($order);
+
+        return $orders;
     }
 }

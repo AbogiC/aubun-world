@@ -21,6 +21,7 @@ final class OrderRepository
     {
         $checkout = $this->prepareCheckoutFromCart($userId, $payload);
         $status = trim((string) ($payload['status'] ?? 'pending')) ?: 'pending';
+        $paypalOrderId = trim((string) ($payload['paypal_order_id'] ?? '')) ?: null;
         $customerName = $checkout['customer_name'];
         $email = $checkout['email'];
         $address = $checkout['address'];
@@ -41,12 +42,12 @@ final class OrderRepository
             $orderNumber = $this->generateOrderNumber();
             $insertOrder = $this->pdo->prepare(
                 'INSERT INTO orders (
-                    user_id, order_number, status, customer_name, customer_email,
+                    user_id, order_number, status, paypal_order_id, customer_name, customer_email,
                     shipping_address, shipping_city, shipping_country, shipping_postal_code,
                     shipping_shop_country, shipping_tier_name,
                     subtotal_amount, discount_amount, shipping_amount, total_amount, created_at, updated_at
                  ) VALUES (
-                    :user_id, :order_number, :status, :customer_name, :customer_email,
+                    :user_id, :order_number, :status, :paypal_order_id, :customer_name, :customer_email,
                     :shipping_address, :shipping_city, :shipping_country, :shipping_postal_code,
                     :shipping_shop_country, :shipping_tier_name,
                     :subtotal_amount, :discount_amount, :shipping_amount, :total_amount, NOW(), NOW()
@@ -56,6 +57,7 @@ final class OrderRepository
                 'user_id' => $userId,
                 'order_number' => $orderNumber,
                 'status' => $status,
+                'paypal_order_id' => $paypalOrderId,
                 'customer_name' => $customerName,
                 'customer_email' => $email,
                 'shipping_address' => $address,
@@ -195,6 +197,17 @@ final class OrderRepository
         return array_map(fn (array $order): array => $this->mapOrder($order), $orders);
     }
 
+    public function updateStatus(int $orderId, string $status): void
+    {
+        $statement = $this->pdo->prepare(
+            'UPDATE orders SET status = :status, updated_at = NOW() WHERE id = :id'
+        );
+        $statement->execute([
+            'id' => $orderId,
+            'status' => $status,
+        ]);
+    }
+
     private function findById(int $orderId, int $userId): ?array
     {
         $statement = $this->pdo->prepare('SELECT * FROM orders WHERE id = :id AND user_id = :user_id LIMIT 1');
@@ -214,6 +227,7 @@ final class OrderRepository
             'userId' => (int) $order['user_id'],
             'orderNumber' => $order['order_number'],
             'status' => $order['status'],
+            'paypalOrderId' => $order['paypal_order_id'],
             'customerName' => $order['customer_name'],
             'customerEmail' => $order['customer_email'],
             'shippingAddress' => $order['shipping_address'],
