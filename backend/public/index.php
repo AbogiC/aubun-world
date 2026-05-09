@@ -95,6 +95,7 @@ $router->post('/api/auth/login', [$authController, 'login']);
 $router->get('/api/auth/me', [$authController, 'me'], [$authMiddleware]);
 $router->get('/api/auth/verify-email', [$authController, 'verifyEmail']);
 $router->post('/api/auth/resend-verification', [$authController, 'resendVerification'], [$authMiddleware]);
+$router->post('/api/auth/newsletter/subscribe', [$authController, 'subscribeNewsletter']);
 $router->patch('/api/auth/profile', [$authController, 'updateProfile'], [$authMiddleware]);
 $router->post('/api/auth/change-password', [$authController, 'changePassword'], [$authMiddleware]);
 $router->patch('/api/auth/shipping-address', [$authController, 'updateShippingAddress'], [$authMiddleware]);

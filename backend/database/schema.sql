@@ -2,6 +2,7 @@ CREATE TABLE users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
     email VARCHAR(190) NOT NULL UNIQUE,
+    isSubscribed TINYINT(1) NOT NULL DEFAULT 0,
     role ENUM('customer', 'manager', 'admin') NOT NULL DEFAULT 'customer',
     password VARCHAR(255) NOT NULL,
     email_verified_at TIMESTAMP NULL DEFAULT NULL,

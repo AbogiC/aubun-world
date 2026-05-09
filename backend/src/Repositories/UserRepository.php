@@ -44,6 +44,9 @@ final class UserRepository
     {
         unset($user['password']);
 
+        $isSubscribed = isset($user['isSubscribed']) && (int) $user['isSubscribed'] === 1;
+        $user['isSubscribed'] = $isSubscribed;
+
         // Decode shipping_address JSON if present
         if (isset($user['shipping_address']) && $user['shipping_address']) {
             $user['shipping_address'] = json_decode($user['shipping_address'], true) ?: null;
@@ -57,6 +60,16 @@ final class UserRepository
         $user['emailVerified'] = $isVerified;
 
         return $user;
+    }
+
+    public function markAsSubscribed(int $userId): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE users SET isSubscribed = 1, updated_at = NOW() WHERE id = :id'
+        );
+        $stmt->execute(['id' => $userId]);
+
+        return $this->findById($userId);
     }
 
     public function updateProfile(int $userId, string $name, string $email): ?array

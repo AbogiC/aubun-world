@@ -41,17 +41,35 @@ final class AuthController
         $user = $this->users->create($name, $email, password_hash($password, PASSWORD_DEFAULT), $role);
         $token = $this->auth->issueToken((int) $user['id'], $user['email']);
 
-        // Send verification email
         $verificationToken = $this->auth->generateVerificationToken();
         $expiresAt = $this->auth->generateTokenExpiry();
         $this->users->setVerificationToken((int) $user['id'], $verificationToken, $expiresAt);
-        $this->email->sendVerificationEmail($user['email'], $user['name'], $verificationToken);
 
-        return [
+        $emailDeliveryFailed = false;
+
+        try {
+            $this->email->sendVerificationEmail($user['email'], $user['name'], $verificationToken);
+        } catch (\Throwable $exception) {
+            $emailDeliveryFailed = true;
+            error_log(sprintf(
+                'Verification email failed for user %d (%s): %s',
+                (int) $user['id'],
+                $user['email'],
+                $exception->getMessage()
+            ));
+        }
+
+        $response = [
             'message' => 'Account created successfully.',
             'token' => $token,
             'user' => $this->users->sanitize($user),
         ];
+
+        if ($emailDeliveryFailed) {
+            $response['emailNotice'] = 'Account created, but the verification email could not be sent from this server.';
+        }
+
+        return $response;
     }
 
     public function login(Request $request): array
@@ -122,6 +140,36 @@ final class AuthController
 
         return [
             'message' => 'Verification email sent.',
+        ];
+    }
+
+    public function subscribeNewsletter(Request $request): array
+    {
+        $email = strtolower(trim((string) $request->input('email')));
+
+        if ($email === '') {
+            throw new RuntimeException('Email is required.', 422);
+        }
+
+        $user = $this->users->findByEmail($email);
+
+        if (!$user) {
+            throw new RuntimeException('User with this email was not found, please create an account first.', 404);
+        }
+
+        if (isset($user['isSubscribed']) && (int) $user['isSubscribed'] === 1) {
+            return [
+                'message' => 'This email is already subscribed to the newsletter.',
+                'user' => $this->users->sanitize($user),
+            ];
+        }
+
+        $this->email->sendNewsletterSubscriptionEmail($email);
+        $updatedUser = $this->users->markAsSubscribed((int) $user['id']);
+
+        return [
+            'message' => 'Newsletter subscription successful, please check your email for confirmation.',
+            'user' => $this->users->sanitize($updatedUser),
         ];
     }
 

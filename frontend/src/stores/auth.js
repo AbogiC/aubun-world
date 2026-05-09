@@ -89,11 +89,12 @@ export const useAuthStore = defineStore("auth", {
       this.error = null;
 
       try {
-        const { token, user } = await api.post("/auth/register", payload);
+        const response = await api.post("/auth/register", payload);
+        const { token, user } = response;
         setAuthToken(token);
         this.user = user;
         await useCartStore().refreshFromApi();
-        return user;
+        return response;
       } catch (error) {
         this.error = error.message;
         throw error;

@@ -40,6 +40,25 @@ final class EmailService
         }
     }
 
+    public function sendNewsletterSubscriptionEmail(string $toEmail): void
+    {
+        $subject = 'You are subscribed to the AUBUN WORLD newsletter';
+        $body = $this->buildNewsletterSubscriptionBody($toEmail);
+
+        $headers = [
+            'MIME-Version: 1.0',
+            'Content-Type: text/html; charset=UTF-8',
+            'From: ' . $this->fromName . ' <' . $this->fromEmail . '>',
+            'Reply-To: ' . $this->fromEmail,
+        ];
+
+        $sent = mail($toEmail, $subject, $body, implode("\r\n", $headers));
+
+        if (!$sent) {
+            throw new RuntimeException('Failed to send newsletter subscription email.', 500);
+        }
+    }
+
     private function buildVerificationEmailBody(string $name, string $verifyUrl): string
     {
         return sprintf(
@@ -56,6 +75,20 @@ final class EmailService
             '</div></body></html>',
             htmlspecialchars($name, ENT_QUOTES),
             $verifyUrl
+        );
+    }
+
+    private function buildNewsletterSubscriptionBody(string $email): string
+    {
+        return sprintf(
+            '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Newsletter Subscription</title></head><body style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px; background: #f7f7f5;">' .
+            '<div style="background: white; padding: 48px; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.08);">' .
+            '<h1 style="color: #0b0b0c; margin-bottom: 24px; letter-spacing: 0.08em; text-transform: uppercase; font-size: 1.4rem;">AUBUN WORLD Newsletter</h1>' .
+            '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 20px;">Your email <strong>%s</strong> is now subscribed.</p>' .
+            '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">You will receive early access to new collections, private events, and tailored styling notes.</p>' .
+            '<p style="color: #6f6f74; font-size: 0.85rem; margin-top: 48px; border-top: 1px solid rgba(11,11,12,0.08); padding-top: 24px;">Best regards,<br>AUBUN WORLD Team</p>' .
+            '</div></body></html>',
+            htmlspecialchars($email, ENT_QUOTES)
         );
     }
 }

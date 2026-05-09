@@ -15,10 +15,15 @@
                 type="email"
                 class="form-control form-control-lg"
                 placeholder="Enter your email"
+                :disabled="isSubmitting"
                 required
               />
-              <button type="submit" class="btn btn-luxury btn-lg px-5">Subscribe</button>
+              <button type="submit" class="btn btn-luxury btn-lg px-5" :disabled="isSubmitting">
+                {{ isSubmitting ? "Subscribing..." : "Subscribe" }}
+              </button>
             </form>
+            <p v-if="successMessage" class="mt-3 mb-0 text-success">{{ successMessage }}</p>
+            <p v-if="errorMessage" class="mt-3 mb-0 text-danger">{{ errorMessage }}</p>
           </div>
         </div>
       </div>
@@ -28,12 +33,30 @@
 
 <script setup>
 import { ref } from "vue";
+import { api } from "../lib/api";
 
 const email = ref("");
+const isSubmitting = ref(false);
+const successMessage = ref("");
+const errorMessage = ref("");
 
-const subscribe = () => {
-  alert(`Thank you for subscribing with: ${email.value}`);
-  email.value = "";
+const subscribe = async () => {
+  isSubmitting.value = true;
+  successMessage.value = "";
+  errorMessage.value = "";
+
+  try {
+    const { message } = await api.post("/auth/newsletter/subscribe", {
+      email: email.value,
+    });
+
+    successMessage.value = message;
+    email.value = "";
+  } catch (error) {
+    errorMessage.value = error?.message || "Failed to subscribe to the newsletter.";
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 </script>
 

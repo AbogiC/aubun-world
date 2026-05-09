@@ -69,6 +69,7 @@ const authStore = useAuthStore();
 const route = useRoute();
 const router = useRouter();
 const errorMessage = ref("");
+const emailNotice = ref("");
 const form = reactive({
   name: "",
   email: "",
@@ -84,9 +85,18 @@ const loginLink = computed(() => ({
 
 const submit = async () => {
   errorMessage.value = "";
+  emailNotice.value = "";
 
   try {
-    await authStore.register(form);
+    const response = await authStore.register(form);
+    emailNotice.value = response?.emailNotice || "";
+
+    if (emailNotice.value) {
+      window.alert(emailNotice.value);
+    } else {
+      window.alert("Account created successfully. Please verify your email before continuing.");
+    }
+
     router.push(redirectTarget.value);
   } catch (error) {
     errorMessage.value = error.message;
