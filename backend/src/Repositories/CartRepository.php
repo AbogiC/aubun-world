@@ -19,6 +19,7 @@ final class CartRepository
     public function cartPayload(int $userId): array
     {
         $cart = $this->getOrCreateCart($userId);
+        $cart = $this->revalidateDiscount($cart);
         $items = $this->items($cart['id']);
 
         $subtotal = array_reduce($items, static fn (float $sum, array $item): float => $sum + ($item['price'] * $item['quantity']), 0.0);
@@ -165,6 +166,73 @@ final class CartRepository
         $statement->execute(['user_id' => $userId]);
 
         return $statement->fetch();
+    }
+
+    private function revalidateDiscount(array $cart): array
+    {
+        $discountCode = trim((string) ($cart['discount_code'] ?? ''));
+
+        if ($discountCode === '') {
+            return $cart;
+        }
+
+        $voucher = $this->vouchers->findByCode($discountCode);
+        $items = $this->items((int) $cart['id']);
+
+        if (!$voucher || !$voucher['isActive']) {
+            return $this->resetDiscount($cart);
+        }
+
+        $expiresAt = strtotime((string) $voucher['expiresAt']);
+
+        if ($expiresAt !== false && $expiresAt < time()) {
+            return $this->resetDiscount($cart);
+        }
+
+        $eligibleSubtotal = $this->eligibleSubtotalForVoucher($items, $voucher);
+
+        if ($eligibleSubtotal <= 0) {
+            return $this->resetDiscount($cart);
+        }
+
+        $discount = round($eligibleSubtotal * (((float) $voucher['discountPercent']) / 100), 2);
+
+        if ((float) $cart['discount_amount'] === $discount) {
+            return $cart;
+        }
+
+        $statement = $this->pdo->prepare(
+            'UPDATE carts
+             SET discount_code = :discount_code, discount_amount = :discount_amount, updated_at = NOW()
+             WHERE id = :id'
+        );
+        $statement->execute([
+            'discount_code' => $voucher['code'],
+            'discount_amount' => $discount,
+            'id' => $cart['id'],
+        ]);
+
+        $cart['discount_code'] = $voucher['code'];
+        $cart['discount_amount'] = $discount;
+
+        return $cart;
+    }
+
+    private function resetDiscount(array $cart): array
+    {
+        $statement = $this->pdo->prepare(
+            'UPDATE carts
+             SET discount_code = NULL, discount_amount = 0, updated_at = NOW()
+             WHERE id = :id'
+        );
+        $statement->execute([
+            'id' => $cart['id'],
+        ]);
+
+        $cart['discount_code'] = null;
+        $cart['discount_amount'] = 0;
+
+        return $cart;
     }
 
     private function items(int $cartId): array
