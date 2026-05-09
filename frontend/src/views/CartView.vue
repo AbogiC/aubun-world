@@ -14,56 +14,60 @@
                 class="cart-item border-bottom pb-3 mb-3"
               >
                 <div class="row align-items-center">
-                   <div class="col-md-2">
-                     <div class="cart-thumb">
-                       <img :src="item.image" :alt="item.name" class="cart-item-image" />
-                     </div>
-                   </div>
-                   <div class="col-md-4">
-                     <h6 class="mb-1">{{ item.name }}</h6>
-                     <p class="text-muted small mb-1">
-                       Size: {{ item.size }} | Color: {{ item.color }}
-                     </p>
-                     <div class="d-flex align-items-center gap-2 mt-2">
-                       <div class="quantity-controls">
-                         <button
-                           @click="updateQuantity(item, item.quantity - 1)"
-                           class="btn btn-outline-dark btn-sm"
-                           :disabled="item.quantity <= 1"
-                         >
-                           -
-                         </button>
-                         <input
-                           type="number"
-                           v-model.number="item.quantity"
-                           class="form-control form-control-sm text-center"
-                           min="1"
-                           @change="updateQuantity(item, item.quantity)"
-                         />
-                         <button
-                           @click="updateQuantity(item, item.quantity + 1)"
-                           class="btn btn-outline-dark btn-sm"
-                         >
-                           +
-                         </button>
-                       </div>
-                     </div>
-                   </div>
-                   <div class="col-md-2 d-flex align-items-center">
-                     <div class="price-info text-end ms-auto">
-                       <p class="unit-price text-muted small mb-0">
-                         ${{ item.price.toLocaleString() }} × {{ item.quantity }}
-                       </p>
-                       <p class="total-price mb-0 fw-bold fs-5">
-                         ${{ (item.price * item.quantity).toLocaleString() }}
-                       </p>
-                     </div>
-                   </div>
-                   <div class="col-md-2 d-flex align-items-center justify-content-end">
-                     <button @click="removeItem(item)" class="btn btn-outline-danger btn-sm" title="Remove item">
-                       <i class="bi bi-trash"></i>
-                     </button>
-                   </div>
+                  <div class="col-md-2">
+                    <div class="cart-thumb">
+                      <img :src="item.image" :alt="item.name" class="cart-item-image" />
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <h6 class="mb-1">{{ item.name }}</h6>
+                    <p class="text-muted small mb-1">
+                      Size: {{ item.size }} | Color: {{ item.color }}
+                    </p>
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                      <div class="quantity-controls">
+                        <button
+                          @click="updateQuantity(item, item.quantity - 1)"
+                          class="btn btn-outline-dark btn-sm"
+                          :disabled="item.quantity <= 1"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          v-model.number="item.quantity"
+                          class="form-control form-control-sm text-center"
+                          min="1"
+                          @change="updateQuantity(item, item.quantity)"
+                        />
+                        <button
+                          @click="updateQuantity(item, item.quantity + 1)"
+                          class="btn btn-outline-dark btn-sm"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-2 d-flex align-items-center">
+                    <div class="price-info text-end ms-auto">
+                      <p class="unit-price text-muted small mb-0">
+                        ${{ item.price.toLocaleString() }} × {{ item.quantity }}
+                      </p>
+                      <p class="total-price mb-0 fw-bold fs-5">
+                        ${{ (item.price * item.quantity).toLocaleString() }}
+                      </p>
+                    </div>
+                  </div>
+                  <div class="col-md-2 d-flex align-items-center justify-content-end">
+                    <button
+                      @click="removeItem(item)"
+                      class="btn btn-outline-danger btn-sm"
+                      title="Remove item"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -88,7 +92,7 @@
                 v-if="cartStore.discount"
                 class="d-flex justify-content-between mb-2 text-success"
               >
-                <span>Discount</span>
+                <span>Discount ({{ cartStore.discountCode }})</span>
                 <span>-${{ cartStore.discount.toLocaleString() }}</span>
               </div>
 
@@ -113,7 +117,9 @@
                   />
                   <button @click="applyPromo" class="btn btn-dark">Apply</button>
                 </div>
-                <small class="text-muted">Enter an active voucher code from the store manager.</small>
+                <small class="text-muted"
+                  >Enter an active voucher code from the store manager.</small
+                >
               </div>
 
               <button
@@ -153,24 +159,49 @@
           <p class="section-kicker mb-2">Verification Required</p>
           <h2 class="verification-modal__title">Verify your email before checkout</h2>
           <p class="verification-modal__message">
-            Please verify your email address first so we can continue with your checkout and send order updates correctly.
+            Please verify your email address first so we can continue with your checkout and send
+            order updates correctly.
           </p>
 
           <div class="verification-modal__actions">
-            <button
-              type="button"
-              class="btn btn-outline-luxury"
-              @click="closeVerificationModal"
-            >
+            <button type="button" class="btn btn-outline-luxury" @click="closeVerificationModal">
               Not Now
             </button>
-            <button
-              type="button"
-              class="btn btn-luxury"
-              @click="goToProfileForVerification"
-            >
+            <button type="button" class="btn btn-luxury" @click="goToProfileForVerification">
               Go to Profile
             </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="promoModal.open" class="feedback-modal" @click.self="closePromoModal">
+        <div class="feedback-modal__dialog surface elevated">
+          <div
+            class="feedback-modal__icon"
+            :class="
+              promoModal.type === 'success'
+                ? 'feedback-modal__icon--success'
+                : 'feedback-modal__icon--error'
+            "
+          >
+            <i
+              :class="
+                promoModal.type === 'success'
+                  ? 'bi bi-ticket-perforated'
+                  : 'bi bi-exclamation-circle'
+              "
+            ></i>
+          </div>
+          <p class="section-kicker mb-2">
+            {{ promoModal.type === "success" ? "Voucher Applied" : "Voucher Notice" }}
+          </p>
+          <h2 class="feedback-modal__title">{{ promoModal.title }}</h2>
+          <p class="feedback-modal__message">
+            {{ promoModal.message }}
+          </p>
+
+          <div class="feedback-modal__actions">
+            <button type="button" class="btn btn-luxury" @click="closePromoModal">Continue</button>
           </div>
         </div>
       </div>
@@ -179,7 +210,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useCartStore } from "../stores/cart";
@@ -189,6 +220,12 @@ const authStore = useAuthStore();
 const cartStore = useCartStore();
 const promoCode = ref("");
 const showVerificationModal = ref(false);
+const promoModal = reactive({
+  open: false,
+  type: "success",
+  title: "",
+  message: "",
+});
 
 const updateQuantity = (item, newQuantity) => {
   if (newQuantity < 1) return;
@@ -199,23 +236,48 @@ const removeItem = (item) => {
   cartStore.removeFromCart(item.id, item.size, item.color);
 };
 
+const openPromoModal = ({ type, title, message }) => {
+  promoModal.open = true;
+  promoModal.type = type;
+  promoModal.title = title;
+  promoModal.message = message;
+};
+
 const applyPromo = async () => {
   try {
     const success = await cartStore.applyDiscount(promoCode.value);
     if (success) {
-      alert("Discount applied successfully!");
+      openPromoModal({
+        type: "success",
+        title: "Voucher added to your order",
+        message:
+          "Your discount has been applied successfully and your order summary has been updated.",
+      });
+      promoCode.value = "";
       return;
     }
   } catch (error) {
-    alert(error.message || "Invalid voucher code");
+    openPromoModal({
+      type: "error",
+      title: "Unable to apply this voucher",
+      message: error.message || "This voucher code is invalid or unavailable right now.",
+    });
     return;
   }
 
-  alert("Please log in to use a voucher code.");
+  openPromoModal({
+    type: "error",
+    title: "Login required",
+    message: "Please log in to apply a voucher code to your shopping bag.",
+  });
 };
 
 const closeVerificationModal = () => {
   showVerificationModal.value = false;
+};
+
+const closePromoModal = () => {
+  promoModal.open = false;
 };
 
 const goToProfileForVerification = () => {
@@ -230,9 +292,7 @@ const proceedToCheckout = async () => {
     // Keep the local auth state fallback below if refreshing the user fails.
   }
 
-  const isEmailVerified = Boolean(
-    authStore.user?.email_verified || authStore.user?.emailVerified,
-  );
+  const isEmailVerified = Boolean(authStore.user?.email_verified || authStore.user?.emailVerified);
 
   if (!isEmailVerified) {
     showVerificationModal.value = true;
@@ -318,8 +378,7 @@ const proceedToCheckout = async () => {
   padding: 2rem;
   border: 1px solid rgba(77, 16, 24, 0.12);
   border-radius: 1.5rem;
-  background:
-    linear-gradient(180deg, rgba(255, 248, 228, 0.98), rgba(255, 255, 255, 0.96));
+  background: linear-gradient(180deg, rgba(255, 248, 228, 0.98), rgba(255, 255, 255, 0.96));
   box-shadow: 0 1.5rem 4rem rgba(43, 17, 22, 0.22);
   text-align: center;
 }
@@ -348,6 +407,68 @@ const proceedToCheckout = async () => {
   line-height: 1.6;
 }
 
+.feedback-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background:
+    linear-gradient(180deg, rgba(20, 10, 12, 0.5), rgba(20, 10, 12, 0.64)),
+    radial-gradient(circle at top, rgba(254, 181, 17, 0.16), transparent 38%);
+  backdrop-filter: blur(8px);
+}
+
+.feedback-modal__dialog {
+  width: min(100%, 460px);
+  padding: 2rem;
+  border: 1px solid rgba(77, 16, 24, 0.12);
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, rgba(255, 248, 228, 0.98), rgba(255, 255, 255, 0.96));
+  box-shadow: 0 1.5rem 4rem rgba(43, 17, 22, 0.22);
+  text-align: center;
+}
+
+.feedback-modal__icon {
+  width: 4.25rem;
+  height: 4.25rem;
+  margin: 0 auto 1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 1.75rem;
+}
+
+.feedback-modal__icon--success {
+  background: linear-gradient(145deg, rgba(254, 181, 17, 0.18), rgba(77, 16, 24, 0.1));
+  color: #7a5200;
+}
+
+.feedback-modal__icon--error {
+  background: linear-gradient(145deg, rgba(156, 34, 51, 0.14), rgba(77, 16, 24, 0.1));
+  color: #8a2132;
+}
+
+.feedback-modal__title {
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.45rem, 2vw, 1.8rem);
+}
+
+.feedback-modal__message {
+  margin: 0 auto;
+  max-width: 26rem;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.feedback-modal__actions {
+  margin-top: 1.75rem;
+  display: flex;
+  justify-content: center;
+}
+
 .verification-modal__actions {
   margin-top: 1.75rem;
   display: flex;
@@ -361,11 +482,19 @@ const proceedToCheckout = async () => {
     padding: 1.5rem;
   }
 
+  .feedback-modal__dialog {
+    padding: 1.5rem;
+  }
+
   .verification-modal__actions {
     flex-direction: column-reverse;
   }
 
   .verification-modal__actions .btn {
+    width: 100%;
+  }
+
+  .feedback-modal__actions .btn {
     width: 100%;
   }
 }

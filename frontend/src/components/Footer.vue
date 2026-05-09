@@ -91,7 +91,6 @@
         <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
           <i class="bi bi-credit-card fs-5 me-2 opacity-50"></i>
           <i class="bi bi-paypal fs-5 me-2 opacity-50"></i>
-          <i class="bi bi-stripe fs-5 opacity-50"></i>
         </div>
       </div>
     </div>
