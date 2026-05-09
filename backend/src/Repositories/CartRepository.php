@@ -11,7 +11,8 @@ final class CartRepository
 {
     public function __construct(
         private readonly PDO $pdo,
-        private readonly ProductRepository $products
+        private readonly ProductRepository $products,
+        private readonly VoucherRepository $vouchers
     ) {
     }
 
@@ -113,19 +114,36 @@ final class CartRepository
         $normalized = strtoupper(trim($code));
         $cart = $this->getOrCreateCart($userId);
 
-        if ($normalized !== 'LUXURY20') {
+        if ($normalized === '') {
+            throw new RuntimeException('Voucher code is required.', 422);
+        }
+
+        $voucher = $this->vouchers->findByCode($normalized);
+
+        if (!$voucher || !$voucher['isActive']) {
             throw new RuntimeException('Invalid promo code.', 422);
         }
 
         $items = $this->items((int) $cart['id']);
-        $subtotal = array_reduce($items, static fn (float $sum, array $item): float => $sum + ($item['price'] * $item['quantity']), 0.0);
-        $discount = round($subtotal * 0.2, 2);
+        $expiresAt = strtotime((string) $voucher['expiresAt']);
+
+        if ($expiresAt !== false && $expiresAt < time()) {
+            throw new RuntimeException('This voucher has expired.', 422);
+        }
+
+        $eligibleSubtotal = $this->eligibleSubtotalForVoucher($items, $voucher);
+
+        if ($eligibleSubtotal <= 0) {
+            throw new RuntimeException('This voucher does not apply to any products in your cart.', 422);
+        }
+
+        $discount = round($eligibleSubtotal * (((float) $voucher['discountPercent']) / 100), 2);
 
         $statement = $this->pdo->prepare(
             'UPDATE carts SET discount_code = :discount_code, discount_amount = :discount_amount, updated_at = NOW() WHERE id = :id'
         );
         $statement->execute([
-            'discount_code' => $normalized,
+            'discount_code' => $voucher['code'],
             'discount_amount' => $discount,
             'id' => $cart['id'],
         ]);
@@ -153,7 +171,7 @@ final class CartRepository
     {
         $statement = $this->pdo->prepare(
             'SELECT ci.id, ci.product_id, ci.quantity, ci.size, ci.color, ci.unit_price,
-                    p.name, p.image
+                    p.name, p.image, p.category
              FROM cart_items ci
              JOIN products p ON p.id = ci.product_id
              WHERE ci.cart_id = :cart_id
@@ -167,11 +185,32 @@ final class CartRepository
                 'productId' => (int) $item['product_id'],
                 'name' => $item['name'],
                 'image' => $item['image'],
+                'category' => $item['category'],
                 'price' => (float) $item['unit_price'],
                 'quantity' => (int) $item['quantity'],
                 'size' => $item['size'],
                 'color' => $item['color'],
             ];
         }, $statement->fetchAll());
+    }
+
+    private function eligibleSubtotalForVoucher(array $items, array $voucher): float
+    {
+        return array_reduce($items, function (float $sum, array $item) use ($voucher): float {
+            if (!$this->voucherAppliesToItem($voucher, $item)) {
+                return $sum;
+            }
+
+            return $sum + ($item['price'] * $item['quantity']);
+        }, 0.0);
+    }
+
+    private function voucherAppliesToItem(array $voucher, array $item): bool
+    {
+        return match ($voucher['scopeType']) {
+            'category' => strcasecmp((string) $voucher['categoryName'], (string) $item['category']) === 0,
+            'products' => in_array((int) $item['productId'], $voucher['productIds'], true),
+            default => true,
+        };
     }
 }

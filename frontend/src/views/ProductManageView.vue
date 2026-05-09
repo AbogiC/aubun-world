@@ -10,9 +10,14 @@
               Add new arrivals, refine catalog data, and retire products from the collection without leaving the storefront workflow.
             </p>
             <div class="mt-4">
-              <router-link to="/dashboard/shipping" class="btn btn-outline-dark">
-                Open Shipping Settings
-              </router-link>
+              <div class="d-flex flex-wrap gap-3">
+                <router-link to="/dashboard/shipping" class="btn btn-outline-dark">
+                  Open Shipping Settings
+                </router-link>
+                <router-link to="/dashboard/vouchers" class="btn btn-dark">
+                  Manage Vouchers
+                </router-link>
+              </div>
             </div>
           </div>
           <div class="col-lg-4">

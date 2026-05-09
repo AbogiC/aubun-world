@@ -66,6 +66,13 @@
               >
                 Shipping
               </router-link>
+              <router-link
+                to="/dashboard/vouchers"
+                class="dashboard-dropdown-item"
+                @click="navigateFromDashboardMenu"
+              >
+                Vouchers
+              </router-link>
             </div>
           </li>
         </ul>

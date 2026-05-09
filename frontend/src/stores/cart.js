@@ -123,17 +123,13 @@ export const useCartStore = defineStore("cart", {
     },
 
     async applyDiscount(code) {
-      if (getAuthToken()) {
-        const { cart } = await api.post("/cart/apply-discount", { code });
-        this.syncFromPayload(cart);
-        return true;
+      if (!getAuthToken()) {
+        return false;
       }
 
-      if (code === "LUXURY20") {
-        this.discount = this.subtotal * 0.2;
-        return true;
-      }
-      return false;
+      const { cart } = await api.post("/cart/apply-discount", { code });
+      this.syncFromPayload(cart);
+      return true;
     },
 
     async checkout(payload) {

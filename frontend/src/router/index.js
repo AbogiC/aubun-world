@@ -68,6 +68,12 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ["manager", "admin"] },
     },
     {
+      path: "/dashboard/vouchers",
+      name: "voucher-manage",
+      component: () => import("../views/VoucherManageView.vue"),
+      meta: { requiresAuth: true, roles: ["manager", "admin"] },
+    },
+    {
       path: "/profile",
       name: "profile",
       component: () => import("../views/ProfileView.vue"),

@@ -109,11 +109,11 @@
                     v-model="promoCode"
                     type="text"
                     class="form-control"
-                    placeholder="Promo code"
+                    placeholder="Voucher code"
                   />
                   <button @click="applyPromo" class="btn btn-dark">Apply</button>
                 </div>
-                <small class="text-muted">Try code: LUXURY20 for 20% off</small>
+                <small class="text-muted">Enter an active voucher code from the store manager.</small>
               </div>
 
               <button
@@ -206,11 +206,12 @@ const applyPromo = async () => {
       alert("Discount applied successfully!");
       return;
     }
-  } catch {
-    // Fallback to the invalid-code message below.
+  } catch (error) {
+    alert(error.message || "Invalid voucher code");
+    return;
   }
 
-  alert("Invalid promo code");
+  alert("Please log in to use a voucher code.");
 };
 
 const closeVerificationModal = () => {

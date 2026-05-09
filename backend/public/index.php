@@ -9,6 +9,7 @@ use App\Controllers\CategoryController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
 use App\Controllers\ShippingController;
+use App\Controllers\VoucherController;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
@@ -20,6 +21,7 @@ use App\Repositories\OrderRepository;
 use App\Repositories\ProductRepository;
 use App\Repositories\ShippingRepository;
 use App\Repositories\UserRepository;
+use App\Repositories\VoucherRepository;
 use App\Services\AuthService;
 use App\Services\EmailService;
 use App\Services\PayPalOrderService;
@@ -68,8 +70,9 @@ $emailService = new EmailService(
 );
 $userRepository = new UserRepository($pdo);
 $productRepository = new ProductRepository($pdo);
+$voucherRepository = new VoucherRepository($pdo);
 $productImageDirectory = dirname(__DIR__) . '/store/products/image';
-$cartRepository = new CartRepository($pdo, $productRepository);
+$cartRepository = new CartRepository($pdo, $productRepository, $voucherRepository);
 $shippingRepository = new ShippingRepository($pdo);
 $orderRepository = new OrderRepository($pdo, $shippingRepository);
 $paypalService = new PayPalOrderService(
@@ -85,6 +88,7 @@ $categoryController = new CategoryController($productRepository);
 $cartController = new CartController($cartRepository);
 $orderController = new OrderController($orderRepository, $cartRepository, $paypalService);
 $shippingController = new ShippingController($shippingRepository);
+$voucherController = new VoucherController($voucherRepository, $productRepository);
 $authMiddleware = new AuthMiddleware($authService, $userRepository);
 $managerRoleMiddleware = new RoleMiddleware(['manager', 'admin']);
 
@@ -108,6 +112,10 @@ $router->post('/api/products', [$productController, 'store'], [$authMiddleware, 
 $router->patch('/api/products/{id}', [$productController, 'update'], [$authMiddleware, $managerRoleMiddleware]);
 $router->delete('/api/products/{id}', [$productController, 'destroy'], [$authMiddleware, $managerRoleMiddleware]);
 $router->get('/api/categories', [$categoryController, 'index']);
+$router->get('/api/vouchers', [$voucherController, 'index'], [$authMiddleware, $managerRoleMiddleware]);
+$router->post('/api/vouchers', [$voucherController, 'store'], [$authMiddleware, $managerRoleMiddleware]);
+$router->patch('/api/vouchers/{id}', [$voucherController, 'update'], [$authMiddleware, $managerRoleMiddleware]);
+$router->delete('/api/vouchers/{id}', [$voucherController, 'destroy'], [$authMiddleware, $managerRoleMiddleware]);
 
 $router->get('/api/cart', [$cartController, 'show'], [$authMiddleware]);
 $router->post('/api/cart/items', [$cartController, 'storeItem'], [$authMiddleware]);
