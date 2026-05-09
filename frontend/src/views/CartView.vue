@@ -116,9 +116,13 @@
                 <small class="text-muted">Try code: LUXURY20 for 20% off</small>
               </div>
 
-              <router-link to="/checkout" class="btn btn-luxury btn-lg w-100 mb-2">
+              <button
+                type="button"
+                class="btn btn-luxury btn-lg w-100 mb-2"
+                @click="proceedToCheckout"
+              >
                 Proceed to Checkout
-              </router-link>
+              </button>
 
               <router-link to="/products" class="btn btn-outline-luxury w-100">
                 Continue Shopping
@@ -136,16 +140,55 @@
           Start Shopping
         </router-link>
       </div>
+
+      <div
+        v-if="showVerificationModal"
+        class="verification-modal"
+        @click.self="closeVerificationModal"
+      >
+        <div class="verification-modal__dialog surface elevated">
+          <div class="verification-modal__icon">
+            <i class="bi bi-envelope-exclamation"></i>
+          </div>
+          <p class="section-kicker mb-2">Verification Required</p>
+          <h2 class="verification-modal__title">Verify your email before checkout</h2>
+          <p class="verification-modal__message">
+            Please verify your email address first so we can continue with your checkout and send order updates correctly.
+          </p>
+
+          <div class="verification-modal__actions">
+            <button
+              type="button"
+              class="btn btn-outline-luxury"
+              @click="closeVerificationModal"
+            >
+              Not Now
+            </button>
+            <button
+              type="button"
+              class="btn btn-luxury"
+              @click="goToProfileForVerification"
+            >
+              Go to Profile
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "../stores/auth";
 import { useCartStore } from "../stores/cart";
 
+const router = useRouter();
+const authStore = useAuthStore();
 const cartStore = useCartStore();
 const promoCode = ref("");
+const showVerificationModal = ref(false);
 
 const updateQuantity = (item, newQuantity) => {
   if (newQuantity < 1) return;
@@ -168,6 +211,34 @@ const applyPromo = async () => {
   }
 
   alert("Invalid promo code");
+};
+
+const closeVerificationModal = () => {
+  showVerificationModal.value = false;
+};
+
+const goToProfileForVerification = () => {
+  closeVerificationModal();
+  router.push("/profile");
+};
+
+const proceedToCheckout = async () => {
+  try {
+    await authStore.refreshUser();
+  } catch {
+    // Keep the local auth state fallback below if refreshing the user fails.
+  }
+
+  const isEmailVerified = Boolean(
+    authStore.user?.email_verified || authStore.user?.emailVerified,
+  );
+
+  if (!isEmailVerified) {
+    showVerificationModal.value = true;
+    return;
+  }
+
+  router.push("/checkout");
 };
 </script>
 
@@ -225,5 +296,76 @@ const applyPromo = async () => {
 .total-price {
   font-size: 1.25rem;
   color: var(--primary-black);
+}
+
+.verification-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background:
+    linear-gradient(180deg, rgba(20, 10, 12, 0.48), rgba(20, 10, 12, 0.62)),
+    radial-gradient(circle at top, rgba(254, 181, 17, 0.14), transparent 38%);
+  backdrop-filter: blur(6px);
+}
+
+.verification-modal__dialog {
+  width: min(100%, 480px);
+  padding: 2rem;
+  border: 1px solid rgba(77, 16, 24, 0.12);
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 228, 0.98), rgba(255, 255, 255, 0.96));
+  box-shadow: 0 1.5rem 4rem rgba(43, 17, 22, 0.22);
+  text-align: center;
+}
+
+.verification-modal__icon {
+  width: 4.25rem;
+  height: 4.25rem;
+  margin: 0 auto 1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(254, 181, 17, 0.16), rgba(77, 16, 24, 0.1));
+  color: #7a5200;
+  font-size: 1.75rem;
+}
+
+.verification-modal__title {
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.5rem, 2vw, 1.85rem);
+}
+
+.verification-modal__message {
+  margin: 0 auto;
+  max-width: 28rem;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.verification-modal__actions {
+  margin-top: 1.75rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 575.98px) {
+  .verification-modal__dialog {
+    padding: 1.5rem;
+  }
+
+  .verification-modal__actions {
+    flex-direction: column-reverse;
+  }
+
+  .verification-modal__actions .btn {
+    width: 100%;
+  }
 }
 </style>

@@ -188,6 +188,32 @@
           </div>
         </div>
       </div>
+
+      <div
+        v-if="showOrderSuccessModal"
+        class="checkout-modal"
+        @click.self="closeOrderSuccessModal"
+      >
+        <div class="checkout-modal__dialog surface elevated">
+          <div class="checkout-modal__icon">
+            <i class="bi bi-check2-circle"></i>
+          </div>
+          <p class="section-kicker mb-2">Payment Successful</p>
+          <h2 class="checkout-modal__title">Your order has been placed</h2>
+          <p class="checkout-modal__message">
+            {{ orderSuccessMessage }}
+          </p>
+          <div class="checkout-modal__actions">
+            <button
+              type="button"
+              class="btn btn-luxury"
+              @click="closeOrderSuccessModal"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -215,6 +241,8 @@ const paypalCurrencyCode = ref("USD");
 const paypalErrorMessage = ref("");
 const paypalResultMessage = ref("");
 const paypalButtonsRendered = ref(false);
+const showOrderSuccessModal = ref(false);
+const orderSuccessMessage = ref("");
 const shippingOptions = ref([]);
 const selectedShippingRateId = ref(null);
 const latestShippingLookup = ref(0);
@@ -438,6 +466,11 @@ const validateCheckoutBeforePayment = () => {
   return true;
 };
 
+const closeOrderSuccessModal = () => {
+  showOrderSuccessModal.value = false;
+  router.push("/");
+};
+
 const loadPayPalSdk = (clientId, currencyCode) =>
   new Promise((resolve, reject) => {
     const existingScript = document.querySelector("#paypal-sdk-script");
@@ -544,8 +577,8 @@ const renderPayPalButtons = async () => {
             ? `Transaction ${transaction.status}: ${transaction.id}`
             : `Order ${order.orderNumber} placed successfully.`;
 
-          alert(`Order ${order.orderNumber} placed successfully.`);
-          router.push("/");
+          orderSuccessMessage.value = `Order ${order.orderNumber} placed successfully.`;
+          showOrderSuccessModal.value = true;
         } catch (error) {
           paypalErrorMessage.value = error.message || "Sorry, your transaction could not be processed.";
         } finally {
@@ -644,5 +677,70 @@ onMounted(() => {
 .paypal-button-container--busy {
   opacity: 0.72;
   pointer-events: none;
+}
+
+.checkout-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background:
+    linear-gradient(180deg, rgba(20, 10, 12, 0.5), rgba(20, 10, 12, 0.66)),
+    radial-gradient(circle at top, rgba(40, 167, 69, 0.14), transparent 38%);
+  backdrop-filter: blur(6px);
+}
+
+.checkout-modal__dialog {
+  width: min(100%, 480px);
+  padding: 2rem;
+  border: 1px solid rgba(40, 167, 69, 0.16);
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(180deg, rgba(246, 255, 250, 0.98), rgba(255, 255, 255, 0.96));
+  box-shadow: 0 1.5rem 4rem rgba(43, 17, 22, 0.22);
+  text-align: center;
+}
+
+.checkout-modal__icon {
+  width: 4.25rem;
+  height: 4.25rem;
+  margin: 0 auto 1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(40, 167, 69, 0.16), rgba(254, 181, 17, 0.16));
+  color: #1a7f4d;
+  font-size: 1.85rem;
+}
+
+.checkout-modal__title {
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.5rem, 2vw, 1.85rem);
+}
+
+.checkout-modal__message {
+  margin: 0 auto;
+  max-width: 28rem;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.checkout-modal__actions {
+  margin-top: 1.75rem;
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 575.98px) {
+  .checkout-modal__dialog {
+    padding: 1.5rem;
+  }
+
+  .checkout-modal__actions .btn {
+    width: 100%;
+  }
 }
 </style>
