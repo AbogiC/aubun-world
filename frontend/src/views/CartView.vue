@@ -100,11 +100,7 @@
 
               <div class="d-flex justify-content-between mb-4">
                 <strong>Total</strong>
-                <strong
-                  >${{
-                    (cartStore.total + (cartStore.subtotal > 500 ? 0 : 25)).toLocaleString()
-                  }}</strong
-                >
+                <strong>${{ cartStore.total.toLocaleString() }}</strong>
               </div>
 
               <div class="mb-4">
