@@ -1,133 +1,160 @@
 <template>
   <nav class="navbar navbar-expand-lg luxury-navbar sticky-top">
-    <div class="container">
-      <router-link to="/" class="navbar-brand">
-        <span class="brand-text">AUBUN WORLD</span>
-      </router-link>
+    <div class="w-100">
+      <div class="navbar-brand-row">
+        <div class="container text-center">
+          <router-link to="/" class="navbar-brand">
+            <span class="brand-text">AUBUN WORLD</span>
+          </router-link>
+        </div>
+      </div>
 
-      <button
-        ref="togglerButton"
-        class="navbar-toggler border-0"
-        type="button"
-        aria-controls="navbarNav"
-        :aria-expanded="isNavbarOpen ? 'true' : 'false'"
-        aria-label="Toggle navigation"
-        @click="toggleNavbarMenu"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div ref="collapseElement" class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav mx-auto">
-          <li class="nav-item">
-            <router-link to="/" class="nav-link" @click="closeNavbarMenu">Home</router-link>
-          </li>
-          <li class="nav-item">
-            <router-link to="/products" class="nav-link" @click="closeNavbarMenu"
-              >Collection</router-link
-            >
-          </li>
-          <li class="nav-item">
-            <router-link to="/about" class="nav-link" @click="closeNavbarMenu">About</router-link>
-          </li>
-          <li v-if="canViewAllOrders" class="nav-item">
-            <router-link to="/orders" class="nav-link" @click="closeNavbarMenu">All Orders</router-link>
-          </li>
-          <li
-            v-if="canManageProducts"
-            class="nav-item nav-item--dropdown"
-            :class="{ show: dashboardMenuOpen }"
-          >
-            <button
-              type="button"
-              class="nav-link nav-link--button"
-              :class="{ 'router-link-active': isDashboardSection }"
-              @click="toggleDashboardMenu"
-            >
-              Dashboard
-              <i
-                class="bi bi-chevron-down nav-dropdown-icon"
-                :class="{ 'nav-dropdown-icon--open': dashboardMenuOpen }"
-              ></i>
-            </button>
-
-            <div v-if="dashboardMenuOpen" class="dashboard-dropdown-menu">
-              <router-link
-                to="/dashboard/products"
-                class="dashboard-dropdown-item"
-                @click="navigateFromDashboardMenu"
-              >
-                Products
-              </router-link>
-              <router-link
-                to="/dashboard/shipping"
-                class="dashboard-dropdown-item"
-                @click="navigateFromDashboardMenu"
-              >
-                Shipping
-              </router-link>
-              <router-link
-                to="/dashboard/vouchers"
-                class="dashboard-dropdown-item"
-                @click="navigateFromDashboardMenu"
-              >
-                Vouchers
-              </router-link>
-            </div>
-          </li>
-        </ul>
-
-        <div class="d-flex align-items-center gap-3 mt-1">
-          <template v-if="authStore.isAuthenticated">
-            <div class="nav-item nav-item--dropdown" :class="{ show: accountMenuOpen }">
-              <button
-                type="button"
-                class="nav-account nav-link nav-link--button text-uppercase small"
-                :class="{ 'router-link-active': isAccountSection }"
-                @click="toggleAccountMenu"
-              >
-                {{ userLabel }}
-                <i
-                  class="bi bi-chevron-down nav-dropdown-icon"
-                  :class="{ 'nav-dropdown-icon--open': accountMenuOpen }"
-                ></i>
-              </button>
-
-              <div v-if="accountMenuOpen" class="dashboard-dropdown-menu dashboard-dropdown-menu--account">
-                <router-link
-                  to="/profile"
-                  class="dashboard-dropdown-item"
-                  @click="navigateFromAccountMenu"
-                >
-                  Profile
-                </router-link>
-                <router-link
-                  v-if="!canViewAllOrders"
-                  to="/orders"
-                  class="dashboard-dropdown-item"
-                  @click="navigateFromAccountMenu"
-                >
-                  Orders
-                </router-link>
-              </div>
-            </div>
-            <button class="btn btn-outline-dark btn-sm px-3" @click="logout">Logout</button>
-          </template>
-          <template v-else>
-            <router-link to="/login" class="btn btn-outline-dark btn-sm px-3">Login</router-link>
-          </template>
+      <div class="navbar-menu-row">
+        <div class="container nav-row-shell">
           <button
-            class="btn btn-luxury btn-sm d-flex align-items-center justify-content-center position-relative nav-bag-btn"
-            @click="goToBag"
+            ref="togglerButton"
+            class="navbar-toggler border-0"
+            type="button"
+            aria-controls="navbarNav"
+            :aria-expanded="isNavbarOpen ? 'true' : 'false'"
+            aria-label="Toggle navigation"
+            @click="toggleNavbarMenu"
           >
-            <i class="bi bi-bag fs-5"></i>
-            <span
-              v-if="cartStore.totalItems"
-              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark nav-badge"
-            >
-              {{ cartStore.totalItems }}
-            </span>
+            <span class="navbar-toggler-icon"></span>
           </button>
+
+          <div ref="collapseElement" class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mx-auto">
+              <li class="nav-item">
+                <router-link to="/" class="nav-link" @click="closeNavbarMenu">Home</router-link>
+              </li>
+              <li class="nav-item">
+                <router-link to="/products" class="nav-link" @click="closeNavbarMenu"
+                  >Collection</router-link
+                >
+              </li>
+              <li class="nav-item">
+                <router-link to="/guidlines" class="nav-link" @click="closeNavbarMenu"
+                  >Guidlines</router-link
+                >
+              </li>
+              <li class="nav-item">
+                <router-link to="/mix-match" class="nav-link" @click="closeNavbarMenu"
+                  >Mix & Match</router-link
+                >
+              </li>
+              <li class="nav-item">
+                <router-link to="/about" class="nav-link" @click="closeNavbarMenu"
+                  >About Us</router-link
+                >
+              </li>
+              <li v-if="canViewAllOrders" class="nav-item">
+                <router-link to="/orders" class="nav-link" @click="closeNavbarMenu"
+                  >All Orders</router-link
+                >
+              </li>
+              <li
+                v-if="canManageProducts"
+                class="nav-item nav-item--dropdown"
+                :class="{ show: dashboardMenuOpen }"
+              >
+                <button
+                  type="button"
+                  class="nav-link nav-link--button"
+                  :class="{ 'router-link-active': isDashboardSection }"
+                  @click="toggleDashboardMenu"
+                >
+                  Dashboard
+                  <i
+                    class="bi bi-chevron-down nav-dropdown-icon"
+                    :class="{ 'nav-dropdown-icon--open': dashboardMenuOpen }"
+                  ></i>
+                </button>
+
+                <div v-if="dashboardMenuOpen" class="dashboard-dropdown-menu">
+                  <router-link
+                    to="/dashboard/products"
+                    class="dashboard-dropdown-item"
+                    @click="navigateFromDashboardMenu"
+                  >
+                    Products
+                  </router-link>
+                  <router-link
+                    to="/dashboard/shipping"
+                    class="dashboard-dropdown-item"
+                    @click="navigateFromDashboardMenu"
+                  >
+                    Shipping
+                  </router-link>
+                  <router-link
+                    to="/dashboard/vouchers"
+                    class="dashboard-dropdown-item"
+                    @click="navigateFromDashboardMenu"
+                  >
+                    Vouchers
+                  </router-link>
+                </div>
+              </li>
+            </ul>
+
+            <div class="d-flex align-items-center gap-3 mt-1 nav-actions">
+              <template v-if="authStore.isAuthenticated">
+                <div class="nav-item nav-item--dropdown" :class="{ show: accountMenuOpen }">
+                  <button
+                    type="button"
+                    class="nav-account nav-link nav-link--button text-uppercase small"
+                    :class="{ 'router-link-active': isAccountSection }"
+                    @click="toggleAccountMenu"
+                  >
+                    {{ userLabel }}
+                    <i
+                      class="bi bi-chevron-down nav-dropdown-icon"
+                      :class="{ 'nav-dropdown-icon--open': accountMenuOpen }"
+                    ></i>
+                  </button>
+
+                  <div
+                    v-if="accountMenuOpen"
+                    class="dashboard-dropdown-menu dashboard-dropdown-menu--account"
+                  >
+                    <router-link
+                      to="/profile"
+                      class="dashboard-dropdown-item"
+                      @click="navigateFromAccountMenu"
+                    >
+                      Profile
+                    </router-link>
+                    <router-link
+                      v-if="!canViewAllOrders"
+                      to="/orders"
+                      class="dashboard-dropdown-item"
+                      @click="navigateFromAccountMenu"
+                    >
+                      Orders
+                    </router-link>
+                  </div>
+                </div>
+                <button class="btn btn-outline-dark btn-sm px-3" @click="logout">Logout</button>
+              </template>
+              <template v-else>
+                <router-link to="/login" class="btn btn-outline-dark btn-sm px-3"
+                  >Login</router-link
+                >
+              </template>
+              <button
+                class="btn btn-luxury btn-sm d-flex align-items-center justify-content-center position-relative nav-bag-btn"
+                @click="goToBag"
+              >
+                <i class="bi bi-bag fs-5"></i>
+                <span
+                  v-if="cartStore.totalItems"
+                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark nav-badge"
+                >
+                  {{ cartStore.totalItems }}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -246,6 +273,22 @@ watch(
   border-bottom: 1px solid rgba(77, 16, 24, 0.12);
   backdrop-filter: blur(18px);
   box-shadow: 0 12px 30px rgba(77, 16, 24, 0.08);
+  padding: 0;
+}
+
+.navbar-brand-row {
+  border-bottom: 1px solid rgba(77, 16, 24, 0.12);
+  padding: 0.9rem 0 0.125rem;
+}
+
+.navbar-menu-row {
+  padding: 0.85rem 0;
+}
+
+.nav-row-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .brand-text {
@@ -254,6 +297,17 @@ watch(
   font-weight: 700;
   letter-spacing: 0.28em;
   color: var(--primary-black);
+}
+
+.navbar-brand {
+  display: inline-flex;
+  justify-content: center;
+  width: 100%;
+  margin: 0;
+}
+
+.navbar-collapse {
+  align-items: center;
 }
 
 .nav-link {
@@ -371,6 +425,20 @@ watch(
 }
 
 @media (max-width: 991px) {
+  .nav-row-shell {
+    justify-content: space-between;
+  }
+
+  .navbar-collapse {
+    padding-top: 1rem;
+  }
+
+  .nav-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    padding: 0.5rem 10px 0;
+  }
+
   .dashboard-dropdown-menu {
     position: static;
     margin: 0.5rem 10px 0;

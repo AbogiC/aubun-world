@@ -1,129 +1,257 @@
 <template>
   <div ref="homeRootRef" class="home">
-    <HeroSection />
+    <section class="home-hero" :style="heroBackgroundStyle" data-reveal-section>
+      <div class="container hero-shell">
+        <p class="section-kicker hero-kicker">Luxury Everyday Wear</p>
+        <h1>AUBUN WORLD</h1>
+        <p class="hero-copy">
+          A sharper first impression for the brand, with refined essentials and elevated layering
+          designed for everyday styling.
+        </p>
+        <div class="hero-actions">
+          <router-link to="/products" class="btn btn-luxury btn-lg">Shop Collection</router-link>
+          <a href="#mix-match" class="btn btn-outline-luxury btn-lg">Try Mix & Match</a>
+        </div>
+      </div>
+    </section>
 
-    <section class="home-section home-section-category py-5" data-reveal-section>
+    <section class="home-section featured-section py-5" data-reveal-section>
       <div class="container section-shell">
         <div class="section-title section-heading">
-          <h2>Shop by Category</h2>
-          <p class="text-muted">Curated collections for every occasion</p>
+          <h2>Featured</h2>
+          <p class="text-muted">Three spotlight categories for faster browsing.</p>
         </div>
-        <div class="row g-3 section-content">
-          <div v-for="(cat, index) in categories" :key="index" class="col-6 col-md-4 col-lg-2">
-            <div
-              class="category-card text-center p-4 surface hover-lift reveal"
-              :class="`stagger-${(index % 4) + 1}`"
-              @click="$router.push(`/products?category=${cat}`)"
-            >
-              <div class="category-icon mb-3">
-                <i :class="getCategoryIcon(cat)" style="font-size: 2rem"></i>
+
+        <div class="row g-4 section-content">
+          <div v-for="item in featuredCollections" :key="item.label" class="col-md-6 col-xl-4">
+            <article class="feature-card surface h-100" @click="router.push(`/products?category=${item.routeCategory}`)">
+              <div class="feature-image-wrap">
+                <img
+                  v-if="item.product?.image"
+                  :src="item.product.image"
+                  :alt="item.label"
+                  class="feature-image"
+                />
+                <div v-else class="feature-image feature-image-placeholder">
+                  <span>{{ item.label }}</span>
+                </div>
+                <span class="feature-badge">{{ item.label }}</span>
               </div>
-              <h6 class="text-uppercase mb-0">{{ cat }}</h6>
+              <div class="feature-body">
+                <p class="section-kicker mb-2">{{ item.eyebrow }}</p>
+                <h3>{{ item.title }}</h3>
+                <p class="mb-0">{{ item.description }}</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="mix-match" class="home-section mix-match-section py-5" data-reveal-section>
+      <div class="container section-shell">
+        <div class="section-title section-heading">
+          <h2>Mix & Match</h2>
+          <p class="text-muted">A simple outfit preview your customers can customize.</p>
+        </div>
+
+        <div class="row g-4 align-items-stretch section-content">
+          <div class="col-lg-6">
+            <div class="mix-stage surface h-100">
+              <div class="mix-stage-header">
+                <p class="section-kicker mb-2">Preview</p>
+                <h3 class="mb-0">Build a look</h3>
+              </div>
+
+              <div class="mix-figure">
+                <div class="mix-layer mix-layer-upper">
+                  <img
+                    v-if="selectedUpper?.image"
+                    :src="selectedUpper.image"
+                    :alt="selectedUpper.name"
+                    class="mix-image"
+                  />
+                  <div v-else class="mix-empty">Choose upper wear</div>
+                </div>
+                <div class="mix-layer mix-layer-lower">
+                  <img
+                    v-if="selectedLower?.image"
+                    :src="selectedLower.image"
+                    :alt="selectedLower.name"
+                    class="mix-image"
+                  />
+                  <div v-else class="mix-empty">Choose lower wear</div>
+                </div>
+                <div class="mix-divider"></div>
+              </div>
+
+              <div class="mix-summary">
+                <div>
+                  <span class="section-kicker d-block mb-1">Upper</span>
+                  <strong>{{ selectedUpper?.name || "No selection" }}</strong>
+                </div>
+                <div>
+                  <span class="section-kicker d-block mb-1">Lower</span>
+                  <strong>{{ selectedLower?.name || "No selection" }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="mix-controls surface h-100">
+              <div class="mix-control-block">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-3 flex-wrap">
+                  <div>
+                    <p class="section-kicker mb-2">Upper Wear</p>
+                    <h3 class="mb-0">Outers & T-Shirts</h3>
+                  </div>
+                </div>
+
+                <div class="mix-option-list">
+                  <button
+                    v-for="product in upperOptions"
+                    :key="product.id"
+                    type="button"
+                    class="mix-option"
+                    :class="{ active: product.id === selectedUpperId }"
+                    @click="selectedUpperId = product.id"
+                  >
+                    <img :src="product.image" :alt="product.name" class="mix-option-thumb" />
+                    <span>
+                      <strong>{{ product.name }}</strong>
+                      <small>{{ product.category }}</small>
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="mix-control-block">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-3 flex-wrap">
+                  <div>
+                    <p class="section-kicker mb-2">Lower Wear</p>
+                    <h3 class="mb-0">Pants</h3>
+                  </div>
+                </div>
+
+                <div class="mix-option-list">
+                  <button
+                    v-for="product in lowerOptions"
+                    :key="product.id"
+                    type="button"
+                    class="mix-option"
+                    :class="{ active: product.id === selectedLowerId }"
+                    @click="selectedLowerId = product.id"
+                  >
+                    <img :src="product.image" :alt="product.name" class="mix-option-thumb" />
+                    <span>
+                      <strong>{{ product.name }}</strong>
+                      <small>{{ product.category }}</small>
+                    </span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </section>
-
-    <section class="home-section home-section-featured py-5 bg-white" data-reveal-section>
-      <div class="container section-shell">
-        <div class="section-title section-heading">
-          <div>
-            <h2>Featured Collection</h2>
-            <p class="text-muted">Handpicked pieces for the discerning taste</p>
-          </div>
-        </div>
-        <div class="featured-carousel section-content">
-          <div class="featured-carousel-row">
-            <ProductCard
-              v-for="(product, index) in featuredProducts"
-              :key="product.id"
-              :product="product"
-              :style="{ '--card-index': index }"
-            />
-          </div>
-        </div>
-        <div class="text-center mt-4 section-cta">
-          <router-link to="/products" class="btn btn-luxury btn-lg px-5">
-            View All Products
-          </router-link>
-        </div>
-      </div>
-    </section>
-
-    <section class="home-section home-section-testimonials py-5 bg-light" data-reveal-section>
-      <div class="container section-shell">
-        <div class="section-title section-heading">
-          <h2>What Our Clients Say</h2>
-        </div>
-        <div class="row section-content">
-          <div v-for="(testimonial, index) in testimonials" :key="index" class="col-md-4 mb-4">
-            <div
-              class="testimonial-card text-center p-4 surface h-100 hover-lift reveal"
-              :class="`stagger-${(index % 4) + 1}`"
-            >
-              <div class="mb-3">
-                <i class="bi bi-quote display-4 text-muted"></i>
-              </div>
-              <p class="mb-3">{{ testimonial.text }}</p>
-              <div class="stars text-warning mb-2">
-                <i v-for="star in 5" :key="star" class="bi bi-star-fill"></i>
-              </div>
-              <h6 class="mb-0">{{ testimonial.name }}</h6>
-              <small class="text-muted">{{ testimonial.title }}</small>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <Newsletter />
   </div>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import { useProductsStore } from "../stores/products";
-import HeroSection from "../components/HeroSection.vue";
-import ProductCard from "../components/ProductCard.vue";
-import Newsletter from "../components/Newsletter.vue";
 
+const router = useRouter();
 const homeRootRef = ref(null);
 const productsStore = useProductsStore();
-const featuredProducts = computed(() => productsStore.featuredProducts);
+const selectedUpperId = ref(null);
+const selectedLowerId = ref(null);
 let sectionObserver;
+const heroBackgroundImage =
+  "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1600&q=80";
 
-const categories = ["Dresses", "Outerwear", "Pants", "Shirts", "Blazers", "Knitwear"];
+const upperCategoryNames = ["Outerwear", "Shirts"];
+const lowerCategoryNames = ["Pants"];
 
-const testimonials = [
+const featuredCollections = computed(() => [
   {
-    name: "Victoria M.",
-    title: "Fashion Editor",
-    text: "The quality and craftsmanship of Noir Elegance pieces are simply unmatched. Each garment tells a story of elegance.",
+    label: "Pants",
+    routeCategory: "Pants",
+    title: "Tailored Pants",
+    eyebrow: "Featured Essential",
+    description: "Clean structure and versatile cuts for everyday styling.",
+    product: productsStore.products.find((product) => product.category === "Pants"),
   },
   {
-    name: "Alexander R.",
-    title: "CEO, Tech Startup",
-    text: "I've never felt more confident than when wearing their tailored suits. The attention to detail is extraordinary.",
+    label: "Outers",
+    routeCategory: "Outerwear",
+    title: "Statement Outers",
+    eyebrow: "Layering Focus",
+    description: "Outer layers that keep the silhouette polished and confident.",
+    product: productsStore.products.find((product) => product.category === "Outerwear"),
   },
   {
-    name: "Isabella L.",
-    title: "Art Director",
-    text: "Their evening gowns are works of art. I receive compliments every time I wear one of their pieces.",
+    label: "T-Shirts",
+    routeCategory: "Shirts",
+    title: "Premium T-Shirts",
+    eyebrow: "Daily Base Layer",
+    description: "Simple foundations that are easy to pair into a complete look.",
+    product: productsStore.products.find((product) => product.category === "Shirts"),
   },
-];
+]);
 
-const getCategoryIcon = (cat) => {
-  const icons = {
-    Dresses: "bi bi-person-standing-dress",
-    Outerwear: "bi bi-sunglasses",
-    Pants: "bi bi-person",
-    Shirts: "bi bi-person",
-    Blazers: "bi bi-briefcase",
-    Knitwear: "bi bi-person",
-  };
-  return icons[cat] || "bi bi-grid";
-};
+const upperOptions = computed(() =>
+  productsStore.products.filter((product) => upperCategoryNames.includes(product.category)),
+);
+
+const lowerOptions = computed(() =>
+  productsStore.products.filter((product) => lowerCategoryNames.includes(product.category)),
+);
+
+const selectedUpper = computed(() =>
+  upperOptions.value.find((product) => product.id === selectedUpperId.value) || upperOptions.value[0] || null,
+);
+
+const selectedLower = computed(() =>
+  lowerOptions.value.find((product) => product.id === selectedLowerId.value) || lowerOptions.value[0] || null,
+);
+
+const heroBackgroundStyle = computed(() => ({
+  backgroundImage: `linear-gradient(180deg, rgba(77, 16, 24, 0.56), rgba(77, 16, 24, 0.68)), url("${heroBackgroundImage}")`,
+}));
+
+watch(
+  upperOptions,
+  (products) => {
+    if (!products.length) {
+      selectedUpperId.value = null;
+      return;
+    }
+
+    if (!products.some((product) => product.id === selectedUpperId.value)) {
+      selectedUpperId.value = products[0].id;
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  lowerOptions,
+  (products) => {
+    if (!products.length) {
+      selectedLowerId.value = null;
+      return;
+    }
+
+    if (!products.some((product) => product.id === selectedLowerId.value)) {
+      selectedLowerId.value = products[0].id;
+    }
+  },
+  { immediate: true },
+);
 
 onMounted(() => {
   const sections = homeRootRef.value?.querySelectorAll("[data-reveal-section]");
@@ -144,7 +272,7 @@ onMounted(() => {
       });
     },
     {
-      threshold: 0.2,
+      threshold: 0.18,
       rootMargin: "0px 0px -10% 0px",
     },
   );
@@ -166,6 +294,7 @@ onBeforeUnmount(() => {
     linear-gradient(180deg, rgba(255, 241, 184, 0.98), rgba(254, 181, 17, 0.62));
 }
 
+.home-hero,
 .home-section {
   position: relative;
   opacity: 0;
@@ -177,41 +306,104 @@ onBeforeUnmount(() => {
     filter 760ms ease;
 }
 
-.home-section::before {
-  content: "";
-  position: absolute;
-  inset: 1.5rem 2rem;
-  border-radius: 2rem;
-  background:
-    linear-gradient(145deg, rgba(255, 241, 184, 0.38), rgba(255, 241, 184, 0)),
-    radial-gradient(circle at top right, rgba(77, 16, 24, 0.08), transparent 42%);
-  pointer-events: none;
-  opacity: 0;
-  transform: scale(0.98);
-  transition:
-    opacity 760ms ease,
-    transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
+.home-hero.is-visible,
 .home-section.is-visible {
   opacity: 1;
   transform: translateY(0);
   filter: blur(0);
 }
 
-.home-section.is-visible::before {
-  opacity: 1;
-  transform: scale(1);
+.home-hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 6rem 0 4rem;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  isolation: isolate;
 }
 
+.hero-shell,
 .section-shell {
   position: relative;
   z-index: 1;
 }
 
+.hero-shell {
+  position: relative;
+  min-height: min(78vh, 52rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: clamp(2.5rem, 6vw, 5rem) 1rem;
+}
+
+.home-hero::before,
+.home-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-hero::before {
+  width: 22rem;
+  height: 22rem;
+  top: -7rem;
+  right: -5rem;
+  background: radial-gradient(circle, rgba(254, 181, 17, 0.3), transparent 72%);
+}
+
+.home-hero::after {
+  width: 18rem;
+  height: 18rem;
+  bottom: -6rem;
+  left: -3rem;
+  background: radial-gradient(circle, rgba(255, 241, 184, 0.16), transparent 72%);
+}
+
+.hero-kicker,
+.hero-shell h1,
+.hero-copy,
+.hero-actions {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+}
+
+.hero-kicker {
+  color: rgba(255, 241, 184, 0.88);
+  margin-bottom: 1.5rem;
+}
+
+.hero-shell h1 {
+  color: var(--paper-white);
+  font-size: clamp(3.25rem, 12vw, 7.5rem);
+  letter-spacing: 0.18em;
+  margin-bottom: 1.5rem;
+}
+
+.hero-copy {
+  max-width: 42rem;
+  color: rgba(255, 241, 184, 0.84);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  line-height: 1.8;
+  margin-bottom: 2rem;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 .section-heading,
-.section-content,
-.section-cta {
+.section-content {
   opacity: 0;
   transform: translateY(24px);
   transition:
@@ -231,248 +423,303 @@ onBeforeUnmount(() => {
   transition-delay: 170ms;
 }
 
-.home-section.is-visible .section-cta {
-  opacity: 1;
-  transform: translateY(0);
-  transition-delay: 260ms;
-}
-
-.home-section-featured::after,
-.home-section-testimonials::after {
+.featured-section::before,
+.mix-match-section::before {
   content: "";
   position: absolute;
-  width: min(24vw, 18rem);
-  height: min(24vw, 18rem);
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(77, 16, 24, 0.16), transparent 70%);
-  filter: blur(10px);
+  inset: 1.25rem 2rem;
+  border-radius: 2rem;
+  background:
+    linear-gradient(145deg, rgba(255, 241, 184, 0.3), rgba(255, 241, 184, 0)),
+    radial-gradient(circle at top right, rgba(77, 16, 24, 0.08), transparent 42%);
   pointer-events: none;
 }
 
-.home-section-featured::after {
-  top: 1rem;
-  right: 3rem;
-}
-
-.home-section-testimonials::after {
-  bottom: 2rem;
-  left: 3rem;
-}
-
-.featured-carousel {
-  padding-bottom: 1rem;
-  overflow-x: auto;
-  overflow-y: visible;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(77, 16, 24, 0.55) rgba(254, 181, 17, 0.18);
-}
-
-.featured-carousel-row {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 1.25rem;
-  min-width: max-content;
-  padding: 0.35rem 0.25rem 1rem;
-}
-
-.home-section.is-visible .featured-carousel-row :deep(.col-md-6.col-lg-4) {
-  animation: luxuryCardRise 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--card-index, 0) * 110ms + 180ms);
-}
-
-.featured-carousel::-webkit-scrollbar {
-  height: 0.5rem;
-}
-
-.featured-carousel::-webkit-scrollbar-track {
-  background: rgba(77, 16, 24, 0.08);
-  border-radius: 999px;
-}
-
-.featured-carousel::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, rgba(77, 16, 24, 0.7), rgba(254, 181, 17, 0.92));
-  border-radius: 999px;
-}
-
-.featured-carousel :deep(.col-md-6.col-lg-4) {
-  flex: 0 0 calc((100% - 2.5rem) / 3);
-  max-width: calc((100% - 2.5rem) / 3);
-  margin-bottom: 0;
-  padding: 0;
-  scroll-snap-align: start;
-  transition: transform 240ms ease, opacity 240ms ease;
-}
-
-.featured-carousel :deep(.product-card) {
-  position: relative;
-  border-radius: 1.75rem;
-  border: 1px solid rgba(77, 16, 24, 0.18);
-  background:
-    linear-gradient(180deg, rgba(255, 241, 184, 0.98), rgba(254, 181, 17, 0.3)),
-    radial-gradient(circle at top, rgba(77, 16, 24, 0.12), transparent 48%);
-  box-shadow:
-    0 18px 45px rgba(77, 16, 24, 0.12),
-    0 2px 10px rgba(254, 181, 17, 0.2);
-  overflow: hidden;
-  isolation: isolate;
-  transform: translateY(calc(var(--card-index, 0) * 2px));
-  transition:
-    transform 260ms ease,
-    box-shadow 260ms ease,
-    border-color 260ms ease,
-    background 260ms ease;
-}
-
-.featured-carousel :deep(.product-card)::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(135deg, rgba(255, 241, 184, 0.22), transparent 34%, transparent 68%, rgba(77, 16, 24, 0.12));
-  opacity: 0.85;
-  pointer-events: none;
-}
-
-.featured-carousel :deep(.product-card:hover) {
-  border-color: rgba(77, 16, 24, 0.38);
-  box-shadow:
-    0 28px 60px rgba(77, 16, 24, 0.16),
-    0 10px 24px rgba(254, 181, 17, 0.2);
-  transform: translateY(-10px);
-}
-
-.featured-carousel :deep(.product-image-wrapper) {
-  border-radius: 1.75rem 1.75rem 1.15rem 1.15rem;
-}
-
-.featured-carousel :deep(.product-image) {
-  transition:
-    transform 420ms ease,
-    filter 320ms ease;
-  filter: saturate(0.92) contrast(1.02);
-}
-
-.featured-carousel :deep(.product-card:hover .product-image) {
-  transform: scale(1.045);
-  filter: saturate(1) contrast(1.05);
-}
-
-.featured-carousel :deep(.product-info) {
-  position: relative;
-  z-index: 1;
-  padding: 1.4rem 1.4rem 1.55rem;
-  background: linear-gradient(180deg, rgba(255, 241, 184, 0.18), rgba(255, 241, 184, 0.82));
-}
-
-.featured-carousel :deep(.section-kicker) {
-  letter-spacing: 0.16em;
-  color: rgba(77, 16, 24, 0.76);
-}
-
-.featured-carousel :deep(h5) {
-  font-size: 1.1rem;
-  line-height: 1.35;
-}
-
-.featured-carousel :deep(.price) {
-  color: var(--primary-black);
-}
-
-.featured-carousel :deep(.badge.bg-dark) {
-  border-radius: 999px;
-  padding: 0.5rem 0.8rem;
-  background: rgba(77, 16, 24, 0.9) !important;
-  backdrop-filter: blur(10px);
-}
-
-.featured-carousel :deep(.action-btn) {
-  background: rgba(255, 241, 184, 0.92);
-  color: var(--primary-black);
-  box-shadow: 0 10px 22px rgba(77, 16, 24, 0.14);
-}
-
-.featured-carousel :deep(.action-btn:hover) {
-  background: var(--soft-white);
-}
-
-@media (max-width: 991.98px) {
-  .featured-carousel :deep(.col-md-6.col-lg-4) {
-    flex-basis: calc((100% - 1.25rem) / 2);
-    max-width: calc((100% - 1.25rem) / 2);
-  }
-}
-
-@media (max-width: 767.98px) {
-  .featured-carousel-row {
-    gap: 1rem;
-    padding-inline: 0.1rem;
-  }
-
-  .featured-carousel :deep(.col-md-6.col-lg-4) {
-    flex-basis: min(84vw, 22rem);
-    max-width: min(84vw, 22rem);
-  }
-}
-
-.category-card {
+.feature-card {
   cursor: pointer;
-  border: 1px solid rgba(77, 16, 24, 0.1);
-  border-radius: 1.35rem;
-  background:
-    linear-gradient(180deg, rgba(255, 241, 184, 0.96), rgba(254, 181, 17, 0.3)),
-    radial-gradient(circle at top, rgba(77, 16, 24, 0.08), transparent 56%);
-  box-shadow: 0 14px 34px rgba(77, 16, 24, 0.08);
-  transition:
-    border-color 220ms ease,
-    transform 220ms ease,
-    box-shadow 220ms ease;
-}
-
-.category-card:hover {
-  border-color: rgba(77, 16, 24, 0.26);
-  box-shadow: 0 22px 44px rgba(77, 16, 24, 0.12);
-}
-
-.testimonial-card {
-  border: 1px solid rgba(77, 16, 24, 0.08);
-  border-radius: 1.6rem;
-  background:
-    linear-gradient(180deg, rgba(255, 241, 184, 0.94), rgba(254, 181, 17, 0.26)),
-    radial-gradient(circle at top left, rgba(77, 16, 24, 0.08), transparent 42%);
-  box-shadow: 0 18px 40px rgba(77, 16, 24, 0.08);
+  overflow: hidden;
+  border-radius: 1.8rem;
+  border: 1px solid rgba(77, 16, 24, 0.14);
   transition:
     transform 240ms ease,
     box-shadow 240ms ease,
     border-color 240ms ease;
 }
 
-.testimonial-card:hover {
-  transform: translateY(-6px);
-  border-color: rgba(77, 16, 24, 0.24);
-  box-shadow: 0 26px 54px rgba(77, 16, 24, 0.14);
+.feature-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(77, 16, 24, 0.28);
+  box-shadow: 0 30px 60px rgba(77, 16, 24, 0.15);
 }
 
-@keyframes luxuryCardRise {
-  from {
-    opacity: 0;
-    transform: translateY(38px) scale(0.98);
+.feature-image-wrap {
+  position: relative;
+  height: 22rem;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(77, 16, 24, 0.94), rgba(254, 181, 17, 0.6));
+}
+
+.feature-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 380ms ease;
+}
+
+.feature-card:hover .feature-image {
+  transform: scale(1.04);
+}
+
+.feature-image-placeholder {
+  display: grid;
+  place-items: center;
+  color: rgba(255, 241, 184, 0.86);
+  font-size: 1.35rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.feature-badge {
+  position: absolute;
+  top: 1.25rem;
+  left: 1.25rem;
+  padding: 0.55rem 0.95rem;
+  border-radius: 999px;
+  background: rgba(77, 16, 24, 0.86);
+  color: var(--paper-white);
+  font-size: 0.76rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.feature-body {
+  padding: 1.5rem;
+}
+
+.feature-body h3,
+.mix-stage h3,
+.mix-controls h3 {
+  font-size: clamp(1.45rem, 2vw, 1.9rem);
+  margin-bottom: 0.8rem;
+}
+
+.feature-body p:last-child {
+  color: rgba(77, 16, 24, 0.8);
+  line-height: 1.7;
+}
+
+.mix-stage,
+.mix-controls {
+  border-radius: 2rem;
+  padding: clamp(1.4rem, 3vw, 2rem);
+}
+
+.mix-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mix-stage-header {
+  text-align: center;
+}
+
+.mix-figure {
+  position: relative;
+  min-height: 34rem;
+  border-radius: 1.75rem;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(255, 241, 184, 0.44), transparent 38%),
+    linear-gradient(180deg, rgba(77, 16, 24, 0.16), rgba(254, 181, 17, 0.16));
+  border: 1px solid rgba(77, 16, 24, 0.14);
+  isolation: isolate;
+}
+
+.mix-figure::before {
+  content: "";
+  position: absolute;
+  inset: 2rem;
+  border-radius: 999px 999px 2.5rem 2.5rem;
+  background: linear-gradient(180deg, rgba(255, 241, 184, 0.18), rgba(77, 16, 24, 0.06));
+  border: 1px solid rgba(77, 16, 24, 0.08);
+}
+
+.mix-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.mix-layer-upper {
+  clip-path: inset(0 0 46% 0 round 1.75rem);
+}
+
+.mix-layer-lower {
+  clip-path: inset(52% 0 0 0 round 1.75rem);
+}
+
+.mix-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mix-empty {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: rgba(77, 16, 24, 0.56);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mix-divider {
+  position: absolute;
+  top: 49.5%;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(77, 16, 24, 0.55), transparent);
+  box-shadow: 0 0 18px rgba(77, 16, 24, 0.2);
+}
+
+.mix-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.mix-summary > div {
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  background: rgba(255, 241, 184, 0.58);
+  border: 1px solid rgba(77, 16, 24, 0.12);
+}
+
+.mix-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mix-control-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mix-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.mix-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem;
+  text-align: left;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(77, 16, 24, 0.12);
+  background: rgba(255, 241, 184, 0.5);
+  color: inherit;
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background 220ms ease;
+}
+
+.mix-option:hover,
+.mix-option.active {
+  transform: translateY(-2px);
+  border-color: rgba(77, 16, 24, 0.3);
+  background: rgba(255, 241, 184, 0.86);
+  box-shadow: 0 16px 28px rgba(77, 16, 24, 0.1);
+}
+
+.mix-option-thumb {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 1rem;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(77, 16, 24, 0.08);
+}
+
+.mix-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.mix-option small {
+  color: rgba(77, 16, 24, 0.72);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 991.98px) {
+  .home-hero {
+    min-height: auto;
+    padding-top: 5.5rem;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+
+  .hero-shell {
+    min-height: 36rem;
+  }
+
+  .mix-figure {
+    min-height: 28rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .featured-section::before,
+  .mix-match-section::before {
+    inset: 0.75rem;
+  }
+
+  .hero-shell h1 {
+    letter-spacing: 0.1em;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-actions .btn {
+    width: 100%;
+  }
+
+  .feature-image-wrap {
+    height: 18rem;
+  }
+
+  .mix-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .mix-option {
+    align-items: flex-start;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .home-hero,
   .home-section,
-  .home-section::before,
   .section-heading,
   .section-content,
-  .section-cta,
-  .featured-carousel :deep(.col-md-6.col-lg-4),
-  .category-card,
-  .testimonial-card {
+  .feature-card,
+  .feature-image,
+  .mix-option {
     animation: none !important;
     transition: none !important;
     transform: none !important;

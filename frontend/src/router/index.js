@@ -50,6 +50,16 @@ const router = createRouter({
       component: () => import("../views/AboutView.vue"),
     },
     {
+      path: "/guidlines",
+      name: "guidlines",
+      component: () => import("../views/GuidlinesView.vue"),
+    },
+    {
+      path: "/mix-match",
+      name: "mix-match",
+      component: () => import("../views/MixMatchView.vue"),
+    },
+    {
       path: "/dashboard",
       name: "dashboard",
       redirect: "/dashboard/products",
