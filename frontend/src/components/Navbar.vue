@@ -24,7 +24,7 @@
           </button>
 
           <div ref="collapseElement" class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav mx-auto">
+            <ul class="navbar-nav nav-links-center">
               <li class="nav-item">
                 <router-link to="/" class="nav-link" @click="closeNavbarMenu">Home</router-link>
               </li>
@@ -289,6 +289,7 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .brand-text {
@@ -308,6 +309,7 @@ watch(
 
 .navbar-collapse {
   align-items: center;
+  justify-content: center;
 }
 
 .nav-link {
@@ -401,8 +403,8 @@ watch(
 }
 
 .nav-bag-btn {
-  min-width: 3rem;
-  height: 3rem;
+  width: 1rem;
+  height: 2rem;
   border-radius: 999px;
 }
 
@@ -424,6 +426,17 @@ watch(
   right: 0;
 }
 
+.nav-links-center {
+  margin: 0 auto;
+}
+
+.nav-actions {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 @media (max-width: 991px) {
   .nav-row-shell {
     justify-content: space-between;
@@ -431,9 +444,12 @@ watch(
 
   .navbar-collapse {
     padding-top: 1rem;
+    justify-content: flex-start;
   }
 
   .nav-actions {
+    position: static;
+    transform: none;
     justify-content: flex-start;
     flex-wrap: wrap;
     padding: 0.5rem 10px 0;
