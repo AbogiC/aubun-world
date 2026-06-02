@@ -17,12 +17,22 @@
             <form @submit.prevent="submit">
               <div class="mb-3">
                 <label class="form-label">Email Address</label>
-                <input v-model="form.email" type="email" class="form-control form-control-lg" required />
+                <input
+                  v-model="form.email"
+                  type="email"
+                  class="form-control form-control-lg"
+                  required
+                />
               </div>
 
               <div class="mb-4">
                 <label class="form-label">Password</label>
-                <input v-model="form.password" type="password" class="form-control form-control-lg" required />
+                <input
+                  v-model="form.password"
+                  type="password"
+                  class="form-control form-control-lg"
+                  required
+                />
               </div>
 
               <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
@@ -57,7 +67,7 @@ const form = reactive({
   password: "",
 });
 
-const redirectTarget = computed(() => route.query.redirect || "/cart");
+const redirectTarget = computed(() => route.query.redirect || "/");
 const registerLink = computed(() => ({
   path: "/register",
   query: route.query.redirect ? { redirect: route.query.redirect } : {},

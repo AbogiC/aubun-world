@@ -48,53 +48,6 @@
                   >About Us</router-link
                 >
               </li>
-              <li v-if="canViewAllOrders" class="nav-item">
-                <router-link to="/orders" class="nav-link" @click="closeNavbarMenu"
-                  >All Orders</router-link
-                >
-              </li>
-              <li
-                v-if="canManageProducts"
-                class="nav-item nav-item--dropdown"
-                :class="{ show: dashboardMenuOpen }"
-              >
-                <button
-                  type="button"
-                  class="nav-link nav-link--button"
-                  :class="{ 'router-link-active': isDashboardSection }"
-                  @click="toggleDashboardMenu"
-                >
-                  Dashboard
-                  <i
-                    class="bi bi-chevron-down nav-dropdown-icon"
-                    :class="{ 'nav-dropdown-icon--open': dashboardMenuOpen }"
-                  ></i>
-                </button>
-
-                <div v-if="dashboardMenuOpen" class="dashboard-dropdown-menu">
-                  <router-link
-                    to="/dashboard/products"
-                    class="dashboard-dropdown-item"
-                    @click="navigateFromDashboardMenu"
-                  >
-                    Products
-                  </router-link>
-                  <router-link
-                    to="/dashboard/shipping"
-                    class="dashboard-dropdown-item"
-                    @click="navigateFromDashboardMenu"
-                  >
-                    Shipping
-                  </router-link>
-                  <router-link
-                    to="/dashboard/vouchers"
-                    class="dashboard-dropdown-item"
-                    @click="navigateFromDashboardMenu"
-                  >
-                    Vouchers
-                  </router-link>
-                </div>
-              </li>
             </ul>
 
             <div class="d-flex align-items-center gap-3 mt-1 nav-actions">
@@ -106,7 +59,7 @@
                     :class="{ 'router-link-active': isAccountSection }"
                     @click="toggleAccountMenu"
                   >
-                    {{ userLabel }}
+                    <i class="bi bi-person"></i>
                     <i
                       class="bi bi-chevron-down nav-dropdown-icon"
                       :class="{ 'nav-dropdown-icon--open': accountMenuOpen }"
@@ -123,6 +76,34 @@
                       @click="navigateFromAccountMenu"
                     >
                       Profile
+                    </router-link>
+                    <router-link
+                      v-if="canViewAllOrders"
+                      to="/orders"
+                      class="nav-link"
+                      @click="closeNavbarMenu"
+                      >All Orders</router-link
+                    >
+                    <router-link
+                      to="/dashboard/products"
+                      class="dashboard-dropdown-item"
+                      @click="navigateFromDashboardMenu"
+                    >
+                      Products
+                    </router-link>
+                    <router-link
+                      to="/dashboard/shipping"
+                      class="dashboard-dropdown-item"
+                      @click="navigateFromDashboardMenu"
+                    >
+                      Shipping
+                    </router-link>
+                    <router-link
+                      to="/dashboard/vouchers"
+                      class="dashboard-dropdown-item"
+                      @click="navigateFromDashboardMenu"
+                    >
+                      Vouchers
                     </router-link>
                     <router-link
                       v-if="!canViewAllOrders"
@@ -177,7 +158,6 @@ const togglerButton = ref(null);
 const dashboardMenuOpen = ref(false);
 const accountMenuOpen = ref(false);
 const isNavbarOpen = ref(false);
-const userLabel = computed(() => authStore.user?.name?.split(" ")[0] || "Account");
 const canManageProducts = computed(() => ["manager", "admin"].includes(authStore.user?.role || ""));
 const canViewAllOrders = computed(() => ["manager", "admin"].includes(authStore.user?.role || ""));
 const isDashboardSection = computed(() => route.path.startsWith("/dashboard"));
