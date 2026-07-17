@@ -9,12 +9,13 @@
         </ol>
       </nav>
 
-      <div class="row">
+      <div class="row g-5">
         <div class="col-lg-6 mb-4">
           <img
             :src="product.image"
             :alt="product.name"
             class="product-image surface subtle-glow"
+            loading="lazy"
           />
         </div>
 
@@ -40,9 +41,7 @@
               ${{ product.originalPrice.toLocaleString() }}
             </span>
             <span v-if="product.originalPrice" class="badge bg-danger ms-2">
-              {{
-                Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-              }}% OFF
+              {{ Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) }}% OFF
             </span>
           </div>
 
@@ -52,7 +51,7 @@
             <h6 class="fw-bold mb-3">
               Color: <span class="text-muted">{{ selectedColor }}</span>
             </h6>
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 flex-wrap">
               <button
                 v-for="color in product.colors"
                 :key="color"
@@ -68,7 +67,7 @@
             <h6 class="fw-bold mb-3">
               Size: <span class="text-muted">{{ selectedSize }}</span>
             </h6>
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 flex-wrap">
               <button
                 v-for="size in product.sizes"
                 :key="size"
@@ -124,9 +123,7 @@
                 <div class="accordion-body">
                   <ul class="list-unstyled">
                     <li class="mb-2"><i class="bi bi-check2 me-2"></i>Premium quality materials</li>
-                    <li class="mb-2">
-                      <i class="bi bi-check2 me-2"></i>Handcrafted with attention to detail
-                    </li>
+                    <li class="mb-2"><i class="bi bi-check2 me-2"></i>Handcrafted with attention to detail</li>
                     <li class="mb-2"><i class="bi bi-check2 me-2"></i>Made in Italy</li>
                     <li class="mb-2"><i class="bi bi-check2 me-2"></i>Dry clean only</li>
                   </ul>
@@ -196,9 +193,7 @@ watch(
 );
 
 onMounted(() => {
-  if (!productsStore.loaded) {
-    productsStore.fetchProducts();
-  }
+  if (!productsStore.loaded) { productsStore.fetchProducts(); }
 });
 
 const addToCart = () => {
@@ -206,17 +201,12 @@ const addToCart = () => {
     router.push({ path: "/login", query: { redirect: "/cart" } });
     return;
   }
-
   cartStore.addToCart(product.value, selectedSize.value, selectedColor.value, quantity.value);
   router.push("/cart");
 };
 </script>
 
 <style scoped>
-.letter-space {
-  letter-spacing: 0.2em;
-}
-
 .product-image {
   display: block;
   width: 100%;
@@ -236,5 +226,10 @@ const addToCart = () => {
   color: inherit;
   text-decoration: none;
   opacity: 0.7;
+  transition: opacity var(--transition-base);
+}
+
+.breadcrumb-item a:hover {
+  opacity: 1;
 }
 </style>

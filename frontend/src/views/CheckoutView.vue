@@ -3,16 +3,16 @@
     <div class="container">
       <div class="row g-4">
         <div class="col-lg-7">
-          <div class="surface p-4 p-md-5">
+          <div class="surface-elevated p-4 p-md-5">
             <p class="section-kicker mb-3">Secure Checkout</p>
             <h1 class="mb-4">Complete Your Order</h1>
 
             <form ref="checkoutFormRef" @submit.prevent>
-              <div class="location-panel surface-subtle p-3 p-md-4 mb-4">
+              <div class="location-panel p-3 p-md-4 mb-4">
                 <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center">
                   <div>
                     <h2 class="h5 mb-2">Use your current location</h2>
-                    <p class="text-muted mb-0">
+                    <p class="text-muted mb-0 small">
                       Allow location access to auto-fill your shipping city, country, and postal code.
                     </p>
                   </div>
@@ -26,11 +26,7 @@
                   </button>
                 </div>
 
-                <div
-                  v-if="locationMessage"
-                  class="alert mb-0 mt-3"
-                  :class="locationAlertClass"
-                >
+                <div v-if="locationMessage" class="alert mb-0 mt-3" :class="locationAlertClass">
                   {{ locationMessage }}
                 </div>
               </div>
@@ -66,11 +62,11 @@
                 </div>
               </div>
 
-              <div class="shipping-options-panel surface-subtle p-3 p-md-4 mt-4">
+              <div class="shipping-options-panel p-3 p-md-4 mt-4">
                 <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
                   <div>
                     <h2 class="h5 mb-2">Shipping Options</h2>
-                    <p class="text-muted mb-0">
+                    <p class="text-muted mb-0 small">
                       We use your shipping country to match the nearest available shop route.
                     </p>
                   </div>
@@ -118,12 +114,12 @@
                 {{ errorMessage }}
               </div>
 
-              <div class="surface-subtle p-3 p-md-4 mt-4">
+              <div class="shipping-options-panel p-3 p-md-4 mt-4">
                 <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-center">
                   <div>
                     <h2 class="h5 mb-2">Pay with PayPal</h2>
-                    <p class="text-muted mb-0">
-                      Complete checkout with the PayPal flow from your example: create order first, then capture payment.
+                    <p class="text-muted mb-0 small">
+                      Complete checkout with the PayPal flow.
                     </p>
                   </div>
                   <div v-if="paypalLoading" class="text-muted small">Loading PayPal...</div>
@@ -153,7 +149,7 @@
         </div>
 
         <div class="col-lg-5">
-          <div class="surface p-4">
+          <div class="surface-elevated p-4">
             <h4 class="mb-4">Order Summary</h4>
             <div
               v-for="item in cartStore.items"
@@ -162,7 +158,7 @@
             >
               <div>
                 <div class="fw-semibold">{{ item.name }}</div>
-                <div class="text-muted small">{{ item.size }} / {{ item.color }} / {{ item.quantity }}</div>
+                <div class="text-muted small">{{ item.size }} / {{ item.color }} / Qty: {{ item.quantity }}</div>
               </div>
               <div class="fw-semibold">${{ (item.price * item.quantity).toLocaleString() }}</div>
             </div>
@@ -170,18 +166,18 @@
             <hr />
 
             <div class="d-flex justify-content-between mb-2">
-              <span>Subtotal</span>
-              <span>${{ cartStore.subtotal.toLocaleString() }}</span>
+              <span class="text-muted">Subtotal</span>
+              <span class="fw-semibold">${{ cartStore.subtotal.toLocaleString() }}</span>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span>Shipping</span>
-              <span>{{ shippingSummaryLabel }}</span>
+              <span class="text-muted">Shipping</span>
+              <span class="fw-semibold">{{ shippingSummaryLabel }}</span>
             </div>
-            <div v-if="cartStore.discount" class="d-flex justify-content-between text-success mb-2">
+            <div v-if="cartStore.discount" class="d-flex justify-content-between mb-2" style="color: var(--success);">
               <span>Discount</span>
               <span>-${{ cartStore.discount.toLocaleString() }}</span>
             </div>
-            <div class="d-flex justify-content-between fs-5 mt-4">
+            <div class="d-flex justify-content-between fs-5 mt-4 pt-3" style="border-top: 1px solid var(--border-black);">
               <strong>Total</strong>
               <strong>${{ totalWithShipping.toLocaleString() }}</strong>
             </div>
@@ -191,24 +187,18 @@
 
       <div
         v-if="showOrderSuccessModal"
-        class="checkout-modal"
+        class="modal-overlay"
         @click.self="closeOrderSuccessModal"
       >
-        <div class="checkout-modal__dialog surface elevated">
-          <div class="checkout-modal__icon">
+        <div class="modal-dialog-box surface-elevated">
+          <div class="modal-icon" style="background: linear-gradient(145deg, rgba(40, 167, 69, 0.16), rgba(254, 181, 17, 0.12)); color: var(--success);">
             <i class="bi bi-check2-circle"></i>
           </div>
           <p class="section-kicker mb-2">Payment Successful</p>
-          <h2 class="checkout-modal__title">Your order has been placed</h2>
-          <p class="checkout-modal__message">
-            {{ orderSuccessMessage }}
-          </p>
-          <div class="checkout-modal__actions">
-            <button
-              type="button"
-              class="btn btn-luxury"
-              @click="closeOrderSuccessModal"
-            >
+          <h2 class="modal-title">Your order has been placed</h2>
+          <p class="modal-message">{{ orderSuccessMessage }}</p>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-luxury" @click="closeOrderSuccessModal">
               Continue
             </button>
           </div>
@@ -269,57 +259,25 @@ const selectedShippingOption = computed(() =>
 );
 const shippingAmount = computed(() => selectedShippingOption.value?.shippingCost ?? 0);
 const shippingSummaryLabel = computed(() => {
-  if (shippingLoading.value) {
-    return "Loading...";
-  }
-
-  if (selectedShippingOption.value) {
-    return `$${Number(selectedShippingOption.value.shippingCost).toLocaleString()}`;
-  }
-
-  if (form.country.trim() === "") {
-    return "Select country";
-  }
-
-  if (!shippingQuote.available) {
-    return "Unavailable";
-  }
-
+  if (shippingLoading.value) return "Loading...";
+  if (selectedShippingOption.value) return `$${Number(selectedShippingOption.value.shippingCost).toLocaleString()}`;
+  if (form.country.trim() === "") return "Select country";
+  if (!shippingQuote.available) return "Unavailable";
   return "Choose option";
 });
 const totalWithShipping = computed(() => cartStore.total + shippingAmount.value);
-const checkoutPayload = computed(() => ({
-  ...form,
-  shippingRateId: selectedShippingRateId.value,
-}));
+const checkoutPayload = computed(() => ({ ...form, shippingRateId: selectedShippingRateId.value }));
 const canPlaceOrder = computed(() => {
-  if (!form.country.trim() || shippingLoading.value) {
-    return false;
-  }
-
-  if (!shippingQuote.available) {
-    return false;
-  }
-
+  if (!form.country.trim() || shippingLoading.value) return false;
+  if (!shippingQuote.available) return false;
   return selectedShippingRateId.value !== null;
 });
 
 const applyLocationToForm = (location) => {
-  if (!form.address && location.address) {
-    form.address = location.address;
-  }
-
-  if (location.city) {
-    form.city = location.city;
-  }
-
-  if (location.country) {
-    form.country = location.country;
-  }
-
-  if (location.postalCode) {
-    form.postalCode = location.postalCode;
-  }
+  if (!form.address && location.address) form.address = location.address;
+  if (location.city) form.city = location.city;
+  if (location.country) form.country = location.country;
+  if (location.postalCode) form.postalCode = location.postalCode;
 };
 
 const resetShippingQuote = (message = "Enter or detect your shipping country to see available delivery options.") => {
@@ -335,21 +293,14 @@ const fetchShippingOptions = async (country) => {
   const normalizedCountry = country.trim();
   const requestId = latestShippingLookup.value + 1;
   latestShippingLookup.value = requestId;
-
-  if (!normalizedCountry) {
-    resetShippingQuote();
-    return;
-  }
+  if (!normalizedCountry) { resetShippingQuote(); return; }
 
   shippingLoading.value = true;
   errorMessage.value = "";
 
   try {
     const payload = await api.get(`/shipping-options?country=${encodeURIComponent(normalizedCountry)}`);
-
-    if (latestShippingLookup.value !== requestId) {
-      return;
-    }
+    if (latestShippingLookup.value !== requestId) return;
 
     shippingQuote.shopCountryName = payload.shopCountryName || "";
     shippingQuote.available = Boolean(payload.available);
@@ -374,10 +325,7 @@ const fetchShippingOptions = async (country) => {
     shippingQuote.alertClass = "alert-warning";
     shippingQuote.message = `${shippingOptions.value.length} shipping options are available for ${payload.country}. Please choose one.`;
   } catch (error) {
-    if (latestShippingLookup.value !== requestId) {
-      return;
-    }
-
+    if (latestShippingLookup.value !== requestId) return;
     selectedShippingRateId.value = null;
     shippingOptions.value = [];
     shippingQuote.shopCountryName = "";
@@ -385,9 +333,7 @@ const fetchShippingOptions = async (country) => {
     shippingQuote.alertClass = "alert-danger";
     shippingQuote.message = error.message || "Unable to load shipping options.";
   } finally {
-    if (latestShippingLookup.value === requestId) {
-      shippingLoading.value = false;
-    }
+    if (latestShippingLookup.value === requestId) shippingLoading.value = false;
   }
 };
 
@@ -395,8 +341,7 @@ const fillFromIpFallback = async (message) => {
   const location = await lookupLocationByIp();
   applyLocationToForm(location);
   locationAlertClass.value = "alert-warning";
-  locationMessage.value =
-    message || "We used your IP address to estimate your area. Please review the shipping details.";
+  locationMessage.value = message || "We used your IP address to estimate your area. Please review the shipping details.";
 };
 
 const requestLocation = async () => {
@@ -406,20 +351,12 @@ const requestLocation = async () => {
 
   try {
     const position = await getBrowserLocation();
-    const location = await reverseGeocode(
-      position.coords.latitude,
-      position.coords.longitude,
-    );
-
+    const location = await reverseGeocode(position.coords.latitude, position.coords.longitude);
     applyLocationToForm(location);
     locationAlertClass.value = "alert-success";
-    locationMessage.value =
-      "Location access granted. We filled the available shipping details from your current area.";
+    locationMessage.value = "Location access granted. We filled the available shipping details from your current area.";
   } catch (error) {
-    const deniedPermission =
-      error?.code === 1 ||
-      /denied|permission/i.test(error?.message || "");
-
+    const deniedPermission = error?.code === 1 || /denied|permission/i.test(error?.message || "");
     try {
       await fillFromIpFallback(
         deniedPermission
@@ -428,8 +365,7 @@ const requestLocation = async () => {
       );
     } catch {
       locationAlertClass.value = "alert-danger";
-      locationMessage.value =
-        "Location lookup is unavailable right now. You can still enter the shipping address manually.";
+      locationMessage.value = "Location lookup is unavailable right now. You can still enter the shipping address manually.";
     }
   } finally {
     locating.value = false;
@@ -437,31 +373,18 @@ const requestLocation = async () => {
 };
 
 const formatDistanceRange = (option) => {
-  if (option.maxDistanceKm === null) {
-    return `${Number(option.minDistanceKm).toLocaleString()}+ km distance band`;
-  }
-
+  if (option.maxDistanceKm === null) return `${Number(option.minDistanceKm).toLocaleString()}+ km distance band`;
   return `${Number(option.minDistanceKm).toLocaleString()}-${Number(option.maxDistanceKm).toLocaleString()} km distance band`;
 };
 
 const validateCheckoutBeforePayment = () => {
   paypalResultMessage.value = "";
-
   if (checkoutFormRef.value && !checkoutFormRef.value.reportValidity()) {
     errorMessage.value = "Please complete all required checkout fields before continuing to PayPal.";
     return false;
   }
-
-  if (!cartStore.items.length) {
-    errorMessage.value = "Your cart is empty.";
-    return false;
-  }
-
-  if (!canPlaceOrder.value) {
-    errorMessage.value = "Please choose an available shipping option before placing your order.";
-    return false;
-  }
-
+  if (!cartStore.items.length) { errorMessage.value = "Your cart is empty."; return false; }
+  if (!canPlaceOrder.value) { errorMessage.value = "Please choose an available shipping option before placing your order."; return false; }
   errorMessage.value = "";
   return true;
 };
@@ -474,18 +397,12 @@ const closeOrderSuccessModal = () => {
 const loadPayPalSdk = (clientId, currencyCode) =>
   new Promise((resolve, reject) => {
     const existingScript = document.querySelector("#paypal-sdk-script");
-
     if (existingScript) {
-      if (window.paypal?.Buttons) {
-        resolve(window.paypal);
-        return;
-      }
-
+      if (window.paypal?.Buttons) { resolve(window.paypal); return; }
       existingScript.addEventListener("load", () => resolve(window.paypal), { once: true });
       existingScript.addEventListener("error", () => reject(new Error("Failed to load the PayPal SDK.")), { once: true });
       return;
     }
-
     const script = document.createElement("script");
     script.id = "paypal-sdk-script";
     script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=${encodeURIComponent(currencyCode)}`;
@@ -496,78 +413,43 @@ const loadPayPalSdk = (clientId, currencyCode) =>
   });
 
 const renderPayPalButtons = async () => {
-  if (!paypalEnabled.value || paypalButtonsRendered.value || !paypalClientId.value) {
-    return;
-  }
-
+  if (!paypalEnabled.value || paypalButtonsRendered.value || !paypalClientId.value) return;
   paypalLoading.value = true;
 
   try {
     await loadPayPalSdk(paypalClientId.value, paypalCurrencyCode.value);
-
-    if (!window.paypal?.Buttons) {
-      throw new Error("PayPal SDK is unavailable.");
-    }
+    if (!window.paypal?.Buttons) throw new Error("PayPal SDK is unavailable.");
 
     await window.paypal.Buttons({
-      style: {
-        shape: "rect",
-        layout: "vertical",
-        color: "gold",
-        label: "paypal",
-      },
+      style: { shape: "rect", layout: "vertical", color: "gold", label: "paypal" },
       async onClick(_data, actions) {
-        if (!validateCheckoutBeforePayment()) {
-          return actions.reject();
-        }
-
+        if (!validateCheckoutBeforePayment()) return actions.reject();
         paypalErrorMessage.value = "";
         return actions.resolve();
       },
       async createOrder() {
         submitting.value = true;
         paypalErrorMessage.value = "";
-
         try {
           const orderData = await cartStore.createPayPalOrder(checkoutPayload.value);
-
-          if (orderData.id) {
-            return orderData.id;
-          }
-
+          if (orderData.id) return orderData.id;
           const errorDetail = orderData?.details?.[0];
-          const errorMessageText = errorDetail
-            ? `${errorDetail.issue} ${errorDetail.description} (${orderData.debug_id})`
-            : JSON.stringify(orderData);
-
-          throw new Error(errorMessageText);
+          throw new Error(errorDetail ? `${errorDetail.issue} ${errorDetail.description} (${orderData.debug_id})` : JSON.stringify(orderData));
         } catch (error) {
           paypalErrorMessage.value = error.message || "Could not initiate PayPal checkout.";
           throw error;
-        } finally {
-          submitting.value = false;
-        }
+        } finally { submitting.value = false; }
       },
       async onApprove(data, actions) {
         submitting.value = true;
         paypalErrorMessage.value = "";
         paypalResultMessage.value = "";
-
         try {
           const { order, paypalOrder } = await cartStore.capturePayPalOrder(data.orderID, checkoutPayload.value);
           const errorDetail = paypalOrder?.details?.[0];
-
-          if (errorDetail?.issue === "INSTRUMENT_DECLINED") {
-            return actions.restart();
-          }
-
-          if (errorDetail) {
-            throw new Error(`${errorDetail.description} (${paypalOrder.debug_id})`);
-          }
-
-          if (!paypalOrder.purchase_units) {
-            throw new Error(JSON.stringify(paypalOrder));
-          }
+          if (errorDetail?.issue === "INSTRUMENT_DECLINED") return actions.restart();
+          if (errorDetail) throw new Error(`${errorDetail.description} (${paypalOrder.debug_id})`);
+          if (!paypalOrder.purchase_units) throw new Error(JSON.stringify(paypalOrder));
 
           const transaction =
             paypalOrder.purchase_units?.[0]?.payments?.captures?.[0] ||
@@ -576,52 +458,36 @@ const renderPayPalButtons = async () => {
           paypalResultMessage.value = transaction
             ? `Transaction ${transaction.status}: ${transaction.id}`
             : `Order ${order.orderNumber} placed successfully.`;
-
           orderSuccessMessage.value = `Order ${order.orderNumber} placed successfully.`;
           showOrderSuccessModal.value = true;
         } catch (error) {
           paypalErrorMessage.value = error.message || "Sorry, your transaction could not be processed.";
-        } finally {
-          submitting.value = false;
-        }
+        } finally { submitting.value = false; }
       },
     }).render("#paypal-button-container");
 
     paypalButtonsRendered.value = true;
   } catch (error) {
     paypalErrorMessage.value = error.message || "Unable to initialize PayPal checkout.";
-  } finally {
-    paypalLoading.value = false;
-  }
+  } finally { paypalLoading.value = false; }
 };
 
 const initPayPalCheckout = async () => {
   paypalLoading.value = true;
   paypalErrorMessage.value = "";
-
   try {
     const config = await api.get("/orders/paypal-config");
     paypalEnabled.value = Boolean(config.enabled && config.clientId);
     paypalClientId.value = config.clientId || "";
     paypalCurrencyCode.value = config.currencyCode || "USD";
-
-    if (paypalEnabled.value) {
-      await renderPayPalButtons();
-    }
+    if (paypalEnabled.value) await renderPayPalButtons();
   } catch (error) {
     paypalEnabled.value = false;
     paypalErrorMessage.value = error.message || "Unable to load PayPal checkout settings.";
-  } finally {
-    paypalLoading.value = false;
-  }
+  } finally { paypalLoading.value = false; }
 };
 
-watch(
-  () => form.country,
-  (country) => {
-    fetchShippingOptions(country);
-  },
-);
+watch(() => form.country, (country) => { fetchShippingOptions(country); });
 
 onMounted(() => {
   fetchShippingOptions(form.country);
@@ -632,13 +498,13 @@ onMounted(() => {
 <style scoped>
 .location-panel {
   border: 1px solid rgba(77, 16, 24, 0.08);
-  border-radius: 1rem;
+  border-radius: var(--radius-md);
   background: linear-gradient(135deg, rgba(77, 16, 24, 0.06), rgba(254, 181, 17, 0.18));
 }
 
 .shipping-options-panel {
   border: 1px solid rgba(77, 16, 24, 0.08);
-  border-radius: 1rem;
+  border-radius: var(--radius-md);
   background: linear-gradient(135deg, rgba(77, 16, 24, 0.06), rgba(255, 241, 184, 0.92));
 }
 
@@ -660,9 +526,14 @@ onMounted(() => {
   align-items: flex-start;
   padding: 0.9rem 1rem;
   border: 1px solid rgba(77, 16, 24, 0.08);
-  border-radius: 1rem;
-  background: rgba(255, 241, 184, 0.78);
+  border-radius: var(--radius-md);
+  background: rgba(255, 248, 228, 0.8);
   cursor: pointer;
+  transition: border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.shipping-option:hover {
+  border-color: rgba(77, 16, 24, 0.2);
 }
 
 .shipping-option--active {
@@ -670,16 +541,14 @@ onMounted(() => {
   box-shadow: 0 12px 24px rgba(77, 16, 24, 0.12);
 }
 
-.shipping-option__body {
-  flex: 1;
-}
+.shipping-option__body { flex: 1; }
 
 .paypal-button-container--busy {
   opacity: 0.72;
   pointer-events: none;
 }
 
-.checkout-modal {
+.modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 1050;
@@ -693,54 +562,50 @@ onMounted(() => {
   backdrop-filter: blur(6px);
 }
 
-.checkout-modal__dialog {
+.modal-dialog-box {
   width: min(100%, 480px);
   padding: 2rem;
   border: 1px solid rgba(40, 167, 69, 0.16);
-  border-radius: 1.5rem;
-  background:
-    linear-gradient(180deg, rgba(246, 255, 250, 0.98), rgba(255, 255, 255, 0.96));
-  box-shadow: 0 1.5rem 4rem rgba(43, 17, 22, 0.22);
+  border-radius: var(--radius-lg);
   text-align: center;
+  animation: modalIn 0.25s ease;
 }
 
-.checkout-modal__icon {
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-icon {
   width: 4.25rem;
   height: 4.25rem;
   margin: 0 auto 1rem;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: linear-gradient(145deg, rgba(40, 167, 69, 0.16), rgba(254, 181, 17, 0.16));
-  color: #1a7f4d;
   font-size: 1.85rem;
 }
 
-.checkout-modal__title {
+.modal-title {
   margin-bottom: 0.75rem;
   font-size: clamp(1.5rem, 2vw, 1.85rem);
 }
 
-.checkout-modal__message {
+.modal-message {
   margin: 0 auto;
   max-width: 28rem;
-  color: var(--ink-muted);
+  color: var(--ink-soft);
   line-height: 1.6;
 }
 
-.checkout-modal__actions {
+.modal-actions {
   margin-top: 1.75rem;
   display: flex;
   justify-content: center;
 }
 
 @media (max-width: 575.98px) {
-  .checkout-modal__dialog {
-    padding: 1.5rem;
-  }
-
-  .checkout-modal__actions .btn {
-    width: 100%;
-  }
+  .modal-dialog-box { padding: 1.5rem; }
+  .modal-actions .btn { width: 100%; }
 }
 </style>

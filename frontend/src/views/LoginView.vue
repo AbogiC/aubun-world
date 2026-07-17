@@ -7,7 +7,7 @@
             <p class="section-kicker mb-3">Member Access</p>
             <h1 class="mb-3">Sign In</h1>
             <p class="text-muted mb-4">
-              Continue to your bag and complete checkout with your Noir Elegance account.
+              Sign in to continue shopping and complete your checkout.
             </p>
 
             <div v-if="route.query.redirect" class="auth-note mb-4">
@@ -43,7 +43,7 @@
             </form>
 
             <div class="text-center mt-4">
-              <span class="text-muted">New to Noir Elegance?</span>
+              <span class="text-muted">New to Aubun World?</span>
               <router-link :to="registerLink" class="auth-link ms-2">Create account</router-link>
             </div>
           </div>

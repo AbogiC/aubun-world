@@ -2,7 +2,7 @@
   <div class="col-md-6 col-lg-4 mb-4 fade-in-up">
     <div class="product-card hover-lift" @click="$router.push(`/product/${product.id}`)">
       <div class="product-image-wrapper position-relative overflow-hidden">
-        <img :src="product.image" :alt="product.name" class="product-image" />
+        <img :src="product.image" :alt="product.name" class="product-image" loading="lazy" />
 
         <div class="product-actions position-absolute top-0 end-0 p-3">
            <button class="btn btn-luxury btn-sm mb-2 action-btn" @click.stop="quickAdd">
@@ -60,7 +60,6 @@ const quickAdd = () => {
     router.push({ path: "/login", query: { redirect: "/cart" } });
     return;
   }
-
   cartStore.addToCart(props.product, "M", props.product.colors[0], 1);
   router.push("/cart");
 };
@@ -69,19 +68,28 @@ const quickAdd = () => {
 <style scoped>
 .product-card {
   cursor: pointer;
-  background: rgba(255, 241, 184, 0.82);
-  border: 1px solid rgba(77, 16, 24, 0.1);
+  background: rgba(255, 248, 228, 0.86);
+  border: 1px solid rgba(77, 16, 24, 0.08);
   overflow: hidden;
+  border-radius: var(--radius-lg);
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    border-color var(--transition-base),
+    background var(--transition-base);
 }
 
 .product-card:hover {
   transform: translateY(-6px);
+  background: rgba(255, 248, 228, 0.95);
+  border-color: rgba(77, 16, 24, 0.15);
+  box-shadow: var(--shadow-xl);
 }
 
 .price {
   font-family:
+    "Playfair Display",
     Georgia,
-    "Times New Roman",
     serif;
   font-size: 1.3rem;
   font-weight: 700;
@@ -103,9 +111,15 @@ const quickAdd = () => {
   width: 100%;
   height: 400px;
   object-fit: cover;
+  transition: transform 420ms ease, filter 420ms ease;
   background:
     linear-gradient(135deg, rgba(77, 16, 24, 0.96), rgba(108, 24, 35, 0.82)),
     radial-gradient(circle at top right, rgba(254, 181, 17, 0.14), transparent 40%);
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.04);
+  filter: saturate(1.05);
 }
 
 .action-btn {
@@ -119,5 +133,14 @@ const quickAdd = () => {
 
 .rating-stars {
   color: var(--primary-black);
+}
+
+.product-info h5 {
+  font-size: 1rem;
+  transition: color var(--transition-base);
+}
+
+.product-card:hover .product-info h5 {
+  color: var(--secondary-black);
 }
 </style>

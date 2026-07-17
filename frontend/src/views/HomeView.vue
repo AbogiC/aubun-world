@@ -19,18 +19,19 @@
       <div class="container section-shell">
         <div class="section-title section-heading">
           <h2>Featured</h2>
-          <p class="text-muted">Three spotlight categories for faster browsing.</p>
+          <p class="text-muted">Curated categories for effortless browsing.</p>
         </div>
 
         <div class="row g-4 section-content">
           <div v-for="item in featuredCollections" :key="item.label" class="col-md-6 col-xl-4">
-            <article class="feature-card surface h-100" @click="router.push(`/products?category=${item.routeCategory}`)">
+            <article class="feature-card surface h-100" @click="navigateToCategory(item.routeCategory)">
               <div class="feature-image-wrap">
                 <img
                   v-if="item.product?.image"
                   :src="item.product.image"
                   :alt="item.label"
                   class="feature-image"
+                  loading="lazy"
                 />
                 <div v-else class="feature-image feature-image-placeholder">
                   <span>{{ item.label }}</span>
@@ -52,7 +53,7 @@
       <div class="container section-shell">
         <div class="section-title section-heading">
           <h2>Mix & Match</h2>
-          <p class="text-muted">A simple outfit preview your customers can customize.</p>
+          <p class="text-muted">Build your look with our curated selection.</p>
         </div>
 
         <div class="row g-4 align-items-stretch section-content">
@@ -117,7 +118,7 @@
                     :class="{ active: product.id === selectedUpperId }"
                     @click="selectedUpperId = product.id"
                   >
-                    <img :src="product.image" :alt="product.name" class="mix-option-thumb" />
+                    <img :src="product.image" :alt="product.name" class="mix-option-thumb" loading="lazy" />
                     <span>
                       <strong>{{ product.name }}</strong>
                       <small>{{ product.category }}</small>
@@ -143,7 +144,7 @@
                     :class="{ active: product.id === selectedLowerId }"
                     @click="selectedLowerId = product.id"
                   >
-                    <img :src="product.image" :alt="product.name" class="mix-option-thumb" />
+                    <img :src="product.image" :alt="product.name" class="mix-option-thumb" loading="lazy" />
                     <span>
                       <strong>{{ product.name }}</strong>
                       <small>{{ product.category }}</small>
@@ -171,7 +172,7 @@ const selectedUpperId = ref(null);
 const selectedLowerId = ref(null);
 let sectionObserver;
 const heroBackgroundImage =
-  "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1600&q=80";
+  "https://wwd.com/wp-content/uploads/2024/12/GettyImages1735100420.jpg?w=910&h=511&crop=1";
 
 const upperCategoryNames = ["Outerwear", "Shirts"];
 const lowerCategoryNames = ["Pants"];
@@ -219,6 +220,10 @@ const selectedLower = computed(() =>
   lowerOptions.value.find((product) => product.id === selectedLowerId.value) || lowerOptions.value[0] || null,
 );
 
+const navigateToCategory = (category) => {
+  router.push(`/products?category=${category}`);
+};
+
 const heroBackgroundStyle = computed(() => ({
   backgroundImage: `linear-gradient(180deg, rgba(77, 16, 24, 0.56), rgba(77, 16, 24, 0.68)), url("${heroBackgroundImage}")`,
 }));
@@ -226,11 +231,7 @@ const heroBackgroundStyle = computed(() => ({
 watch(
   upperOptions,
   (products) => {
-    if (!products.length) {
-      selectedUpperId.value = null;
-      return;
-    }
-
+    if (!products.length) { selectedUpperId.value = null; return; }
     if (!products.some((product) => product.id === selectedUpperId.value)) {
       selectedUpperId.value = products[0].id;
     }
@@ -241,11 +242,7 @@ watch(
 watch(
   lowerOptions,
   (products) => {
-    if (!products.length) {
-      selectedLowerId.value = null;
-      return;
-    }
-
+    if (!products.length) { selectedLowerId.value = null; return; }
     if (!products.some((product) => product.id === selectedLowerId.value)) {
       selectedLowerId.value = products[0].id;
     }
@@ -255,31 +252,20 @@ watch(
 
 onMounted(() => {
   const sections = homeRootRef.value?.querySelectorAll("[data-reveal-section]");
-
-  if (!sections?.length) {
-    return;
-  }
+  if (!sections?.length) return;
 
   sectionObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
-        if (!entry.isIntersecting) {
-          return;
-        }
-
+        if (!entry.isIntersecting) return;
         entry.target.classList.add("is-visible");
         sectionObserver?.unobserve(entry.target);
       });
     },
-    {
-      threshold: 0.18,
-      rootMargin: "0px 0px -10% 0px",
-    },
+    { threshold: 0.18, rootMargin: "0px 0px -10% 0px" },
   );
 
-  sections.forEach((section) => {
-    sectionObserver.observe(section);
-  });
+  sections.forEach((section) => { sectionObserver.observe(section); });
 });
 
 onBeforeUnmount(() => {
@@ -381,7 +367,7 @@ onBeforeUnmount(() => {
 }
 
 .hero-shell h1 {
-  color: var(--paper-white);
+  color: var(--gold-light);
   font-size: clamp(3.25rem, 12vw, 7.5rem);
   letter-spacing: 0.18em;
   margin-bottom: 1.5rem;
@@ -428,7 +414,7 @@ onBeforeUnmount(() => {
   content: "";
   position: absolute;
   inset: 1.25rem 2rem;
-  border-radius: 2rem;
+  border-radius: var(--radius-xl);
   background:
     linear-gradient(145deg, rgba(255, 241, 184, 0.3), rgba(255, 241, 184, 0)),
     radial-gradient(circle at top right, rgba(77, 16, 24, 0.08), transparent 42%);
@@ -438,8 +424,8 @@ onBeforeUnmount(() => {
 .feature-card {
   cursor: pointer;
   overflow: hidden;
-  border-radius: 1.8rem;
-  border: 1px solid rgba(77, 16, 24, 0.14);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(77, 16, 24, 0.12);
   transition:
     transform 240ms ease,
     box-shadow 240ms ease,
@@ -448,7 +434,7 @@ onBeforeUnmount(() => {
 
 .feature-card:hover {
   transform: translateY(-8px);
-  border-color: rgba(77, 16, 24, 0.28);
+  border-color: rgba(77, 16, 24, 0.24);
   box-shadow: 0 30px 60px rgba(77, 16, 24, 0.15);
 }
 
@@ -487,7 +473,7 @@ onBeforeUnmount(() => {
   padding: 0.55rem 0.95rem;
   border-radius: 999px;
   background: rgba(77, 16, 24, 0.86);
-  color: var(--paper-white);
+  color: var(--gold-light);
   font-size: 0.76rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -511,7 +497,7 @@ onBeforeUnmount(() => {
 
 .mix-stage,
 .mix-controls {
-  border-radius: 2rem;
+  border-radius: var(--radius-xl);
   padding: clamp(1.4rem, 3vw, 2rem);
 }
 
@@ -533,7 +519,7 @@ onBeforeUnmount(() => {
   background:
     radial-gradient(circle at top, rgba(255, 241, 184, 0.44), transparent 38%),
     linear-gradient(180deg, rgba(77, 16, 24, 0.16), rgba(254, 181, 17, 0.16));
-  border: 1px solid rgba(77, 16, 24, 0.14);
+  border: 1px solid rgba(77, 16, 24, 0.12);
   isolation: isolate;
 }
 
@@ -595,9 +581,9 @@ onBeforeUnmount(() => {
 
 .mix-summary > div {
   padding: 1rem 1.1rem;
-  border-radius: 1rem;
-  background: rgba(255, 241, 184, 0.58);
-  border: 1px solid rgba(77, 16, 24, 0.12);
+  border-radius: var(--radius-md);
+  background: rgba(255, 248, 228, 0.58);
+  border: 1px solid rgba(77, 16, 24, 0.1);
 }
 
 .mix-controls {
@@ -625,9 +611,9 @@ onBeforeUnmount(() => {
   gap: 1rem;
   padding: 0.85rem;
   text-align: left;
-  border-radius: 1.2rem;
-  border: 1px solid rgba(77, 16, 24, 0.12);
-  background: rgba(255, 241, 184, 0.5);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(77, 16, 24, 0.1);
+  background: rgba(255, 248, 228, 0.5);
   color: inherit;
   transition:
     transform 220ms ease,
@@ -639,15 +625,15 @@ onBeforeUnmount(() => {
 .mix-option:hover,
 .mix-option.active {
   transform: translateY(-2px);
-  border-color: rgba(77, 16, 24, 0.3);
-  background: rgba(255, 241, 184, 0.86);
+  border-color: rgba(77, 16, 24, 0.26);
+  background: rgba(255, 248, 228, 0.86);
   box-shadow: 0 16px 28px rgba(77, 16, 24, 0.1);
 }
 
 .mix-option-thumb {
   width: 4.5rem;
   height: 4.5rem;
-  border-radius: 1rem;
+  border-radius: var(--radius-md);
   object-fit: cover;
   flex-shrink: 0;
   background: rgba(77, 16, 24, 0.08);
@@ -713,13 +699,8 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-hero,
-  .home-section,
-  .section-heading,
-  .section-content,
-  .feature-card,
-  .feature-image,
-  .mix-option {
+  .home-hero, .home-section, .section-heading, .section-content,
+  .feature-card, .feature-image, .mix-option {
     animation: none !important;
     transition: none !important;
     transform: none !important;

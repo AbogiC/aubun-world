@@ -7,8 +7,12 @@
             <p class="section-kicker mb-3">New Client</p>
             <h1 class="mb-3">Create Account</h1>
             <p class="text-muted mb-4">
-              Join Noir Elegance to save your bag and move straight into checkout.
+              Join Aubun World to save your bag and move straight into checkout.
             </p>
+
+            <div v-if="emailNotice" class="alert alert-success mb-4">
+              {{ emailNotice }}
+            </div>
 
             <form @submit.prevent="submit">
               <div class="mb-3">
@@ -77,7 +81,7 @@ const form = reactive({
   password: "",
 });
 
-const redirectTarget = computed(() => route.query.redirect || "/cart");
+const redirectTarget = computed(() => route.query.redirect || "/");
 const loginLink = computed(() => ({
   path: "/login",
   query: route.query.redirect ? { redirect: route.query.redirect } : {},
@@ -89,14 +93,12 @@ const submit = async () => {
 
   try {
     const response = await authStore.register(form);
-    emailNotice.value = response?.emailNotice || "";
-
-    if (emailNotice.value) {
-      window.alert(emailNotice.value);
+    const notice = response?.emailNotice || "";
+    if (notice) {
+      emailNotice.value = notice;
     } else {
-      window.alert("Account created successfully. Please verify your email before continuing.");
+      emailNotice.value = "Account created successfully. Please verify your email before continuing.";
     }
-
     router.push(redirectTarget.value);
   } catch (error) {
     errorMessage.value = error.message;

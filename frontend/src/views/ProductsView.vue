@@ -44,7 +44,7 @@
                     class="form-control form-control-sm"
                     placeholder="Min"
                   />
-                  <span>-</span>
+                  <span class="text-muted">-</span>
                   <input
                     type="number"
                     v-model="maxPrice"
@@ -72,7 +72,7 @@
                 </div>
               </div>
 
-              <button @click="resetFilters" class="btn btn-outline-danger btn-sm w-100">
+              <button @click="resetFilters" class="btn btn-outline-luxury btn-sm w-100">
                 Reset Filters
               </button>
             </div>
@@ -135,32 +135,23 @@ const filteredProducts = computed(() => {
   if (minPrice.value) {
     products = products.filter((p) => p.price >= minPrice.value);
   }
-
   if (maxPrice.value) {
     products = products.filter((p) => p.price <= maxPrice.value);
   }
-
   if (selectedSizes.value.length > 0) {
     products = products.filter((p) => p.sizes.some((size) => selectedSizes.value.includes(size)));
   }
-
   return products;
 });
 
 const sortedProducts = computed(() => {
   let products = [...filteredProducts.value];
-
   switch (sortBy.value) {
-    case "price-low":
-      return products.sort((a, b) => a.price - b.price);
-    case "price-high":
-      return products.sort((a, b) => b.price - a.price);
-    case "rating":
-      return products.sort((a, b) => b.rating - a.rating);
-    case "newest":
-      return products.sort((a, b) => b.id - a.id);
-    default:
-      return products.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+    case "price-low": return products.sort((a, b) => a.price - b.price);
+    case "price-high": return products.sort((a, b) => b.price - a.price);
+    case "rating": return products.sort((a, b) => b.rating - a.rating);
+    case "newest": return products.sort((a, b) => b.id - a.id);
+    default: return products.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
   }
 });
 
@@ -183,15 +174,11 @@ const resetFilters = () => {
 
 watch(
   () => route.query.category,
-  (category) => {
-    selectedCategory.value = category || "All";
-  },
+  (category) => { selectedCategory.value = category || "All"; },
 );
 
 onMounted(() => {
-  if (!productsStore.loaded) {
-    productsStore.fetchProducts();
-  }
+  if (!productsStore.loaded) { productsStore.fetchProducts(); }
 });
 </script>
 
@@ -203,9 +190,9 @@ onMounted(() => {
 }
 
 .filter-panel {
-  background: rgba(255, 241, 184, 0.84);
+  background: rgba(255, 248, 228, 0.88);
   backdrop-filter: blur(14px);
-  border-radius: 1.5rem;
+  border-radius: var(--radius-lg);
   border: 1px solid rgba(77, 16, 24, 0.08);
   box-shadow: 0 24px 60px rgba(77, 16, 24, 0.12);
 }
@@ -215,68 +202,12 @@ onMounted(() => {
   animation-delay: calc(var(--card-index, 0) * 90ms);
 }
 
-.product-grid :deep(.product-card) {
-  border-radius: 1.5rem;
-  border: 1px solid rgba(77, 16, 24, 0.1);
-  box-shadow: 0 18px 40px rgba(77, 16, 24, 0.12);
-  transition:
-    transform 260ms ease,
-    box-shadow 260ms ease,
-    border-color 260ms ease,
-    background-color 260ms ease;
-}
-
-.product-grid :deep(.product-image-wrapper) {
-  border-top-left-radius: 1.5rem;
-  border-top-right-radius: 1.5rem;
-}
-
-.product-grid :deep(.product-image) {
-  transition: transform 420ms ease, filter 420ms ease;
-}
-
-.product-grid :deep(.product-info) {
-  padding: 1.25rem 1.25rem 1.4rem;
-}
-
-.product-grid :deep(.product-card:hover) {
-  transform: translateY(-10px);
-  border-color: rgba(77, 16, 24, 0.18);
-  box-shadow: 0 28px 65px rgba(77, 16, 24, 0.18);
-  background: rgba(255, 241, 184, 0.94);
-}
-
-.product-grid :deep(.product-card:hover .product-image) {
-  transform: scale(1.04);
-  filter: saturate(1.05);
-}
-
-.product-grid :deep(.badge.bg-dark) {
-  border-radius: 999px;
-  padding: 0.5rem 0.85rem;
-  letter-spacing: 0.04em;
-}
-
 @keyframes product-card-enter {
-  from {
-    opacity: 0;
-    transform: translateY(28px) scale(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(28px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .product-grid :deep(.col-md-6.col-lg-4) {
-    animation: none;
-  }
-
-  .product-grid :deep(.product-card),
-  .product-grid :deep(.product-image) {
-    transition: none;
-  }
+  .product-grid :deep(.col-md-6.col-lg-4) { animation: none; }
 }
 </style>

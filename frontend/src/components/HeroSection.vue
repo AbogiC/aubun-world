@@ -3,8 +3,8 @@
     <div class="container-fluid px-0">
       <div class="row g-0">
         <div class="col-lg-6 hero-copy position-relative">
-          <div class="hero-content text-white p-5">
-            <p class="section-kicker text-white-50 mb-3">New Collection 2024</p>
+          <div class="hero-content p-5">
+            <p class="section-kicker mb-3" style="color: rgba(254, 181, 17, 0.7);">New Collection 2024</p>
             <h1 class="display-3 fw-bold mb-4 reveal">Autumn Winter<br />Elegance</h1>
             <p class="lead mb-5 opacity-75 reveal stagger-1">
               Discover refined silhouettes, immaculate tailoring, and the quiet confidence of true
@@ -38,6 +38,7 @@
           <div class="hero-image">
             <div class="hero-orb orb-one"></div>
             <div class="hero-orb orb-two"></div>
+            <div class="hero-orb orb-three"></div>
             <div class="hero-card surface subtle-glow">
               <div class="hero-card-top">
                 <span>Signature edit</span>
@@ -69,6 +70,7 @@
   background:
     linear-gradient(135deg, rgba(77, 16, 24, 0.98), rgba(108, 24, 35, 0.9)),
     radial-gradient(circle at top right, rgba(254, 181, 17, 0.16), transparent 35%);
+  color: var(--white);
 }
 
 .hero-copy::before {
@@ -117,14 +119,24 @@
   animation-delay: -2.5s;
 }
 
+.orb-three {
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(254, 181, 17, 0.3), transparent 70%);
+  top: 55%;
+  right: 25%;
+  animation-delay: -5s;
+}
+
 .hero-card {
   position: absolute;
   left: 10%;
   right: 10%;
   bottom: 12%;
   padding: 1.5rem;
-  background: rgba(255, 241, 184, 0.8);
-  border: 1px solid rgba(77, 16, 24, 0.14);
+  background: rgba(255, 248, 228, 0.85);
+  border: 1px solid rgba(77, 16, 24, 0.12);
+  border-radius: var(--radius-lg);
 }
 
 .hero-card-top {
@@ -169,8 +181,8 @@
 .hero-metrics strong {
   display: block;
   font-family:
+    "Playfair Display",
     Georgia,
-    "Times New Roman",
     serif;
   font-size: 1.4rem;
   margin-bottom: 0.25rem;
@@ -185,13 +197,8 @@
 }
 
 @keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-18px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-18px); }
 }
 
 @media (max-width: 991.98px) {
