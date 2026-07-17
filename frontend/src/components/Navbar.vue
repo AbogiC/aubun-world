@@ -66,12 +66,13 @@
                   class="btn btn-luxury btn-sm d-flex align-items-center justify-content-center position-relative nav-bag-btn"
                   @click="goToBag"
                 >
-                  <i class="bi bi-bag fs-5"></i>
+                  <i class="bi bi-handbag-fill nav-bag-icon"></i>
                   <span
                     v-if="cartStore.totalItems"
-                    class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark nav-badge"
+                    class="nav-badge"
+                    :key="cartStore.totalItems"
                   >
-                    {{ cartStore.totalItems }}
+                    {{ displayCount }}
                   </span>
                 </button>
               </div>
@@ -93,12 +94,13 @@
                 class="btn btn-luxury btn-sm nav-bag-btn-mobile"
                 @click="goToBag"
               >
-                <i class="bi bi-bag"></i>
+                <i class="bi bi-handbag-fill nav-bag-icon"></i>
                 <span
                   v-if="cartStore.totalItems"
-                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark nav-badge"
+                  class="nav-badge"
+                  :key="cartStore.totalItems"
                 >
-                  {{ cartStore.totalItems }}
+                  {{ displayCount }}
                 </span>
               </button>
 
@@ -200,6 +202,10 @@ const dashboardMenuOpen = ref(false);
 const canManageProducts = computed(() => ["manager", "admin"].includes(authStore.user?.role || ""));
 const canViewAllOrders = computed(() => ["manager", "admin"].includes(authStore.user?.role || ""));
 const isAccountSection = computed(() => ["/profile", "/orders"].includes(route.path));
+const displayCount = computed(() => {
+  const total = cartStore.totalItems;
+  return total > 9 ? "9+" : total;
+});
 
 let scrollObserver;
 
@@ -422,15 +428,46 @@ watch(
 }
 
 .nav-bag-btn {
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 999px;
   padding: 0;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-bag-icon {
+  font-size: 1.15rem;
+  line-height: 1;
 }
 
 .nav-badge {
-  font-size: 0.6rem;
-  box-shadow: 0 8px 18px rgba(77, 16, 24, 0.24);
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.25rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  font-family: "Inter", sans-serif;
+  line-height: 1;
+  color: var(--primary-black);
+  background: var(--gold);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(254, 181, 17, 0.5), 0 0 0 2px var(--primary-black);
+  animation: badgePop 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes badgePop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 
 .nav-account {
@@ -481,7 +518,11 @@ watch(
   align-items: center;
   justify-content: center;
   position: relative;
-  font-size: 1.1rem;
+  overflow: visible;
+}
+
+.nav-bag-btn-mobile .nav-bag-icon {
+  font-size: 1.2rem;
 }
 
 /* Custom animated hamburger */

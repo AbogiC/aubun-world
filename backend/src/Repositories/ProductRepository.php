@@ -87,9 +87,9 @@ final class ProductRepository
 
             $statement = $this->pdo->prepare(
                 'INSERT INTO products (
-                    name, category, price, original_price, image, description, rating, reviews, sizes, colors, featured, created_at, updated_at
+                    name, category, price, original_price, image, description, rating, reviews, sizes, colors, featured, is_showed, created_at, updated_at
                 ) VALUES (
-                    :name, :category, :price, :original_price, :image, :description, :rating, :reviews, :sizes, :colors, :featured, NOW(), NOW()
+                    :name, :category, :price, :original_price, :image, :description, :rating, :reviews, :sizes, :colors, :featured, :is_showed, NOW(), NOW()
                 )'
             );
             $statement->execute($this->persistedProduct($payload));
@@ -126,6 +126,7 @@ final class ProductRepository
                     sizes = :sizes,
                     colors = :colors,
                     featured = :featured,
+                    is_showed = :is_showed,
                     updated_at = NOW()
                 WHERE id = :id'
             );
@@ -184,10 +185,11 @@ final class ProductRepository
         $product['rating'] = (float) $product['rating'];
         $product['reviews'] = (int) $product['reviews'];
         $product['featured'] = (bool) $product['featured'];
+        $product['isShowed'] = (bool) $product['is_showed'];
         $product['sizes'] = json_decode($product['sizes'], true, 512, JSON_THROW_ON_ERROR);
         $product['colors'] = json_decode($product['colors'], true, 512, JSON_THROW_ON_ERROR);
 
-        unset($product['original_price'], $product['created_at'], $product['updated_at']);
+        unset($product['original_price'], $product['is_showed'], $product['created_at'], $product['updated_at']);
 
         return $product;
     }
@@ -218,6 +220,7 @@ final class ProductRepository
                 'sizes' => json_encode($payload['sizes'], JSON_THROW_ON_ERROR),
                 'colors' => json_encode($payload['colors'], JSON_THROW_ON_ERROR),
                 'featured' => $payload['featured'] ? 1 : 0,
+                'is_showed' => $payload['isShowed'] ? 1 : 0,
             ];
         } catch (JsonException $exception) {
             throw new RuntimeException('Invalid product sizes or colors payload.', 422, $exception);

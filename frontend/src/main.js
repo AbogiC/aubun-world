@@ -8,9 +8,9 @@ import "./style.css";
 import App from "./App.vue";
 import router from "./router";
 
-// document.addEventListener("contextmenu", function (e) {
-//   e.preventDefault();
-// });
+document.addEventListener("contextmenu", function (e) {
+  e.preventDefault();
+});
 
 const app = createApp(App);
 app.use(createPinia());

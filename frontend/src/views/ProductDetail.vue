@@ -174,9 +174,11 @@ const productsStore = useProductsStore();
 const cartStore = useCartStore();
 const authStore = useAuthStore();
 
-const product = computed(() =>
-  productsStore.products.find((p) => p.id === parseInt(route.params.id)),
-);
+const product = computed(() => {
+  const found = productsStore.products.find((p) => p.id === parseInt(route.params.id));
+  if (found && found.isShowed === false) return null;
+  return found;
+});
 
 const selectedColor = ref("");
 const selectedSize = ref("");

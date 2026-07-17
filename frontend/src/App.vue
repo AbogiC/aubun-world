@@ -1,19 +1,25 @@
 <template>
   <div id="app" class="app-shell">
-    <Navbar />
-    <main class="app-main">
-      <router-view v-slot="{ Component, route }">
-        <Transition name="page" mode="out-in">
-          <component :is="Component" :key="route.fullPath" />
-        </Transition>
-      </router-view>
-    </main>
-    <Footer />
+    <LoadingScreen :visible="isLoading" />
+    <template v-if="!isLoading">
+      <Navbar />
+      <main class="app-main">
+        <router-view v-slot="{ Component, route }">
+          <Transition name="page" mode="out-in">
+            <component :is="Component" :key="route.fullPath" />
+          </Transition>
+        </router-view>
+      </main>
+      <Footer />
+      <PermissionConsent />
+    </template>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from "vue";
+import { ref, onMounted } from "vue";
+import LoadingScreen from "./components/LoadingScreen.vue";
+import PermissionConsent from "./components/PermissionConsent.vue";
 import Navbar from "./components/Navbar.vue";
 import Footer from "./components/Footer.vue";
 import { resolveCustomerLocationOnLoad } from "./lib/location";
@@ -25,6 +31,8 @@ const productsStore = useProductsStore();
 const cartStore = useCartStore();
 const authStore = useAuthStore();
 
+const isLoading = ref(true);
+
 onMounted(async () => {
   await resolveCustomerLocationOnLoad();
 
@@ -34,5 +42,9 @@ onMounted(async () => {
 
   await authStore.initialize();
   cartStore.refreshFromApi();
+
+  setTimeout(() => {
+    isLoading.value = false;
+  }, 400);
 });
 </script>

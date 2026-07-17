@@ -183,6 +183,7 @@ final class ProductController
         $rating = (float) $request->input('rating', 0);
         $reviews = (int) $request->input('reviews', 0);
         $featured = (bool) $request->input('featured', false);
+        $isShowed = (bool) $request->input('isShowed', true);
         $countryPrices = $this->normalizedCountryPrices($request->input('countryPrices', []));
 
         if ($name === '' || $category === '' || $image === '' || $description === '') {
@@ -225,6 +226,7 @@ final class ProductController
             'sizes' => $sizes,
             'colors' => $colors,
             'featured' => $featured,
+            'isShowed' => $isShowed,
             'countryPrices' => $countryPrices,
         ];
     }

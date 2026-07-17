@@ -42,166 +42,21 @@
 
     <section class="container">
       <div class="row g-4">
-        <div class="col-xl-5">
-          <div class="surface p-4 p-lg-5 h-100">
-            <div class="d-flex justify-content-between align-items-start mb-4">
-              <div>
-                <p class="section-kicker mb-2">{{ editingProductId ? "Editing Product" : "New Product" }}</p>
-                <h2 class="h3 mb-1">{{ editingProductId ? "Update Catalog Item" : "Add Product" }}</h2>
-                <p class="text-muted mb-0">Use comma-separated lists for sizes and colors.</p>
-              </div>
-              <button
-                v-if="editingProductId"
-                type="button"
-                class="btn btn-outline-dark btn-sm"
-                @click="resetForm"
-              >
-                Cancel
-              </button>
-            </div>
-
-            <form class="dashboard-form" @submit.prevent="saveProduct">
-              <div class="row g-3">
-                <div class="col-12">
-                  <label class="form-label">Product Name</label>
-                  <input v-model="form.name" type="text" class="form-control" required />
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">Category</label>
-                  <input v-model="form.category" type="text" class="form-control" required />
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">Product Photo</label>
-                  <input
-                    type="file"
-                    class="form-control"
-                    accept="image/png,image/jpeg,image/webp,image/gif"
-                    :disabled="uploadingImage"
-                    @change="handleImageChange"
-                  />
-                  <div class="form-text">Upload JPG, PNG, WEBP, or GIF up to 5 MB.</div>
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">Base Price</label>
-                  <input v-model.number="form.price" type="number" min="0.01" step="0.01" class="form-control" required />
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">Original Price</label>
-                  <input v-model="form.originalPrice" type="number" min="0" step="0.01" class="form-control" placeholder="Optional" />
-                </div>
-
-                <div class="col-12">
-                  <div class="country-pricing-panel">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
-                      <div>
-                        <label class="form-label mb-1">Country Prices</label>
-                        <div class="form-text mt-0">Add country-specific price overrides. Customers from those countries will see that price instead of the base price.</div>
-                      </div>
-                      <button type="button" class="btn btn-outline-dark btn-sm" @click="openCountryPricingModal">
-                        Manage Country Prices
-                      </button>
-                    </div>
-
-                    <div v-if="groupedCountryPrices.length" class="country-price-list">
-                      <div
-                        v-for="group in groupedCountryPrices"
-                        :key="`country-price-${group.price}`"
-                        class="country-price-chip"
-                      >
-                        <div>
-                          <div class="fw-semibold">${{ Number(group.price).toLocaleString() }}</div>
-                          <div class="small text-muted">{{ group.countries.length }} countries</div>
-                        </div>
-                        <div class="country-price-chip__actions">
-                          <button type="button" class="btn btn-outline-dark btn-sm" @click="filterModalByPrice(group.price)">
-                            View in Popup
-                          </button>
-                          <button type="button" class="btn btn-outline-danger country-price-chip__remove" @click="removeCountryPriceGroup(group.price)">
-                            <i class="bi bi-trash"></i>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div v-else class="country-pricing-empty">
-                      No country-specific prices yet. Base price will be used for all customers.
-                    </div>
-                  </div>
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">Rating</label>
-                  <input v-model.number="form.rating" type="number" min="0" max="5" step="0.1" class="form-control" required />
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">Reviews</label>
-                  <input v-model.number="form.reviews" type="number" min="0" step="1" class="form-control" required />
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">Sizes</label>
-                  <input v-model="form.sizes" type="text" class="form-control" placeholder="XS, S, M, L" required />
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label">Colors</label>
-                  <input v-model="form.colors" type="text" class="form-control" placeholder="Black, White, Gray" required />
-                </div>
-
-                <div class="col-12">
-                  <div v-if="form.image" class="image-preview">
-                    <img :src="form.image" alt="Product preview" class="image-preview__img" />
-                    <button type="button" class="btn btn-outline-dark btn-sm" @click="clearImage">
-                      Remove Image
-                    </button>
-                  </div>
-                  <div v-else class="image-preview image-preview--empty">
-                    Product image preview will appear here after upload.
-                  </div>
-                </div>
-
-                <div class="col-12">
-                  <label class="form-label">Description</label>
-                  <textarea v-model="form.description" class="form-control" rows="4" required></textarea>
-                </div>
-
-                <div class="col-12">
-                  <div class="form-check form-switch">
-                    <input id="featured" v-model="form.featured" class="form-check-input" type="checkbox" />
-                    <label for="featured" class="form-check-label">Mark as featured</label>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="feedback.message" :class="['alert mt-4 mb-0', feedback.type === 'error' ? 'alert-danger' : 'alert-success']">
-                {{ feedback.message }}
-              </div>
-
-              <div class="d-flex gap-3 mt-4">
-                <button type="submit" class="btn btn-luxury flex-grow-1" :disabled="saving">
-                  {{ saving ? (editingProductId ? "Saving..." : "Creating...") : editingProductId ? "Save Changes" : "Create Product" }}
-                </button>
-                <button type="button" class="btn btn-outline-luxury" @click="resetForm">Reset</button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <div class="col-xl-7">
+        <div class="col-12">
           <div class="surface p-4 p-lg-5">
             <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
               <div>
                 <p class="section-kicker mb-2">Catalog Control</p>
                 <h2 class="h3 mb-0">Manage Products</h2>
               </div>
-              <div class="position-relative">
-                <i class="bi bi-search search-icon"></i>
-                <input v-model="search" type="search" class="form-control search-input" placeholder="Search by name or category" />
+              <div class="d-flex gap-3 align-items-center">
+                <div class="position-relative">
+                  <i class="bi bi-search search-icon"></i>
+                  <input v-model="search" type="search" class="form-control search-input" placeholder="Search by name or category" />
+                </div>
+                <button class="btn btn-luxury" @click="openAddProductModal">
+                  <i class="bi bi-plus-lg me-1"></i> Add Product
+                </button>
               </div>
             </div>
 
@@ -267,123 +122,32 @@
       </div>
     </section>
 
-    <div v-if="showCountryPricingModal" class="country-modal" @click.self="closeCountryPricingModal">
-      <div class="country-modal__dialog surface elevated">
-        <div class="country-modal__header">
-          <div>
-            <p class="section-kicker mb-2">Country Pricing</p>
-            <h3 class="h3 mb-1">Set Prices by Continent</h3>
-            <p class="text-muted mb-0">Select a continent or individual countries, then apply one price to all selected countries.</p>
-          </div>
-          <button type="button" class="btn btn-outline-dark btn-sm" @click="closeCountryPricingModal">
-            Close
-          </button>
-        </div>
+    <ProductFormModal
+      v-model="showProductModal"
+      :form="form"
+      :editing-product-id="editingProductId"
+      :saving="saving"
+      :uploading-image="uploadingImage"
+      :feedback="feedback"
+      :grouped-country-prices="groupedCountryPrices"
+      @update:model-value="closeProductModal"
+      @save="saveProduct"
+      @image-change="handleImageChange"
+      @clear-image="clearImage"
+      @open-country-pricing="openCountryPricingModal"
+      @filter-country-price-by="filterModalByPrice"
+      @remove-country-price-group="removeCountryPriceGroup"
+    />
 
-        <div class="country-modal__toolbar">
-          <div class="country-modal__toolbar-input">
-            <label class="form-label">Selected Price</label>
-            <input v-model="modalPrice" type="number" min="0.01" step="0.01" class="form-control" placeholder="120.00" />
-          </div>
-          <div class="country-modal__toolbar-actions">
-            <button type="button" class="btn btn-dark" :disabled="!selectedCountries.length || !modalPrice" @click="applyModalCountryPrice">
-              Apply to Selected
-            </button>
-            <button type="button" class="btn btn-outline-danger" :disabled="!selectedCountries.length" @click="removeSelectedCountryPrices">
-              Remove Selected
-            </button>
-            <button type="button" class="btn btn-outline-dark" :disabled="!selectedCountries.length" @click="clearCountrySelection">
-              Clear Selection
-            </button>
-          </div>
-        </div>
-
-        <div v-if="priceFilterOptions.length" class="country-modal__filters">
-          <button
-            type="button"
-            class="btn btn-sm"
-            :class="activePriceFilter === 'all' ? 'btn-dark' : 'btn-outline-dark'"
-            @click="activePriceFilter = 'all'"
-          >
-            All Countries
-          </button>
-          <button
-            type="button"
-            class="btn btn-sm"
-            :class="activePriceFilter === 'unassigned' ? 'btn-dark' : 'btn-outline-dark'"
-            @click="activePriceFilter = 'unassigned'"
-          >
-            Base Price
-          </button>
-          <button
-            v-for="price in priceFilterOptions"
-            :key="`price-filter-${price}`"
-            type="button"
-            class="btn btn-sm"
-            :class="activePriceFilter === price ? 'btn-dark' : 'btn-outline-dark'"
-            @click="activePriceFilter = price"
-          >
-            ${{ Number(price).toLocaleString() }}
-          </button>
-        </div>
-
-        <div class="country-modal__selection" v-if="selectedCountries.length">
-          <span
-            v-for="country in selectedCountries"
-            :key="`selected-${country}`"
-            class="country-modal__selection-chip"
-          >
-            {{ country }}
-          </span>
-        </div>
-
-        <div class="country-modal__body">
-          <section
-            v-for="continent in countryPricingCatalog"
-            :key="continent.name"
-            class="country-continent"
-          >
-            <div class="country-continent__header">
-              <label class="form-check d-flex align-items-center gap-2 mb-0">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  :checked="isContinentFullySelected(continent)"
-                  @change="toggleContinent(continent)"
-                />
-                <span class="fw-semibold">{{ continent.name }}</span>
-              </label>
-              <span class="small text-muted">{{ selectedCountInContinent(continent) }}/{{ continent.countries.length }} selected</span>
-            </div>
-
-            <div class="country-grid">
-              <label
-                v-for="country in filteredCountriesForContinent(continent)"
-                :key="`${continent.name}-${country}`"
-                class="country-option"
-                :class="{ 'country-option--active': isCountrySelected(country) }"
-              >
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  :checked="isCountrySelected(country)"
-                  @change="toggleCountry(country)"
-                />
-                <div class="country-option__body">
-                  <span class="country-option__name">{{ country }}</span>
-                  <span v-if="countryPriceMap[country] !== undefined" class="country-option__price">
-                    ${{ Number(countryPriceMap[country]).toLocaleString() }}
-                  </span>
-                  <span v-else class="country-option__price country-option__price--muted">
-                    Base price
-                  </span>
-                </div>
-              </label>
-            </div>
-          </section>
-        </div>
-      </div>
-    </div>
+    <CountryPricingModal
+      ref="countryPricingRef"
+      v-model="showCountryPricingModal"
+      :country-pricing-catalog="countryPricingCatalog"
+      :country-price-map="countryPriceMap"
+      :price-filter-options="priceFilterOptions"
+      @apply="handleApplyCountryPrice"
+      @remove-selected="handleRemoveSelectedCountryPrices"
+    />
   </div>
 </template>
 
@@ -392,6 +156,8 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { api } from "../lib/api";
 import { COUNTRY_PRICING_CATALOG } from "../lib/countryPricingCatalog";
 import { useProductsStore } from "../stores/products";
+import ProductFormModal from "../components/ProductFormModal.vue";
+import CountryPricingModal from "../components/CountryPricingModal.vue";
 
 const productsStore = useProductsStore();
 const loading = ref(false);
@@ -400,10 +166,9 @@ const deletingId = ref(null);
 const editingProductId = ref(null);
 const search = ref("");
 const uploadingImage = ref(false);
+const showProductModal = ref(false);
 const showCountryPricingModal = ref(false);
-const modalPrice = ref("");
-const selectedCountries = ref([]);
-const activePriceFilter = ref("all");
+const countryPricingRef = ref(null);
 const feedback = reactive({
   type: "success",
   message: "",
@@ -423,6 +188,7 @@ const createInitialForm = () => ({
   colors: "Black, White",
   description: "",
   featured: false,
+  isShowed: true,
 });
 
 const form = reactive(createInitialForm());
@@ -488,31 +254,28 @@ const clearImage = () => {
   form.image = "";
 };
 
+const openAddProductModal = () => {
+  resetForm();
+  showProductModal.value = true;
+};
+
+const closeProductModal = () => {
+  showProductModal.value = false;
+  resetForm();
+};
+
 const openCountryPricingModal = () => {
+  const initialCountries = form.countryPrices.map((entry) => entry.countryName);
+  countryPricingRef.value?.open(initialCountries);
   showCountryPricingModal.value = true;
-  modalPrice.value = "";
-  selectedCountries.value = form.countryPrices.map((entry) => entry.countryName);
-  activePriceFilter.value = "all";
-};
-
-const closeCountryPricingModal = () => {
-  showCountryPricingModal.value = false;
-  modalPrice.value = "";
-  selectedCountries.value = [];
-  activePriceFilter.value = "all";
-};
-
-const removeCountryPrice = (index) => {
-  form.countryPrices.splice(index, 1);
 };
 
 const filterModalByPrice = (price) => {
-  showCountryPricingModal.value = true;
-  selectedCountries.value = form.countryPrices
+  const countries = form.countryPrices
     .filter((entry) => Number(entry.price) === Number(price))
     .map((entry) => entry.countryName);
-  modalPrice.value = price;
-  activePriceFilter.value = Number(price);
+  countryPricingRef.value?.openWithFilter(price, countries);
+  showCountryPricingModal.value = true;
 };
 
 const removeCountryPriceGroup = (price) => {
@@ -521,73 +284,12 @@ const removeCountryPriceGroup = (price) => {
   );
 };
 
-const isCountrySelected = (country) => selectedCountries.value.includes(country);
-
-const toggleCountry = (country) => {
-  if (isCountrySelected(country)) {
-    selectedCountries.value = selectedCountries.value.filter((value) => value !== country);
-    return;
-  }
-
-  selectedCountries.value = [...selectedCountries.value, country];
-};
-
-const isContinentFullySelected = (continent) =>
-  continent.countries.every((country) => selectedCountries.value.includes(country));
-
-const selectedCountInContinent = (continent) =>
-  continent.countries.filter((country) => selectedCountries.value.includes(country)).length;
-
-const filteredCountriesForContinent = (continent) =>
-  continent.countries.filter((country) => {
-    if (activePriceFilter.value === "all") {
-      return true;
-    }
-
-    const assignedPrice = countryPriceMap.value[country];
-
-    if (activePriceFilter.value === "unassigned") {
-      return assignedPrice === undefined;
-    }
-
-    return Number(assignedPrice) === Number(activePriceFilter.value);
-  });
-
-const toggleContinent = (continent) => {
-  const visibleCountries = filteredCountriesForContinent(continent);
-
-  if (visibleCountries.length === 0) {
-    return;
-  }
-
-  if (visibleCountries.every((country) => selectedCountries.value.includes(country))) {
-    selectedCountries.value = selectedCountries.value.filter(
-      (country) => !visibleCountries.includes(country),
-    );
-    return;
-  }
-
-  selectedCountries.value = Array.from(
-    new Set([...selectedCountries.value, ...visibleCountries]),
-  );
-};
-
-const clearCountrySelection = () => {
-  selectedCountries.value = [];
-};
-
-const applyModalCountryPrice = () => {
-  const price = Number(modalPrice.value);
-
-  if (!selectedCountries.value.length || !price) {
-    return;
-  }
-
+const handleApplyCountryPrice = (price, countries) => {
   const nextPrices = new Map(
     form.countryPrices.map((entry) => [entry.countryName, entry.price]),
   );
 
-  selectedCountries.value.forEach((country) => {
+  countries.forEach((country) => {
     nextPrices.set(country, price);
   });
 
@@ -599,15 +301,10 @@ const applyModalCountryPrice = () => {
     .sort((left, right) => left.countryName.localeCompare(right.countryName));
 };
 
-const removeSelectedCountryPrices = () => {
-  if (!selectedCountries.value.length) {
-    return;
-  }
-
+const handleRemoveSelectedCountryPrices = (countries) => {
   form.countryPrices = form.countryPrices.filter(
-    (entry) => !selectedCountries.value.includes(entry.countryName),
+    (entry) => !countries.includes(entry.countryName),
   );
-  selectedCountries.value = [];
 };
 
 const hydrateForm = (product) => {
@@ -627,6 +324,7 @@ const hydrateForm = (product) => {
     colors: product.colors.join(", "),
     description: product.description,
     featured: product.featured,
+    isShowed: product.isShowed,
   });
 };
 
@@ -700,6 +398,7 @@ const saveProduct = async () => {
 
     await fetchProducts();
     resetForm({ clearFeedback: false });
+    showProductModal.value = false;
   } catch (error) {
     feedback.type = "error";
     feedback.message = error.message;
@@ -712,7 +411,7 @@ const startEdit = (product) => {
   editingProductId.value = product.id;
   feedback.message = "";
   hydrateForm(product);
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  showProductModal.value = true;
 };
 
 const removeProduct = async (product) => {
@@ -797,212 +496,6 @@ onMounted(fetchProducts);
   color: var(--ink-muted);
 }
 
-.country-pricing-panel {
-  padding: 1rem;
-  border: 1px dashed rgba(77, 16, 24, 0.2);
-  border-radius: 1rem;
-  background: rgba(255, 241, 184, 0.62);
-}
-
-.country-pricing-empty {
-  color: var(--ink-muted);
-  font-size: 0.95rem;
-}
-
-.country-price-list {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.country-price-chip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid rgba(77, 16, 24, 0.12);
-  border-radius: 1rem;
-  background: rgba(255, 241, 184, 0.74);
-}
-
-.country-price-chip__actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.country-price-chip__remove {
-  width: 2.75rem;
-  height: 2.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  padding: 0;
-}
-
-.country-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 1050;
-  padding: 1.5rem;
-  background: rgba(77, 16, 24, 0.38);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.country-modal__dialog {
-  width: min(1080px, 100%);
-  max-height: 90vh;
-  padding: 1.5rem;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.country-modal__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-}
-
-.country-modal__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  align-items: flex-end;
-  padding: 1rem;
-  border: 1px solid rgba(77, 16, 24, 0.08);
-  border-radius: 1rem;
-  background: rgba(255, 241, 184, 0.72);
-}
-
-.country-modal__toolbar-input {
-  width: min(220px, 100%);
-}
-
-.country-modal__toolbar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.country-modal__selection {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 1rem 0 0.5rem;
-}
-
-.country-modal__selection-chip {
-  padding: 0.45rem 0.8rem;
-  border-radius: 999px;
-  background: rgba(77, 16, 24, 0.1);
-  font-size: 0.85rem;
-}
-
-.country-modal__filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 1rem;
-}
-
-.country-modal__body {
-  overflow: auto;
-  margin-top: 1rem;
-  padding-right: 0.25rem;
-  display: grid;
-  gap: 1rem;
-}
-
-.country-continent {
-  border: 1px solid rgba(77, 16, 24, 0.08);
-  border-radius: 1rem;
-  padding: 1rem;
-  background: rgba(255, 241, 184, 0.68);
-}
-
-.country-continent__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.country-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-.country-option {
-  display: flex;
-  gap: 0.7rem;
-  align-items: flex-start;
-  padding: 0.85rem 0.9rem;
-  border: 1px solid rgba(77, 16, 24, 0.08);
-  border-radius: 0.95rem;
-  background: rgba(255, 241, 184, 0.78);
-  cursor: pointer;
-}
-
-.country-option--active {
-  border-color: rgba(77, 16, 24, 0.3);
-  box-shadow: 0 10px 22px rgba(77, 16, 24, 0.12);
-}
-
-.country-option__body {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.country-option__name {
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.country-option__price {
-  font-size: 0.82rem;
-  color: var(--ink-muted);
-}
-
-.country-option__price--muted {
-  opacity: 0.72;
-}
-
-.image-preview {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem;
-  border: 1px dashed rgba(77, 16, 24, 0.22);
-  border-radius: 1rem;
-  background: rgba(255, 241, 184, 0.56);
-}
-
-.image-preview--empty {
-  justify-content: center;
-  color: var(--ink-muted);
-  min-height: 120px;
-  text-align: center;
-}
-
-.image-preview__img {
-  width: 96px;
-  height: 112px;
-  object-fit: cover;
-  border-radius: 0.9rem;
-  background: rgba(77, 16, 24, 0.08);
-}
-
 .search-input {
   min-width: 260px;
   padding-left: 2.5rem;
@@ -1057,10 +550,6 @@ onMounted(fetchProducts);
   .stats-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-
-  .country-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 767px) {
@@ -1068,38 +557,9 @@ onMounted(fetchProducts);
     grid-template-columns: 1fr;
   }
 
-  .country-price-chip,
-  .country-modal__header,
-  .country-continent__header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .country-modal {
-    padding: 0.75rem;
-  }
-
-  .country-modal__dialog {
-    max-height: 95vh;
-    padding: 1rem;
-  }
-
-  .country-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .image-preview {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .image-preview__img {
-    width: 100%;
-    height: 240px;
-  }
-
   .search-input {
     min-width: 100%;
   }
 }
+
 </style>

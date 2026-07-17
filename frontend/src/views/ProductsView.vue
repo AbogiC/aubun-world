@@ -130,7 +130,7 @@ const sortBy = ref("featured");
 const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
 
 const filteredProducts = computed(() => {
-  let products = productsStore.productsByCategory(selectedCategory.value);
+  let products = productsStore.productsByCategory(selectedCategory.value).filter((p) => p.isShowed !== false);
 
   if (minPrice.value) {
     products = products.filter((p) => p.price >= minPrice.value);
