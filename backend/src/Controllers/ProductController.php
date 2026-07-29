@@ -7,7 +7,6 @@ namespace App\Controllers;
 use App\Core\Response;
 use App\Core\Request;
 use App\Repositories\ProductRepository;
-use finfo;
 use RuntimeException;
 
 final class ProductController
@@ -245,10 +244,15 @@ final class ProductController
 
     private function detectMimeType(string $path): string
     {
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $finfo->file($path) ?: 'application/octet-stream';
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 
-        return (string) $mimeType;
+        return match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+            default => 'application/octet-stream',
+        };
     }
 
     private function normalizedCountryPrices(mixed $values): array

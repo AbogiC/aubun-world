@@ -50,10 +50,23 @@
 
                     <div v-if="accountMenuOpen" class="dropdown-menu-custom dropdown-menu-custom--account">
                       <router-link to="/profile" class="dropdown-item-custom" @click="navigateFromAccountMenu">Profile</router-link>
-                      <router-link v-if="canViewAllOrders" to="/orders" class="dropdown-item-custom" @click="closeNavbarMenu">All Orders</router-link>
-                      <router-link to="/dashboard/products" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Products</router-link>
-                      <router-link to="/dashboard/shipping" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Shipping</router-link>
-                      <router-link to="/dashboard/vouchers" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Vouchers</router-link>
+                      <div v-if="canManageProducts" class="dropdown-nested">
+                        <button
+                          type="button"
+                          class="dropdown-item-custom dropdown-nested-toggle"
+                          :class="{ 'dropdown-nested--open': dashboardMenuOpen }"
+                          @click="dashboardMenuOpen = !dashboardMenuOpen"
+                        >
+                          <span>Manager Dashboard</span>
+                          <i class="bi bi-chevron-down nav-dropdown-icon" :class="{ 'nav-dropdown-icon--open': dashboardMenuOpen }"></i>
+                        </button>
+                        <div v-if="dashboardMenuOpen" class="dropdown-nested-menu">
+                          <router-link to="/orders" class="dropdown-item-custom" @click="navigateFromDashboardMenu">All Orders</router-link>
+                          <router-link to="/dashboard/products" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Products</router-link>
+                          <router-link to="/dashboard/shipping" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Shipping</router-link>
+                          <router-link to="/dashboard/vouchers" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Vouchers</router-link>
+                        </div>
+                      </div>
                       <router-link v-if="!canViewAllOrders" to="/orders" class="dropdown-item-custom" @click="navigateFromAccountMenu">Orders</router-link>
                     </div>
                   </div>
@@ -143,21 +156,33 @@
                   <router-link to="/profile" class="mobile-auth-link" @click="closeNavbarMenu">
                     <i class="bi bi-gear"></i> Profile
                   </router-link>
-                  <router-link v-if="canViewAllOrders" to="/orders" class="mobile-auth-link" @click="closeNavbarMenu">
-                    <i class="bi bi-box"></i> All Orders
-                  </router-link>
-                  <router-link v-else to="/orders" class="mobile-auth-link" @click="closeNavbarMenu">
+                  <router-link v-if="!canViewAllOrders" to="/orders" class="mobile-auth-link" @click="closeNavbarMenu">
                     <i class="bi bi-box"></i> My Orders
                   </router-link>
-                  <router-link to="/dashboard/products" class="mobile-auth-link" @click="closeNavbarMenu">
-                    <i class="bi bi-grid"></i> Products
-                  </router-link>
-                  <router-link to="/dashboard/shipping" class="mobile-auth-link" @click="closeNavbarMenu">
-                    <i class="bi bi-truck"></i> Shipping
-                  </router-link>
-                  <router-link to="/dashboard/vouchers" class="mobile-auth-link" @click="closeNavbarMenu">
-                    <i class="bi bi-ticket"></i> Vouchers
-                  </router-link>
+                  <div v-if="canManageProducts" class="mobile-dashboard-section">
+                    <button
+                      type="button"
+                      class="mobile-dashboard-toggle"
+                      @click="dashboardMenuOpen = !dashboardMenuOpen"
+                    >
+                      <i class="bi bi-speedometer2"></i> Manager Dashboard
+                      <i class="bi bi-chevron-down" :class="{ 'nav-dropdown-icon--open': dashboardMenuOpen }"></i>
+                    </button>
+                    <div v-if="dashboardMenuOpen" class="mobile-dashboard-sub">
+                      <router-link to="/orders" class="mobile-auth-link" @click="navigateFromDashboardMenu">
+                        <i class="bi bi-box"></i> All Orders
+                      </router-link>
+                      <router-link to="/dashboard/products" class="mobile-auth-link" @click="navigateFromDashboardMenu">
+                        <i class="bi bi-grid"></i> Products
+                      </router-link>
+                      <router-link to="/dashboard/shipping" class="mobile-auth-link" @click="navigateFromDashboardMenu">
+                        <i class="bi bi-truck"></i> Shipping
+                      </router-link>
+                      <router-link to="/dashboard/vouchers" class="mobile-auth-link" @click="navigateFromDashboardMenu">
+                        <i class="bi bi-ticket"></i> Vouchers
+                      </router-link>
+                    </div>
+                  </div>
                   <button class="mobile-logout-btn" @click="logout">
                     <i class="bi bi-box-arrow-right"></i> Sign Out
                   </button>
@@ -708,6 +733,103 @@ watch(
   color: var(--ink-soft);
   font-size: 0.85rem;
   margin-bottom: 1rem;
+}
+
+/* ========== MANAGER DASHBOARD NESTED (Desktop) ========== */
+.dropdown-nested {
+  position: relative;
+}
+
+.dropdown-nested-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.dropdown-nested-toggle i {
+  font-size: 0.7rem;
+  transition: transform 0.22s ease;
+}
+
+.dropdown-nested--open i {
+  transform: rotate(180deg);
+}
+
+.dropdown-nested-menu {
+  padding-left: 0.75rem;
+  border-left: 1px solid rgba(77, 16, 24, 0.12);
+  margin-top: 0.2rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.dropdown-nested-menu .dropdown-item-custom {
+  font-size: 0.78rem;
+  padding: 0.5rem 0.7rem;
+}
+
+/* ========== MANAGER DASHBOARD (Mobile) ========== */
+.mobile-dashboard-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.mobile-dashboard-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0;
+  background: none;
+  border: none;
+  color: var(--primary-black);
+  font-size: 0.88rem;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+
+.mobile-dashboard-toggle:hover {
+  opacity: 1;
+}
+
+.mobile-dashboard-toggle i:first-child {
+  font-size: 1.05rem;
+  width: 1.4rem;
+  text-align: center;
+  opacity: 0.6;
+}
+
+.mobile-dashboard-toggle i:last-child {
+  margin-left: auto;
+  font-size: 0.75rem;
+  transition: transform 0.22s ease;
+}
+
+.mobile-dashboard-toggle .nav-dropdown-icon--open {
+  transform: rotate(180deg);
+}
+
+.mobile-dashboard-sub {
+  padding-left: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.mobile-dashboard-sub .mobile-auth-link {
+  padding: 0.45rem 0 0.45rem 0.5rem;
+  font-size: 0.83rem;
+  border-left: 1px solid rgba(77, 16, 24, 0.12);
 }
 
 /* Overlay */
