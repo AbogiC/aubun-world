@@ -50,6 +50,10 @@ const router = createRouter({
       component: () => import("../views/AboutView.vue"),
     },
     {
+      path: "/guidelines",
+      redirect: "/guidlines",
+    },
+    {
       path: "/guidlines",
       name: "guidlines",
       component: () => import("../views/GuidlinesView.vue"),
@@ -81,6 +85,12 @@ const router = createRouter({
       path: "/dashboard/vouchers",
       name: "voucher-manage",
       component: () => import("../views/VoucherManageView.vue"),
+      meta: { requiresAuth: true, roles: ["manager", "admin"] },
+    },
+    {
+      path: "/dashboard/guidelines",
+      name: "guideline-manage",
+      component: () => import("../views/GuidelineManageView.vue"),
       meta: { requiresAuth: true, roles: ["manager", "admin"] },
     },
     {

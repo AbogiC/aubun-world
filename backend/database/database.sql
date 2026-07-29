@@ -159,3 +159,17 @@ CREATE TABLE order_items (
     CONSTRAINT fk_order_items_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
+
+CREATE TABLE guidelines (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    type ENUM('size_guide', 'fit_guide', 'care_instruction', 'product_guide') NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    content JSON NOT NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+ALTER TABLE users ADD INDEX idx_verification_token (verification_token);
+ALTER TABLE orders ADD INDEX idx_orders_paypal_order_id (paypal_order_id);
