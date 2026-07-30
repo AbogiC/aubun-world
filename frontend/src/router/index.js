@@ -45,6 +45,17 @@ const router = createRouter({
       meta: { guestOnly: true },
     },
     {
+      path: "/news",
+      name: "news",
+      component: () => import("../views/NewsView.vue"),
+    },
+    {
+      path: "/dashboard/news",
+      name: "news-manage",
+      component: () => import("../views/NewsManageView.vue"),
+      meta: { requiresAuth: true, roles: ["manager", "admin"] },
+    },
+    {
       path: "/about",
       name: "about",
       component: () => import("../views/AboutView.vue"),

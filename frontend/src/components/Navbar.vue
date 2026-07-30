@@ -28,6 +28,9 @@
                   <router-link to="/mix-match" class="nav-link">Mix & Match</router-link>
                 </li>
                 <li class="nav-item">
+                  <router-link to="/news" class="nav-link">News</router-link>
+                </li>
+                <li class="nav-item">
                   <router-link to="/about" class="nav-link">About Us</router-link>
                 </li>
               </ul>
@@ -65,6 +68,7 @@
                           <router-link to="/dashboard/products" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Products</router-link>
                           <router-link to="/dashboard/shipping" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Shipping</router-link>
                           <router-link to="/dashboard/vouchers" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Vouchers</router-link>
+                          <router-link to="/dashboard/news" class="dropdown-item-custom" @click="navigateFromDashboardMenu">News</router-link>
                           <router-link to="/dashboard/guidelines" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Guidelines</router-link>
                         </div>
                       </div>
@@ -145,6 +149,7 @@
                 <router-link to="/products" class="mobile-nav-link" @click="closeNavbarMenu">Collection</router-link>
                 <router-link to="/guidlines" class="mobile-nav-link" @click="closeNavbarMenu">Guidelines</router-link>
                 <router-link to="/mix-match" class="mobile-nav-link" @click="closeNavbarMenu">Mix & Match</router-link>
+                <router-link to="/news" class="mobile-nav-link" @click="closeNavbarMenu">News</router-link>
                 <router-link to="/about" class="mobile-nav-link" @click="closeNavbarMenu">About Us</router-link>
               </div>
 
@@ -181,6 +186,9 @@
                       </router-link>
                       <router-link to="/dashboard/vouchers" class="mobile-auth-link" @click="navigateFromDashboardMenu">
                         <i class="bi bi-ticket"></i> Vouchers
+                      </router-link>
+                      <router-link to="/dashboard/news" class="mobile-auth-link" @click="navigateFromDashboardMenu">
+                        <i class="bi bi-newspaper"></i> News
                       </router-link>
                       <router-link to="/dashboard/guidelines" class="mobile-auth-link" @click="navigateFromDashboardMenu">
                         <i class="bi bi-journal-text"></i> Guidelines

@@ -8,6 +8,15 @@ INSERT INTO products (name, category, price, original_price, image, description,
 ('Silk Midi Skirt', 'Skirts', 599.99, 799.99, 'https://images.unsplash.com/photo-1583496661160-fb5886a0a1f0?w=600', 'Flowing midi skirt in pure mulberry silk.', 4.70, 78, '["XS","S","M","L","XL"]', '["Black","White"]', 0),
 ('Merino Wool Sweater', 'Knitwear', 499.99, 699.99, 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=600', 'Luxuriously soft merino wool turtleneck sweater.', 4.60, 112, '["S","M","L","XL"]', '["Black","White","Gray"]', 0);
 
+INSERT INTO news (category, title, excerpt, author, read_time, gradient, icon, region, is_published, published_at) VALUES
+('Collection', 'Summer Solstice Collection Launch', 'Introducing our most anticipated collection of the year — a celebration of light, texture, and effortless elegance inspired by the longest days of summer.', 'Sophia Laurent', '5 min read', 'linear-gradient(135deg, #4d1018, #c48d0c)', 'bi bi-sun', NULL, 1, '2026-06-28 10:00:00'),
+('Behind the Scenes', 'Behind the Seams: The Art of Craftsmanship', 'A rare look into our atelier where master artisans transform premium fabrics into heirloom-quality garments with decades-honed techniques.', 'Marcus Chen', '7 min read', 'linear-gradient(135deg, #6c1823, #fef8e4)', 'bi bi-scissors', NULL, 1, '2026-06-20 09:00:00'),
+('Sustainability', 'Our Commitment to a Greener Future', 'Discover the sustainable practices and ethical sourcing initiatives that shape every decision we make — from raw materials to final delivery.', 'Olivia Park', '6 min read', 'linear-gradient(135deg, #2b8a5e, #4d1018)', 'bi bi-tree', NULL, 1, '2026-06-12 08:00:00'),
+('Press', 'Aubun World Named Among Top Emerging Luxury Brands', 'Industry recognition for our commitment to quality, design innovation, and redefining contemporary luxury for a new generation.', 'Isabella Rossi', '4 min read', 'linear-gradient(135deg, #8c5a14, #4d1018)', 'bi bi-trophy', NULL, 1, '2026-06-05 11:00:00'),
+('Behind the Scenes', 'The Art of Fabric Selection: A Journey Through Textiles', 'From Italian silk mills to Japanese denim ateliers, follow our design team''s global search for the world''s finest materials.', 'Marcus Chen', '8 min read', 'linear-gradient(135deg, #c48d0c, #6c1823)', 'bi bi-brush', 'Japan', 1, '2026-05-28 10:30:00'),
+('Collection', 'Exclusive Preview: Autumn/Winter 2026', 'An early look at the forthcoming season — rich textures, deep palettes, and sculptural silhouettes that redefine cold-weather elegance.', 'Sophia Laurent', '6 min read', 'linear-gradient(135deg, #1a1a2e, #4d1018)', 'bi bi-moon-stars', 'United States', 1, '2026-05-15 09:30:00'),
+('Events', 'Celebrating 14 Years of Excellence', 'A milestone anniversary marked by gratitude, reflection, and a renewed promise to continue crafting pieces that transcend time.', 'David Thompson', '5 min read', 'linear-gradient(135deg, #feb511, #4d1018)', 'bi bi-gem', NULL, 1, '2026-05-08 10:00:00');
+
 INSERT INTO guidelines (type, title, content, sort_order, is_active) VALUES
 ('size_guide', 'Tops & Shirts', JSON_OBJECT(
     'category', 'tops',

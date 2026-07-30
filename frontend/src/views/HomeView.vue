@@ -157,20 +157,51 @@
         </div>
       </div>
     </section>
+
+    <section class="home-section news-section py-5" data-reveal-section v-if="latestNews.length">
+      <div class="container section-shell">
+        <div class="section-title section-heading">
+          <h2>Latest News</h2>
+          <p class="text-muted">Stories and updates from Aubun World</p>
+        </div>
+        <div class="row g-4 section-content">
+          <div v-for="item in latestNews.slice(0, 3)" :key="item.id" class="col-md-6 col-lg-4">
+            <router-link to="/news" class="news-card surface d-block">
+              <div class="news-card-image" :style="{ background: item.gradient }">
+                <i :class="item.icon"></i>
+                <span class="news-card-badge">{{ item.category }}</span>
+              </div>
+              <div class="news-card-body">
+                <span class="section-kicker mb-1 d-block">{{ formatDate(item.publishedAt || item.createdAt) }}</span>
+                <h3>{{ item.title }}</h3>
+                <p class="mb-0">{{ item.excerpt }}</p>
+              </div>
+            </router-link>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useProductsStore } from "../stores/products";
+import { api } from "../lib/api";
 
 const router = useRouter();
 const homeRootRef = ref(null);
 const productsStore = useProductsStore();
 const selectedUpperId = ref(null);
 const selectedLowerId = ref(null);
+const latestNews = ref([]);
 let sectionObserver;
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+};
 const heroBackgroundImage =
   "https://wwd.com/wp-content/uploads/2024/12/GettyImages1735100420.jpg?w=910&h=511&crop=1";
 
@@ -250,7 +281,16 @@ watch(
   { immediate: true },
 );
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    const data = await api.get("/news");
+    latestNews.value = data.articles || [];
+  } catch {
+    latestNews.value = [];
+  }
+
+  await nextTick();
+
   const sections = homeRootRef.value?.querySelectorAll("[data-reveal-section]");
   if (!sections?.length) return;
 
@@ -666,9 +706,80 @@ onBeforeUnmount(() => {
   }
 }
 
+.news-section::before {
+  content: "";
+  position: absolute;
+  inset: 1.25rem 2rem;
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(145deg, rgba(255, 241, 184, 0.3), rgba(255, 241, 184, 0)),
+    radial-gradient(circle at top right, rgba(77, 16, 24, 0.06), transparent 42%);
+  pointer-events: none;
+}
+
+.news-card {
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(77, 16, 24, 0.08);
+  overflow: hidden;
+  transition:
+    transform 240ms ease,
+    box-shadow 240ms ease,
+    border-color 240ms ease;
+}
+
+.news-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(77, 16, 24, 0.22);
+  box-shadow: 0 30px 60px rgba(77, 16, 24, 0.15);
+}
+
+.news-card-image {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.news-card-image i {
+  font-size: 2.5rem;
+  color: rgba(255, 248, 228, 0.5);
+}
+
+.news-card-badge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(77, 16, 24, 0.86);
+  color: var(--gold-light);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.news-card-body {
+  padding: 1.5rem;
+}
+
+.news-card-body h3 {
+  font-size: clamp(1.1rem, 1.5vw, 1.3rem);
+  margin-bottom: 0.6rem;
+}
+
+.news-card-body p {
+  color: rgba(77, 16, 24, 0.8);
+  line-height: 1.7;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 767.98px) {
   .featured-section::before,
-  .mix-match-section::before {
+  .mix-match-section::before,
+  .news-section::before {
     inset: 0.75rem;
   }
 

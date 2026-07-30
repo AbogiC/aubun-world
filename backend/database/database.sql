@@ -160,6 +160,23 @@ CREATE TABLE order_items (
     CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
+CREATE TABLE news (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    category VARCHAR(120) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    excerpt TEXT NOT NULL,
+    content TEXT NULL,
+    author VARCHAR(120) NOT NULL,
+    read_time VARCHAR(30) NOT NULL DEFAULT '5 min read',
+    gradient VARCHAR(255) NOT NULL DEFAULT 'linear-gradient(135deg, #4d1018, #c48d0c)',
+    icon VARCHAR(120) NOT NULL DEFAULT 'bi bi-newspaper',
+    region VARCHAR(120) NULL DEFAULT NULL,
+    is_published TINYINT(1) NOT NULL DEFAULT 1,
+    published_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 CREATE TABLE guidelines (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     type ENUM('size_guide', 'fit_guide', 'care_instruction', 'product_guide') NOT NULL,
