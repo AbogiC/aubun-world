@@ -20,6 +20,11 @@ final class Router
         $this->add('POST', $path, $handler, $middleware);
     }
 
+    public function put(string $path, callable|array $handler, array $middleware = []): void
+    {
+        $this->add('PUT', $path, $handler, $middleware);
+    }
+
     public function patch(string $path, callable|array $handler, array $middleware = []): void
     {
         $this->add('PATCH', $path, $handler, $middleware);

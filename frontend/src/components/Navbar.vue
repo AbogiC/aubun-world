@@ -37,6 +37,7 @@
 
               <div class="d-flex align-items-center gap-3 nav-actions">
                 <template v-if="authStore.isAuthenticated">
+                  <NotificationBell />
                   <div class="nav-item nav-item--dropdown" :class="{ show: accountMenuOpen }">
                     <button
                       type="button"
@@ -108,6 +109,9 @@
             </router-link>
 
             <div class="mobile-actions">
+              <template v-if="authStore.isAuthenticated">
+                <NotificationBell />
+              </template>
               <button
                 class="btn btn-luxury btn-sm nav-bag-btn-mobile"
                 @click="goToBag"
@@ -161,6 +165,9 @@
                   </div>
                   <router-link to="/profile" class="mobile-auth-link" @click="closeNavbarMenu">
                     <i class="bi bi-gear"></i> Profile
+                  </router-link>
+                  <router-link to="/profile" class="mobile-auth-link" @click="closeNavbarMenu">
+                    <i class="bi bi-bell"></i> Notifications
                   </router-link>
                   <router-link v-if="!canViewAllOrders" to="/orders" class="mobile-auth-link" @click="closeNavbarMenu">
                     <i class="bi bi-box"></i> My Orders
@@ -225,6 +232,7 @@ import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useCartStore } from "../stores/cart";
 import { useAuthStore } from "../stores/auth";
+import NotificationBell from "./NotificationBell.vue";
 
 const cartStore = useCartStore();
 const authStore = useAuthStore();

@@ -26,10 +26,12 @@ import { resolveCustomerLocationOnLoad } from "./lib/location";
 import { useProductsStore } from "./stores/products";
 import { useCartStore } from "./stores/cart";
 import { useAuthStore } from "./stores/auth";
+import { useNotificationStore } from "./stores/notifications";
 
 const productsStore = useProductsStore();
 const cartStore = useCartStore();
 const authStore = useAuthStore();
+const notificationStore = useNotificationStore();
 
 const isLoading = ref(true);
 
@@ -42,6 +44,11 @@ onMounted(async () => {
 
   await authStore.initialize();
   cartStore.refreshFromApi();
+
+  if (authStore.isAuthenticated) {
+    await notificationStore.initialize();
+    notificationStore.startPolling();
+  }
 
   setTimeout(() => {
     isLoading.value = false;

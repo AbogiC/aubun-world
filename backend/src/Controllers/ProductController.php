@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Core\Response;
 use App\Core\Request;
+use App\Repositories\NotificationRepository;
 use App\Repositories\ProductRepository;
 use RuntimeException;
 
@@ -17,7 +18,8 @@ final class ProductController
 
     public function __construct(
         private readonly ProductRepository $products,
-        private readonly string $productImageDirectory
+        private readonly string $productImageDirectory,
+        private readonly NotificationRepository $notifications,
     )
     {
     }
@@ -55,9 +57,18 @@ final class ProductController
     {
         $this->assertManagerAccess($request);
 
+        $product = $this->products->create($this->validatedPayload($request));
+
+        $this->notifications->createForAllSubscribed(
+            'new_collection',
+            'New Collection Drop',
+            sprintf('Check out the new "%s" — now available in our collection.', $product['name']),
+            '/product/' . $product['id']
+        );
+
         return [
             'message' => 'Product created successfully.',
-            'product' => $this->products->create($this->validatedPayload($request)),
+            'product' => $product,
             'status' => 201,
         ];
     }

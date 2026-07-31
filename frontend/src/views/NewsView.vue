@@ -1,18 +1,5 @@
 <template>
   <div ref="newsRootRef" class="news-page">
-    <section class="news-hero" data-reveal-section>
-      <div class="container text-center">
-        <div class="hero-content">
-          <p class="section-kicker" style="color: rgba(254, 181, 17, 0.7);">Journal</p>
-          <div class="hero-divider"></div>
-          <h1 class="display-3 mb-4" style="color: var(--gold-light);">Latest News</h1>
-          <p class="lead opacity-75 mb-0" style="color: var(--white);">Stories, collections, and insights from Aubun World</p>
-        </div>
-      </div>
-      <div class="hero-ornament hero-ornament-1"></div>
-      <div class="hero-ornament hero-ornament-2"></div>
-    </section>
-
     <section class="news-section py-5" data-reveal-section>
       <div class="container">
         <div class="filter-bar section-content">

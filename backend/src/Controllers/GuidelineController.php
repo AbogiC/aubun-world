@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Core\Request;
 use App\Repositories\GuidelineRepository;
+use App\Repositories\NotificationRepository;
 use RuntimeException;
 
 final class GuidelineController
@@ -14,7 +15,8 @@ final class GuidelineController
     private const VALID_TYPES = ['size_guide', 'fit_guide', 'care_instruction', 'product_guide'];
 
     public function __construct(
-        private readonly GuidelineRepository $guidelines
+        private readonly GuidelineRepository $guidelines,
+        private readonly NotificationRepository $notifications,
     ) {
     }
 
@@ -48,10 +50,18 @@ final class GuidelineController
     {
         $this->assertManagerAccess($request);
         $payload = $this->validatedPayload($request);
+        $guideline = $this->guidelines->create($payload);
+
+        $this->notifications->createForAllSubscribed(
+            'guideline_update',
+            'New Guideline Added',
+            sprintf('A new "%s" guideline is now available: %s', $guideline['type'], $guideline['title']),
+            '/guidlines'
+        );
 
         return [
             'message' => 'Guideline created successfully.',
-            'guideline' => $this->guidelines->create($payload),
+            'guideline' => $guideline,
             'status' => 201,
         ];
     }
@@ -61,15 +71,25 @@ final class GuidelineController
         $this->assertManagerAccess($request);
         $id = (int) $request->attribute('id');
 
-        if (!$this->guidelines->find($id)) {
+        $existing = $this->guidelines->find($id);
+
+        if (!$existing) {
             throw new RuntimeException('Guideline not found.', 404);
         }
 
         $payload = $this->validatedPayload($request);
+        $guideline = $this->guidelines->update($id, $payload);
+
+        $this->notifications->createForAllSubscribed(
+            'guideline_update',
+            'Guideline Updated',
+            sprintf('The "%s" guideline has been updated.', $guideline['title']),
+            '/guidlines'
+        );
 
         return [
             'message' => 'Guideline updated successfully.',
-            'guideline' => $this->guidelines->update($id, $payload),
+            'guideline' => $guideline,
         ];
     }
 

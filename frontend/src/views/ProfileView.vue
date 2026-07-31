@@ -120,6 +120,66 @@
               </form>
             </section>
 
+            <!-- Notification Preferences Section -->
+            <section class="profile-section mb-5">
+              <h2 class="h4 mb-3 pb-2 border-bottom">Notification Preferences</h2>
+              <p class="text-muted small mb-4">
+                Choose which updates you'd like to receive. Changes are saved automatically.
+              </p>
+
+              <div v-if="notifError" class="alert alert-danger mb-3">{{ notifError }}</div>
+
+              <div class="notif-preferences">
+                <label class="notif-pref-item" :class="{ 'notif-pref-item--disabled': notifSaving }">
+                  <div class="notif-pref-info">
+                    <span class="notif-pref-label">New Collection Drops</span>
+                    <span class="notif-pref-desc">When new fashion costumes are added to the collection</span>
+                  </div>
+                  <div class="form-check form-switch notif-switch">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      :checked="notifPrefs.new_collection"
+                      :disabled="notifSaving"
+                      @change="togglePref('new_collection')"
+                    />
+                  </div>
+                </label>
+
+                <label class="notif-pref-item" :class="{ 'notif-pref-item--disabled': notifSaving }">
+                  <div class="notif-pref-info">
+                    <span class="notif-pref-label">New Articles & News</span>
+                    <span class="notif-pref-desc">When new articles are published</span>
+                  </div>
+                  <div class="form-check form-switch notif-switch">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      :checked="notifPrefs.new_article"
+                      :disabled="notifSaving"
+                      @change="togglePref('new_article')"
+                    />
+                  </div>
+                </label>
+
+                <label class="notif-pref-item" :class="{ 'notif-pref-item--disabled': notifSaving }">
+                  <div class="notif-pref-info">
+                    <span class="notif-pref-label">Guideline Updates</span>
+                    <span class="notif-pref-desc">When size guides, fit guides, or care instructions are updated</span>
+                  </div>
+                  <div class="form-check form-switch notif-switch">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      :checked="notifPrefs.guideline_update"
+                      :disabled="notifSaving"
+                      @change="togglePref('guideline_update')"
+                    />
+                  </div>
+                </label>
+              </div>
+            </section>
+
             <!-- Shipping Address Section -->
             <section class="profile-section">
               <h2 class="h4 mb-3 pb-2 border-bottom">Shipping Address</h2>
@@ -191,9 +251,41 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "../stores/auth";
+import { useNotificationStore } from "../stores/notifications";
 
 const authStore = useAuthStore();
 const route = useRoute();
+const notificationStore = useNotificationStore();
+
+// Notification preferences
+const notifPrefs = reactive({
+  new_collection: true,
+  new_article: true,
+  guideline_update: true,
+});
+const notifSaving = ref(false);
+const notifError = ref("");
+
+const togglePref = async (type) => {
+  notifPrefs[type] = !notifPrefs[type];
+  notifSaving.value = true;
+  notifError.value = "";
+  try {
+    await notificationStore.updateSubscriptions({ ...notifPrefs });
+  } catch (error) {
+    notifError.value = error.message || "Failed to update preferences.";
+    notifPrefs[type] = !notifPrefs[type];
+  } finally {
+    notifSaving.value = false;
+  }
+};
+
+const loadNotificationPrefs = async () => {
+  const subs = await notificationStore.fetchSubscriptions();
+  if (subs) {
+    Object.assign(notifPrefs, subs);
+  }
+};
 
 // Profile form
 const profileForm = reactive({
@@ -347,6 +439,7 @@ const startCooldown = () => {
 onMounted(async () => {
   await authStore.refreshUser();
   initializeForms();
+  await loadNotificationPrefs();
 });
 </script>
 
@@ -392,5 +485,55 @@ onMounted(async () => {
 .form-check-input:checked {
   background-color: var(--primary-black);
   border-color: var(--primary-black);
+}
+
+.notif-preferences {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notif-pref-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(77, 16, 24, 0.08);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.notif-pref-item:hover {
+  border-color: rgba(77, 16, 24, 0.15);
+  background: rgba(77, 16, 24, 0.02);
+}
+
+.notif-pref-item--disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.notif-pref-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.notif-pref-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--primary-black);
+}
+
+.notif-pref-desc {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.notif-switch {
+  flex-shrink: 0;
+  margin: 0;
 }
 </style>

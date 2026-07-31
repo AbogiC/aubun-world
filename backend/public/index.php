@@ -6,6 +6,7 @@ use App\Config\Config;
 use App\Controllers\AuthController;
 use App\Controllers\CartController;
 use App\Controllers\CategoryController;
+use App\Controllers\NotificationController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
 use App\Controllers\ShippingController;
@@ -21,6 +22,7 @@ use App\Middleware\RoleMiddleware;
 use App\Repositories\CartRepository;
 use App\Repositories\GuidelineRepository;
 use App\Repositories\NewsRepository;
+use App\Repositories\NotificationRepository;
 use App\Repositories\OrderRepository;
 use App\Repositories\ProductRepository;
 use App\Repositories\ShippingRepository;
@@ -32,7 +34,7 @@ use App\Services\PayPalOrderService;
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Customer-Country');
-header('Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, PATCH, PUT, DELETE, OPTIONS');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -81,6 +83,7 @@ $productImageDirectory = dirname(__DIR__) . '/store/products/image';
 $cartRepository = new CartRepository($pdo, $productRepository, $voucherRepository);
 $shippingRepository = new ShippingRepository($pdo);
 $orderRepository = new OrderRepository($pdo, $shippingRepository);
+$notificationRepository = new NotificationRepository($pdo);
 $paypalService = new PayPalOrderService(
     $config['paypal']['client_id'],
     $config['paypal']['client_secret'],
@@ -89,14 +92,15 @@ $paypalService = new PayPalOrderService(
 );
 
 $authController = new AuthController($userRepository, $authService, $emailService);
-$productController = new ProductController($productRepository, $productImageDirectory);
+$productController = new ProductController($productRepository, $productImageDirectory, $notificationRepository);
 $categoryController = new CategoryController($productRepository);
 $cartController = new CartController($cartRepository);
 $orderController = new OrderController($orderRepository, $cartRepository, $paypalService);
 $shippingController = new ShippingController($shippingRepository);
-$guidelineController = new GuidelineController($guidelineRepository);
-$newsController = new NewsController($newsRepository);
+$guidelineController = new GuidelineController($guidelineRepository, $notificationRepository);
+$newsController = new NewsController($newsRepository, $notificationRepository);
 $voucherController = new VoucherController($voucherRepository, $productRepository);
+$notificationController = new NotificationController($notificationRepository);
 $authMiddleware = new AuthMiddleware($authService, $userRepository);
 $managerRoleMiddleware = new RoleMiddleware(['manager', 'admin']);
 
@@ -151,6 +155,14 @@ $router->get('/api/shipping-settings', [$shippingController, 'index'], [$authMid
 $router->post('/api/shop-countries', [$shippingController, 'storeShopCountry'], [$authMiddleware, $managerRoleMiddleware]);
 $router->delete('/api/shop-countries/{id}', [$shippingController, 'destroyShopCountry'], [$authMiddleware, $managerRoleMiddleware]);
 $router->post('/api/shipping-settings/sync', [$shippingController, 'syncMappings'], [$authMiddleware, $managerRoleMiddleware]);
+
+$router->get('/api/notifications', [$notificationController, 'index'], [$authMiddleware]);
+$router->get('/api/notifications/unread-count', [$notificationController, 'unreadCount'], [$authMiddleware]);
+$router->patch('/api/notifications/{id}/read', [$notificationController, 'markRead'], [$authMiddleware]);
+$router->post('/api/notifications/mark-all-read', [$notificationController, 'markAllRead'], [$authMiddleware]);
+$router->delete('/api/notifications/{id}', [$notificationController, 'destroy'], [$authMiddleware]);
+$router->get('/api/notifications/subscriptions', [$notificationController, 'getSubscriptions'], [$authMiddleware]);
+$router->put('/api/notifications/subscriptions', [$notificationController, 'updateSubscriptions'], [$authMiddleware]);
 
 try {
     $result = $router->dispatch($request);

@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Core\Request;
 use App\Repositories\NewsRepository;
+use App\Repositories\NotificationRepository;
 use RuntimeException;
 
 final class NewsController
@@ -14,7 +15,8 @@ final class NewsController
     private const VALID_CATEGORIES = ['Collection', 'Behind the Scenes', 'Sustainability', 'Press', 'Events'];
 
     public function __construct(
-        private readonly NewsRepository $news
+        private readonly NewsRepository $news,
+        private readonly NotificationRepository $notifications,
     ) {
     }
 
@@ -51,10 +53,20 @@ final class NewsController
     {
         $this->assertManagerAccess($request);
         $payload = $this->validatedPayload($request);
+        $article = $this->news->create($payload);
+
+        if ($article['isPublished']) {
+            $this->notifications->createForAllSubscribed(
+                'new_article',
+                'New Article Published',
+                sprintf('Read "%s" — our latest article in %s.', $article['title'], $article['category']),
+                '/news'
+            );
+        }
 
         return [
             'message' => 'Article created successfully.',
-            'article' => $this->news->create($payload),
+            'article' => $article,
             'status' => 201,
         ];
     }
