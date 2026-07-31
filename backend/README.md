@@ -42,3 +42,17 @@ php -S localhost:8000 -t public
 - `DELETE /api/cart`
 - `GET /api/orders`
 - `POST /api/orders/checkout`
+
+## Mix & Match
+
+- `GET /api/mix-match` — slot definitions, curated style presets and live product categories for the Look Studio.
+- `POST /api/mix-match/look` — validate and resolve a composed look (country-aware pricing).
+  Body: `{ "pieces": [{ "slot": "top", "productId": 6, "size": "M", "color": "White" }] }`
+- `GET /api/mix-match/looks` — list the signed-in user's saved looks (auth).
+- `POST /api/mix-match/looks` — save a look (auth). Body: `{ "name": "My Look", "pieces": [...] }`
+- `GET /api/mix-match/looks/{id}` — fetch a saved look (auth).
+- `PATCH /api/mix-match/looks/{id}` — rename / replace a look's pieces (auth).
+- `DELETE /api/mix-match/looks/{id}` — delete a saved look (auth).
+- `POST /api/mix-match/looks/{id}/add-to-cart` — add every piece of a saved look to the cart (auth).
+
+Slots: `top`, `bottom`, `outer`, `dress`. See `src/Services/MixMatchService.php` for the authoritative slot/preset configuration.

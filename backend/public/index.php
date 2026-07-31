@@ -6,6 +6,7 @@ use App\Config\Config;
 use App\Controllers\AuthController;
 use App\Controllers\CartController;
 use App\Controllers\CategoryController;
+use App\Controllers\MixMatchController;
 use App\Controllers\NotificationController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
@@ -21,6 +22,8 @@ use App\Middleware\AuthMiddleware;
 use App\Middleware\RoleMiddleware;
 use App\Repositories\CartRepository;
 use App\Repositories\GuidelineRepository;
+use App\Repositories\MixMatchConfigRepository;
+use App\Repositories\MixMatchRepository;
 use App\Repositories\NewsRepository;
 use App\Repositories\NotificationRepository;
 use App\Repositories\OrderRepository;
@@ -30,6 +33,7 @@ use App\Repositories\UserRepository;
 use App\Repositories\VoucherRepository;
 use App\Services\AuthService;
 use App\Services\EmailService;
+use App\Services\MixMatchService;
 use App\Services\PayPalOrderService;
 
 header('Access-Control-Allow-Origin: *');
@@ -101,6 +105,10 @@ $guidelineController = new GuidelineController($guidelineRepository, $notificati
 $newsController = new NewsController($newsRepository, $notificationRepository);
 $voucherController = new VoucherController($voucherRepository, $productRepository);
 $notificationController = new NotificationController($notificationRepository);
+$mixMatchConfigRepository = new MixMatchConfigRepository($pdo);
+$mixMatchService = new MixMatchService($productRepository, $mixMatchConfigRepository);
+$mixMatchRepository = new MixMatchRepository($pdo, $mixMatchService);
+$mixMatchController = new MixMatchController($mixMatchService, $mixMatchRepository, $cartRepository);
 $authMiddleware = new AuthMiddleware($authService, $userRepository);
 $managerRoleMiddleware = new RoleMiddleware(['manager', 'admin']);
 
@@ -163,6 +171,15 @@ $router->post('/api/notifications/mark-all-read', [$notificationController, 'mar
 $router->delete('/api/notifications/{id}', [$notificationController, 'destroy'], [$authMiddleware]);
 $router->get('/api/notifications/subscriptions', [$notificationController, 'getSubscriptions'], [$authMiddleware]);
 $router->put('/api/notifications/subscriptions', [$notificationController, 'updateSubscriptions'], [$authMiddleware]);
+
+$router->get('/api/mix-match', [$mixMatchController, 'config']);
+$router->post('/api/mix-match/look', [$mixMatchController, 'look']);
+$router->get('/api/mix-match/looks', [$mixMatchController, 'index'], [$authMiddleware]);
+$router->post('/api/mix-match/looks', [$mixMatchController, 'store'], [$authMiddleware]);
+$router->get('/api/mix-match/looks/{id}', [$mixMatchController, 'show'], [$authMiddleware]);
+$router->patch('/api/mix-match/looks/{id}', [$mixMatchController, 'update'], [$authMiddleware]);
+$router->delete('/api/mix-match/looks/{id}', [$mixMatchController, 'destroy'], [$authMiddleware]);
+$router->post('/api/mix-match/looks/{id}/add-to-cart', [$mixMatchController, 'addToCart'], [$authMiddleware]);
 
 try {
     $result = $router->dispatch($request);

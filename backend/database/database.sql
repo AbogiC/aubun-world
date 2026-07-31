@@ -214,5 +214,78 @@ CREATE TABLE notifications (
 CREATE INDEX idx_notifications_user_read ON notifications (user_id, is_read);
 
 
+CREATE TABLE looks (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    name VARCHAR(190) NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_looks_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE look_items (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    look_id INT UNSIGNED NOT NULL,
+    slot VARCHAR(30) NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    size VARCHAR(20) NOT NULL,
+    color VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_look_items_look FOREIGN KEY (look_id) REFERENCES looks(id) ON DELETE CASCADE,
+    CONSTRAINT fk_look_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT uq_look_items_slot UNIQUE (look_id, slot)
+);
+
+CREATE INDEX idx_looks_user ON looks (user_id);
+
+
+CREATE TABLE mix_match_slots (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    slot_key VARCHAR(30) NOT NULL UNIQUE,
+    label VARCHAR(120) NOT NULL,
+    icon VARCHAR(120) NOT NULL,
+    scope ENUM('part', 'full') NOT NULL DEFAULT 'part',
+    position ENUM('upper', 'lower', 'overlay', 'full') NOT NULL DEFAULT 'upper',
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE mix_match_slot_categories (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    slot_id INT UNSIGNED NOT NULL,
+    category VARCHAR(120) NOT NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_mm_slot_cat_slot FOREIGN KEY (slot_id) REFERENCES mix_match_slots(id) ON DELETE CASCADE,
+    CONSTRAINT uq_mm_slot_cat UNIQUE (slot_id, category)
+);
+
+CREATE TABLE mix_match_presets (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    preset_key VARCHAR(60) NOT NULL UNIQUE,
+    name VARCHAR(120) NOT NULL,
+    icon VARCHAR(120) NOT NULL,
+    blurb VARCHAR(255) NOT NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE mix_match_preset_categories (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    preset_id INT UNSIGNED NOT NULL,
+    slot_key VARCHAR(30) NOT NULL,
+    category VARCHAR(120) NOT NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_mm_preset_cat_preset FOREIGN KEY (preset_id) REFERENCES mix_match_presets(id) ON DELETE CASCADE,
+    CONSTRAINT uq_mm_preset_cat UNIQUE (preset_id, slot_key, category)
+);
+
+
 ALTER TABLE users ADD INDEX idx_verification_token (verification_token);
 ALTER TABLE orders ADD INDEX idx_orders_paypal_order_id (paypal_order_id);

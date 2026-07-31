@@ -80,6 +80,38 @@ final class ProductRepository
         return array_merge(['All'], array_column($statement->fetchAll(), 'category'));
     }
 
+    public function findMany(array $ids, ?string $customerCountry = null): array
+    {
+        $ids = array_values(array_unique(array_map(static fn (mixed $id): int => (int) $id, $ids)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $statement = $this->pdo->prepare("SELECT * FROM products WHERE id IN ($placeholders)");
+        $statement->execute($ids);
+
+        $products = [];
+        $rows = $statement->fetchAll();
+
+        if ($rows !== []) {
+            $rowIds = array_map(static fn (array $row): int => (int) $row['id'], $rows);
+            $countryPrices = $this->countryPricesByProductIds($rowIds);
+
+            foreach ($rows as $row) {
+                $productId = (int) $row['id'];
+                $products[$productId] = $this->mapProduct(
+                    $row,
+                    $countryPrices[$productId] ?? [],
+                    $customerCountry
+                );
+            }
+        }
+
+        return $products;
+    }
+
     public function create(array $payload): array
     {
         try {

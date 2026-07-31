@@ -173,3 +173,36 @@ INSERT INTO guidelines (type, title, content, sort_order, is_active) VALUES
     'fitNote', '',
     'notes', 'Our products are designed with care and attention to detail. Each piece is crafted to meet our quality standards. For specific product inquiries, refer to the individual product details or contact our support team.'
 ), 0, 1);
+
+INSERT INTO mix_match_slots (slot_key, label, icon, scope, position, sort_order) VALUES
+('top', 'Top', 'bi bi-shirt', 'part', 'upper', 1),
+('bottom', 'Bottom', 'bi bi-person-standing', 'part', 'lower', 2),
+('outer', 'Outer Layer', 'bi bi-person-arms-up', 'part', 'overlay', 3),
+('dress', 'Dress', 'bi bi-person-standing-dress', 'full', 'full', 4);
+
+INSERT INTO mix_match_slot_categories (slot_id, category, sort_order) VALUES
+((SELECT id FROM mix_match_slots WHERE slot_key = 'top'), 'Shirts', 1),
+((SELECT id FROM mix_match_slots WHERE slot_key = 'top'), 'Knitwear', 2),
+((SELECT id FROM mix_match_slots WHERE slot_key = 'bottom'), 'Pants', 1),
+((SELECT id FROM mix_match_slots WHERE slot_key = 'bottom'), 'Skirts', 2),
+((SELECT id FROM mix_match_slots WHERE slot_key = 'outer'), 'Outerwear', 1),
+((SELECT id FROM mix_match_slots WHERE slot_key = 'outer'), 'Blazers', 2),
+((SELECT id FROM mix_match_slots WHERE slot_key = 'dress'), 'Dresses', 1);
+
+INSERT INTO mix_match_presets (preset_key, name, icon, blurb, sort_order) VALUES
+('executive', 'Executive', 'bi bi-briefcase', 'Boardroom polish', 1),
+('weekend', 'Weekend', 'bi bi-cup-hot', 'Easy comfort', 2),
+('evening', 'Evening', 'bi bi-moon-stars', 'After-dark elegance', 3),
+('city-layer', 'City Layer', 'bi bi-buildings', 'Architectural layering', 4);
+
+INSERT INTO mix_match_preset_categories (preset_id, slot_key, category, sort_order) VALUES
+((SELECT id FROM mix_match_presets WHERE preset_key = 'executive'), 'top', 'Shirts', 1),
+((SELECT id FROM mix_match_presets WHERE preset_key = 'executive'), 'bottom', 'Pants', 2),
+((SELECT id FROM mix_match_presets WHERE preset_key = 'executive'), 'outer', 'Blazers', 3),
+((SELECT id FROM mix_match_presets WHERE preset_key = 'weekend'), 'top', 'Knitwear', 1),
+((SELECT id FROM mix_match_presets WHERE preset_key = 'weekend'), 'bottom', 'Pants', 2),
+((SELECT id FROM mix_match_presets WHERE preset_key = 'evening'), 'dress', 'Dresses', 1),
+((SELECT id FROM mix_match_presets WHERE preset_key = 'evening'), 'outer', 'Outerwear', 2),
+((SELECT id FROM mix_match_presets WHERE preset_key = 'city-layer'), 'top', 'Shirts', 1),
+((SELECT id FROM mix_match_presets WHERE preset_key = 'city-layer'), 'bottom', 'Pants', 2),
+((SELECT id FROM mix_match_presets WHERE preset_key = 'city-layer'), 'outer', 'Outerwear', 3);
