@@ -126,7 +126,7 @@ final class ProductController
             throw new RuntimeException('Only JPG, JPEG, PNG, WEBP, and GIF images are allowed.', 422);
         }
 
-        $mimeType = $this->detectMimeType((string) $file['tmp_name']);
+        $mimeType = $this->detectMimeType((string) $file['tmp_name'], $file['name']);
 
         if (!str_starts_with($mimeType, 'image/')) {
             throw new RuntimeException('Uploaded file must be an image.', 422);
@@ -253,9 +253,18 @@ final class ProductController
         )));
     }
 
-    private function detectMimeType(string $path): string
+    private function detectMimeType(string $path, ?string $fallbackName = null): string
     {
-        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        if (class_exists('finfo')) {
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $detected = $finfo->file($path);
+
+            if (is_string($detected) && $detected !== '') {
+                return $detected;
+            }
+        }
+
+        $extension = strtolower(pathinfo((string) $fallbackName, PATHINFO_EXTENSION));
 
         return match ($extension) {
             'jpg', 'jpeg' => 'image/jpeg',
