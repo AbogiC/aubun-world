@@ -108,13 +108,18 @@ final class UserRepository
     public function setVerificationToken(int $userId, string $token, ?string $expiresAt = null): bool
     {
         $stmt = $this->pdo->prepare(
-            'UPDATE users SET verification_token = :token, verification_token_expires_at = :expires_at WHERE id = :id'
+            'UPDATE users
+             SET verification_token = :token,
+                 verification_token_expires_at = COALESCE(:expires_at, DATE_ADD(NOW(), INTERVAL 24 HOUR))
+             WHERE id = :id'
         );
-        return $stmt->execute([
+        $stmt->execute([
             'token' => $token,
             'expires_at' => $expiresAt,
             'id' => $userId,
         ]);
+
+        return true;
     }
 
     public function verifyEmail(int $userId): bool
@@ -140,6 +145,18 @@ final class UserRepository
     {
         $stmt = $this->pdo->prepare(
             'UPDATE users SET verification_token = NULL, verification_token_expires_at = NULL WHERE id = :id'
+        );
+        return $stmt->execute(['id' => $userId]);
+    }
+
+    public function resetEmailVerification(int $userId): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE users
+             SET email_verified_at = NULL,
+                 verification_token = NULL,
+                 verification_token_expires_at = NULL
+             WHERE id = :id'
         );
         return $stmt->execute(['id' => $userId]);
     }

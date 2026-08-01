@@ -52,10 +52,11 @@
                     type="email"
                     class="form-control form-control-lg"
                     required
-                    :disabled="profileLoading"
+                    :disabled="profileLoading || authStore.user?.emailVerified"
                   />
                   <div v-if="authStore.user?.emailVerified" class="form-text text-success">
                     <i class="bi bi-check-circle-fill"></i> Verified
+                    <span class="text-muted ms-1">Email address cannot be changed after verification.</span>
                   </div>
                   <div v-else class="form-text text-muted">
                     <i class="bi bi-exclamation-circle"></i> Not verified. Click "Resend Verification Email" above.

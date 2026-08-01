@@ -42,8 +42,7 @@ final class AuthController
         $token = $this->auth->issueToken((int) $user['id'], $user['email']);
 
         $verificationToken = $this->auth->generateVerificationToken();
-        $expiresAt = $this->auth->generateTokenExpiry();
-        $this->users->setVerificationToken((int) $user['id'], $verificationToken, $expiresAt);
+        $this->users->setVerificationToken((int) $user['id'], $verificationToken);
 
         $emailDeliveryFailed = false;
 
@@ -134,8 +133,7 @@ final class AuthController
         $this->users->clearVerificationToken($userId);
 
         $verificationToken = $this->auth->generateVerificationToken();
-        $expiresAt = $this->auth->generateTokenExpiry();
-        $this->users->setVerificationToken($userId, $verificationToken, $expiresAt);
+        $this->users->setVerificationToken($userId, $verificationToken);
         $this->email->sendVerificationEmail($user['email'], $user['name'], $verificationToken);
 
         return [
@@ -184,21 +182,39 @@ final class AuthController
         }
 
         $user = $this->users->findById($userId);
+        $emailChanged = $user['email'] !== $email;
 
-        // Check if email is being changed
-        if ($user['email'] !== $email) {
+        if ($emailChanged) {
             $existing = $this->users->findByEmail($email);
             if ($existing && (int) $existing['id'] !== $userId) {
                 throw new RuntimeException('Email address is already taken.', 409);
             }
-            // If email is changed, reset verification
-            $this->users->clearVerificationToken($userId);
+            // The new address must be verified before it can be used.
+            $this->users->resetEmailVerification($userId);
         }
 
         $updatedUser = $this->users->updateProfile($userId, $name, $email);
 
+        if ($emailChanged) {
+            $verificationToken = $this->auth->generateVerificationToken();
+            $this->users->setVerificationToken($userId, $verificationToken);
+
+            try {
+                $this->email->sendVerificationEmail($email, (string) $updatedUser['name'], $verificationToken);
+            } catch (\Throwable $exception) {
+                error_log(sprintf(
+                    'Verification email failed for user %d (%s): %s',
+                    $userId,
+                    $email,
+                    $exception->getMessage()
+                ));
+            }
+        }
+
         return [
-            'message' => 'Profile updated successfully.',
+            'message' => $emailChanged
+                ? 'Profile updated. Please verify your new email address before it can be used.'
+                : 'Profile updated successfully.',
             'user' => $this->users->sanitize($updatedUser),
         ];
     }
