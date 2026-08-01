@@ -71,6 +71,7 @@
                           <router-link to="/dashboard/vouchers" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Vouchers</router-link>
                           <router-link to="/dashboard/news" class="dropdown-item-custom" @click="navigateFromDashboardMenu">News</router-link>
                           <router-link to="/dashboard/guidelines" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Guidelines</router-link>
+                          <router-link to="/dashboard/stocklist" class="dropdown-item-custom" @click="navigateFromDashboardMenu">Stocklist</router-link>
                         </div>
                       </div>
                       <router-link v-if="!canViewAllOrders" to="/orders" class="dropdown-item-custom" @click="navigateFromAccountMenu">Orders</router-link>
@@ -199,6 +200,9 @@
                       </router-link>
                       <router-link to="/dashboard/guidelines" class="mobile-auth-link" @click="navigateFromDashboardMenu">
                         <i class="bi bi-journal-text"></i> Guidelines
+                      </router-link>
+                      <router-link to="/dashboard/stocklist" class="mobile-auth-link" @click="navigateFromDashboardMenu">
+                        <i class="bi bi-shop"></i> Stocklist
                       </router-link>
                     </div>
                   </div>

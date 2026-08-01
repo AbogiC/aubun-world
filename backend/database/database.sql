@@ -286,6 +286,21 @@ CREATE TABLE mix_match_preset_categories (
     CONSTRAINT uq_mm_preset_cat UNIQUE (preset_id, slot_key, category)
 );
 
+CREATE TABLE stockists (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    region VARCHAR(120) NOT NULL,
+    type VARCHAR(120) NOT NULL DEFAULT 'Boutique',
+    icon VARCHAR(120) NOT NULL DEFAULT 'bi bi-shop',
+    address VARCHAR(255) NOT NULL,
+    city VARCHAR(120) NOT NULL,
+    url VARCHAR(500) NULL DEFAULT NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 
 ALTER TABLE users ADD INDEX idx_verification_token (verification_token);
 ALTER TABLE orders ADD INDEX idx_orders_paypal_order_id (paypal_order_id);

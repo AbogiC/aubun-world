@@ -55,4 +55,15 @@ php -S localhost:8000 -t public
 - `DELETE /api/mix-match/looks/{id}` — delete a saved look (auth).
 - `POST /api/mix-match/looks/{id}/add-to-cart` — add every piece of a saved look to the cart (auth).
 
+## Stocklist
+
+- `GET /api/stockists` — list active stockists (public).
+- `GET /api/stockists/manage` — list all stockists including hidden (admin/manager).
+- `GET /api/stockists/{id}` — fetch a single stockist (public).
+- `POST /api/stockists` — create a stockist (admin/manager).
+- `PATCH /api/stockists/{id}` — update a stockist (admin/manager).
+- `DELETE /api/stockists/{id}` — delete a stockist (admin/manager).
+
+Body: `{ "name": "...", "region": "...", "type": "Boutique", "icon": "bi bi-shop", "address": "...", "city": "...", "url": "https://...", "sortOrder": 0, "isActive": true }`
+
 Slots: `top`, `bottom`, `outer`, `dress`. See `src/Services/MixMatchService.php` for the authoritative slot/preset configuration.

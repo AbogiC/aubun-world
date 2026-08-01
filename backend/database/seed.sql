@@ -206,3 +206,11 @@ INSERT INTO mix_match_preset_categories (preset_id, slot_key, category, sort_ord
 ((SELECT id FROM mix_match_presets WHERE preset_key = 'city-layer'), 'top', 'Shirts', 1),
 ((SELECT id FROM mix_match_presets WHERE preset_key = 'city-layer'), 'bottom', 'Pants', 2),
 ((SELECT id FROM mix_match_presets WHERE preset_key = 'city-layer'), 'outer', 'Outerwear', 3);
+
+INSERT INTO stockists (name, region, type, icon, address, city, url, sort_order, is_active) VALUES
+('Maison Aubun', 'Jakarta', 'Flagship', 'bi bi-gem', 'Jl. Sudirman Kav. 1, Plaza Senayan', 'Jakarta, Indonesia', 'https://www.aubunworld.com', 1, 1),
+('The Atelier Store', 'Bali', 'Boutique', 'bi bi-shop', 'Jl. Raya Seminyak No. 88', 'Seminyak, Bali', 'https://www.aubunworld.com', 2, 1),
+('Ombre Concept', 'Singapore', 'Concept Store', 'bi bi-building', '1 Orchard Road, #03-12', 'Singapore', NULL, 3, 1),
+('Velvet & Co.', 'Kuala Lumpur', 'Boutique', 'bi bi-bag', '168 Jalan Bukit Bintang', 'Kuala Lumpur, Malaysia', NULL, 4, 1),
+('Gilded Thread', 'Bangkok', 'Concept Store', 'bi bi-scissors', '88 Sukhumvit Soi 24', 'Bangkok, Thailand', NULL, 5, 1),
+('Luxe Gallery', 'Paris', 'Flagship', 'bi bi-star', '24 Rue de Saint-Honoré', 'Paris, France', NULL, 6, 1);

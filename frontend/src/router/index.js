@@ -61,6 +61,11 @@ const router = createRouter({
       component: () => import("../views/AboutView.vue"),
     },
     {
+      path: "/stocklist",
+      name: "stocklist",
+      component: () => import("../views/StocklistView.vue"),
+    },
+    {
       path: "/guidelines",
       redirect: "/guidlines",
     },
@@ -102,6 +107,12 @@ const router = createRouter({
       path: "/dashboard/guidelines",
       name: "guideline-manage",
       component: () => import("../views/GuidelineManageView.vue"),
+      meta: { requiresAuth: true, roles: ["manager", "admin"] },
+    },
+    {
+      path: "/dashboard/stocklist",
+      name: "stocklist-manage",
+      component: () => import("../views/StocklistManageView.vue"),
       meta: { requiresAuth: true, roles: ["manager", "admin"] },
     },
     {

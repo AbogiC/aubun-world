@@ -54,7 +54,7 @@
               <a href="/about" class="footer-link">Craft Heritage</a>
             </li>
             <li class="mb-2">
-              <a href="/about" class="footer-link">Stocklist</a>
+              <a href="/stocklist" class="footer-link">Stocklist</a>
             </li>
           </ul>
         </div>
