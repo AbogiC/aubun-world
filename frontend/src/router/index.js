@@ -50,12 +50,6 @@ const router = createRouter({
       component: () => import("../views/NewsView.vue"),
     },
     {
-      path: "/dashboard/news",
-      name: "news-manage",
-      component: () => import("../views/NewsManageView.vue"),
-      meta: { requiresAuth: true, roles: ["manager", "admin"] },
-    },
-    {
       path: "/about",
       name: "about",
       component: () => import("../views/AboutView.vue"),
@@ -80,51 +74,9 @@ const router = createRouter({
       component: () => import("../views/MixMatchView.vue"),
     },
     {
-      path: "/dashboard",
-      name: "dashboard",
-      redirect: "/dashboard/products",
-      meta: { requiresAuth: true, roles: ["manager", "admin"] },
-    },
-    {
-      path: "/dashboard/products",
-      name: "product-manage",
-      component: () => import("../views/ProductManageView.vue"),
-      meta: { requiresAuth: true, roles: ["manager", "admin"] },
-    },
-    {
-      path: "/dashboard/shipping",
-      name: "shipping-settings",
-      component: () => import("../views/ShippingSettingsView.vue"),
-      meta: { requiresAuth: true, roles: ["manager", "admin"] },
-    },
-    {
-      path: "/dashboard/vouchers",
-      name: "voucher-manage",
-      component: () => import("../views/VoucherManageView.vue"),
-      meta: { requiresAuth: true, roles: ["manager", "admin"] },
-    },
-    {
-      path: "/dashboard/guidelines",
-      name: "guideline-manage",
-      component: () => import("../views/GuidelineManageView.vue"),
-      meta: { requiresAuth: true, roles: ["manager", "admin"] },
-    },
-    {
-      path: "/dashboard/stocklist",
-      name: "stocklist-manage",
-      component: () => import("../views/StocklistManageView.vue"),
-      meta: { requiresAuth: true, roles: ["manager", "admin"] },
-    },
-    {
       path: "/profile",
       name: "profile",
       component: () => import("../views/ProfileView.vue"),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: "/orders",
-      name: "orders",
-      component: () => import("../views/OrdersView.vue"),
       meta: { requiresAuth: true },
     },
     {
