@@ -1,3 +1,19 @@
+@font-face {
+  font-family: 'Alcubierre';
+  src: url('./assets/fonts/otf/Alcubierre.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Sivana';
+  src: url('./assets/fonts/ttf/Sivana.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --primary-black: #4d1018;
   --secondary-black: #6c1823;
@@ -39,7 +55,7 @@ html {
 
 body {
   font-family:
-    "Inter",
+    "Alcubierre",
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
@@ -93,7 +109,7 @@ h6,
 .display-4,
 .display-5 {
   font-family:
-    "Playfair Display",
+    "Sivana",
     Georgia,
     "Times New Roman",
     serif;
