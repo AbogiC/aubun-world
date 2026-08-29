@@ -518,7 +518,6 @@ h6,
   }
 
   .admin-sidebar {
-    transform: translateX(-100%);
     box-shadow: var(--shadow-xl);
   }
 

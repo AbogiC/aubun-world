@@ -2,15 +2,12 @@
   <div ref="homeRootRef" class="home">
     <section class="home-hero" :style="heroBackgroundStyle" data-reveal-section>
       <div class="container hero-shell">
-        <p class="section-kicker hero-kicker">Luxury Everyday Wear</p>
-        <h1>AUBUN WORLD</h1>
-        <p class="hero-copy">
-          A sharper first impression for the brand, with refined essentials and elevated layering
-          designed for everyday styling.
-        </p>
+        <p class="section-kicker hero-kicker">{{ homeSettings?.heroKicker || 'Luxury Everyday Wear' }}</p>
+        <h1>{{ homeSettings?.heroTitle || 'AUBUN WORLD' }}</h1>
+        <p class="hero-copy">{{ homeSettings?.heroCopy || 'A sharper first impression for the brand, with refined essentials and elevated layering designed for everyday styling.' }}</p>
         <div class="hero-actions">
-          <router-link to="/products" class="btn btn-luxury btn-lg">Shop Collection</router-link>
-          <a href="#mix-match" class="btn btn-outline-luxury btn-lg">Try Mix & Match</a>
+          <router-link :to="homeSettings?.heroPrimaryButtonLink || '/products'" class="btn btn-luxury btn-lg">{{ homeSettings?.heroPrimaryButtonText || 'Shop Collection' }}</router-link>
+          <a :href="homeSettings?.heroSecondaryButtonLink || '#mix-match'" class="btn btn-outline-luxury btn-lg">{{ homeSettings?.heroSecondaryButtonText || 'Try Mix & Match' }}</a>
         </div>
       </div>
     </section>
@@ -18,8 +15,8 @@
     <section class="home-section featured-section py-5" data-reveal-section>
       <div class="container section-shell">
         <div class="section-title section-heading">
-          <h2>Featured</h2>
-          <p class="text-muted">Curated categories for effortless browsing.</p>
+          <h2>{{ homeSettings?.featuredTitle || 'Featured' }}</h2>
+          <p class="text-muted">{{ homeSettings?.featuredSubtitle || 'Curated categories for effortless browsing.' }}</p>
         </div>
 
         <div class="row g-4 section-content">
@@ -196,44 +193,64 @@ const productsStore = useProductsStore();
 const selectedUpperId = ref(null);
 const selectedLowerId = ref(null);
 const latestNews = ref([]);
+const homeSettings = ref(null);
 let sectionObserver;
 
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
   return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 };
-const heroBackgroundImage =
+
+const defaultHeroBackgroundImage =
   "https://wwd.com/wp-content/uploads/2024/12/GettyImages1735100420.jpg?w=910&h=511&crop=1";
 
 const upperCategoryNames = ["Outerwear", "Shirts"];
 const lowerCategoryNames = ["Pants"];
 
-const featuredCollections = computed(() => [
-  {
-    label: "Pants",
-    routeCategory: "Pants",
-    title: "Tailored Pants",
-    eyebrow: "Featured Essential",
-    description: "Clean structure and versatile cuts for everyday styling.",
-    product: productsStore.products.find((product) => product.category === "Pants"),
-  },
-  {
-    label: "Outers",
-    routeCategory: "Outerwear",
-    title: "Statement Outers",
-    eyebrow: "Layering Focus",
-    description: "Outer layers that keep the silhouette polished and confident.",
-    product: productsStore.products.find((product) => product.category === "Outerwear"),
-  },
-  {
-    label: "T-Shirts",
-    routeCategory: "Shirts",
-    title: "Premium T-Shirts",
-    eyebrow: "Daily Base Layer",
-    description: "Simple foundations that are easy to pair into a complete look.",
-    product: productsStore.products.find((product) => product.category === "Shirts"),
-  },
-]);
+const featuredCollections = computed(() => {
+  if (homeSettings.value?.featuredItems?.length) {
+    return homeSettings.value.featuredItems
+      .filter(item => item.isActive)
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+      .map(item => ({
+        label: item.label,
+        routeCategory: item.routeCategory,
+        title: item.title,
+        eyebrow: item.eyebrow,
+        description: item.description,
+        product: item.productId
+          ? productsStore.products.find(p => p.id === item.productId)
+          : productsStore.products.find(p => p.category === item.routeCategory),
+      }));
+  }
+
+  return [
+    {
+      label: "Pants",
+      routeCategory: "Pants",
+      title: "Tailored Pants",
+      eyebrow: "Featured Essential",
+      description: "Clean structure and versatile cuts for everyday styling.",
+      product: productsStore.products.find((product) => product.category === "Pants"),
+    },
+    {
+      label: "Outers",
+      routeCategory: "Outerwear",
+      title: "Statement Outers",
+      eyebrow: "Layering Focus",
+      description: "Outer layers that keep the silhouette polished and confident.",
+      product: productsStore.products.find((product) => product.category === "Outerwear"),
+    },
+    {
+      label: "T-Shirts",
+      routeCategory: "Shirts",
+      title: "Premium T-Shirts",
+      eyebrow: "Daily Base Layer",
+      description: "Simple foundations that are easy to pair into a complete look.",
+      product: productsStore.products.find((product) => product.category === "Shirts"),
+    },
+  ];
+});
 
 const upperOptions = computed(() =>
   productsStore.products.filter((product) => upperCategoryNames.includes(product.category)),
@@ -255,9 +272,12 @@ const navigateToCategory = (category) => {
   router.push(`/products?category=${category}`);
 };
 
-const heroBackgroundStyle = computed(() => ({
-  backgroundImage: `linear-gradient(180deg, rgba(77, 16, 24, 0.56), rgba(77, 16, 24, 0.68)), url("${heroBackgroundImage}")`,
-}));
+const heroBackgroundStyle = computed(() => {
+  const image = homeSettings.value?.heroBackgroundImage || defaultHeroBackgroundImage;
+  return {
+    backgroundImage: `linear-gradient(180deg, rgba(77, 16, 24, 0.56), rgba(77, 16, 24, 0.68)), url("${image}")`,
+  };
+});
 
 watch(
   upperOptions,
@@ -281,7 +301,19 @@ watch(
   { immediate: true },
 );
 
+const fetchHomeSettings = async () => {
+  try {
+    const data = await api.get("/home-view");
+    homeSettings.value = data.settings;
+  } catch (error) {
+    console.error("Failed to fetch home settings:", error);
+    homeSettings.value = null;
+  }
+};
+
 onMounted(async () => {
+  await fetchHomeSettings();
+
   try {
     const data = await api.get("/news");
     latestNews.value = data.articles || [];

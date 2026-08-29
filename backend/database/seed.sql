@@ -214,3 +214,11 @@ INSERT INTO stockists (name, region, type, icon, address, city, url, sort_order,
 ('Velvet & Co.', 'Kuala Lumpur', 'Boutique', 'bi bi-bag', '168 Jalan Bukit Bintang', 'Kuala Lumpur, Malaysia', NULL, 4, 1),
 ('Gilded Thread', 'Bangkok', 'Concept Store', 'bi bi-scissors', '88 Sukhumvit Soi 24', 'Bangkok, Thailand', NULL, 5, 1),
 ('Luxe Gallery', 'Paris', 'Flagship', 'bi bi-star', '24 Rue de Saint-Honoré', 'Paris, France', NULL, 6, 1);
+
+INSERT INTO home_view_settings (hero_background_image, hero_kicker, hero_title, hero_copy, hero_primary_button_text, hero_primary_button_link, hero_secondary_button_text, hero_secondary_button_link, featured_title, featured_subtitle) VALUES
+('https://wwd.com/wp-content/uploads/2024/12/GettyImages1735100420.jpg?w=910&h=511&crop=1', 'Luxury Everyday Wear', 'AUBUN WORLD', 'A sharper first impression for the brand, with refined essentials and elevated layering designed for everyday styling.', 'Shop Collection', '/products', 'Try Mix & Match', '#mix-match', 'Featured', 'Curated categories for effortless browsing.');
+
+INSERT INTO home_view_featured_items (home_view_setting_id, label, route_category, title, eyebrow, description, product_id, sort_order, is_active) VALUES
+(1, 'Pants', 'Pants', 'Tailored Pants', 'Featured Essential', 'Clean structure and versatile cuts for everyday styling.', (SELECT id FROM products WHERE category = 'Pants' LIMIT 1), 0, 1),
+(1, 'Outers', 'Outerwear', 'Statement Outers', 'Layering Focus', 'Outer layers that keep the silhouette polished and confident.', (SELECT id FROM products WHERE category = 'Outerwear' LIMIT 1), 1, 1),
+(1, 'T-Shirts', 'Shirts', 'Premium T-Shirts', 'Daily Base Layer', 'Simple foundations that are easy to pair into a complete look.', (SELECT id FROM products WHERE category = 'Shirts' LIMIT 1), 2, 1);

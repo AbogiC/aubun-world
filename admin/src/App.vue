@@ -2,17 +2,10 @@
   <div id="app" class="app-shell">
     <LoadingScreen :visible="isLoading" />
     <template v-if="!isLoading">
-      <!-- Mobile sidebar overlay -->
-      <div
-        v-if="sidebarMobileOpen"
-        class="sidebar-overlay"
-        @click="closeMobileSidebar"
-      ></div>
-
       <!-- Sidebar -->
       <aside
         class="admin-sidebar"
-        :class="{ collapsed: sidebarCollapsed, 'mobile-open': sidebarMobileOpen }"
+        :class="{ collapsed: sidebarCollapsed }"
         ref="sidebarRef"
       >
         <div class="admin-sidebar-header">
@@ -103,6 +96,15 @@
               <span class="nav-link-text">Stocklist</span>
               <div class="nav-tooltip" v-if="sidebarCollapsed">Stockists Management</div>
             </router-link>
+            <router-link
+              to="/home-customization"
+              class="nav-link-item"
+              :class="{ 'router-link-active': isActiveRoute('/home-customization') }"
+            >
+              <i class="bi bi-house-door"></i>
+              <span class="nav-link-text">Home Customization</span>
+              <div class="nav-tooltip" v-if="sidebarCollapsed">Homepage Settings</div>
+            </router-link>
           </div>
         </nav>
 
@@ -124,13 +126,6 @@
         <!-- Header -->
         <header class="admin-header">
           <div class="admin-header-left">
-            <button
-              class="mobile-sidebar-toggle"
-              @click="openMobileSidebar"
-              aria-label="Open navigation menu"
-            >
-              <i class="bi bi-list"></i>
-            </button>
             <h1 class="admin-page-title">{{ pageTitle }}</h1>
           </div>
           <div class="admin-header-right">
@@ -161,7 +156,7 @@
               </button>
               <ul class="dropdown-menu dropdown-menu-end surface-elevated">
                 <li>
-                  <router-link to="/profile" class="dropdown-item" @click="closeMobileSidebar">
+                  <router-link to="/profile" class="dropdown-item">
                     <i class="bi bi-gear me-2"></i> Profile
                   </router-link>
                 </li>
@@ -207,8 +202,7 @@ const router = useRouter();
 const route = useRoute();
 
 const isLoading = ref(true);
-const sidebarCollapsed = ref(false);
-const sidebarMobileOpen = ref(false);
+const sidebarCollapsed = ref(true);
 const sidebarRef = ref(null);
 
 const userInitial = computed(() => {
@@ -225,6 +219,7 @@ const pageTitle = computed(() => {
     "/news": "News Articles",
     "/guidelines": "Guidelines",
     "/stocklist": "Stocklist",
+    "/home-customization": "Home Customization",
     "/profile": "Profile",
   };
   return titles[route.path] || "Dashboard";
@@ -239,16 +234,6 @@ const isActiveRoute = (path) => route.path === path;
 
 const toggleSidebar = () => {
   sidebarCollapsed.value = !sidebarCollapsed.value;
-};
-
-const openMobileSidebar = () => {
-  sidebarMobileOpen.value = true;
-  document.body.style.overflow = "hidden";
-};
-
-const closeMobileSidebar = () => {
-  sidebarMobileOpen.value = false;
-  document.body.style.overflow = "";
 };
 
 const toggleNotifications = () => {
@@ -294,13 +279,6 @@ onMounted(async () => {
 watch(sidebarCollapsed, (value) => {
   localStorage.setItem("admin_sidebar_collapsed", value.toString());
 });
-
-watch(
-  () => route.fullPath,
-  () => {
-    closeMobileSidebar();
-  },
-);
 </script>
 
 <style scoped>

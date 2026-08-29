@@ -19,6 +19,7 @@ use App\Controllers\StockistController;
 use App\Controllers\GuidelineController;
 use App\Controllers\NewsController;
 use App\Controllers\VoucherController;
+use App\Controllers\HomeViewSettingsController;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
@@ -27,6 +28,7 @@ use App\Middleware\AuthMiddleware;
 use App\Middleware\RoleMiddleware;
 use App\Repositories\CartRepository;
 use App\Repositories\GuidelineRepository;
+use App\Repositories\HomeViewSettingsRepository;
 use App\Repositories\MixMatchConfigRepository;
 use App\Repositories\MixMatchRepository;
 use App\Repositories\NewsRepository;
@@ -95,6 +97,7 @@ $shippingRepository = new ShippingRepository($pdo);
 $stockistRepository = new StockistRepository($pdo);
 $orderRepository = new OrderRepository($pdo, $shippingRepository);
 $notificationRepository = new NotificationRepository($pdo);
+$homeViewSettingsRepository = new HomeViewSettingsRepository($pdo);
 $paypalService = new PayPalOrderService(
     $config['paypal']['client_id'],
     $config['paypal']['client_secret'],
@@ -113,6 +116,7 @@ $guidelineController = new GuidelineController($guidelineRepository, $notificati
 $newsController = new NewsController($newsRepository, $notificationRepository);
 $voucherController = new VoucherController($voucherRepository, $productRepository);
 $notificationController = new NotificationController($notificationRepository);
+$homeViewSettingsController = new HomeViewSettingsController($homeViewSettingsRepository);
 $mixMatchConfigRepository = new MixMatchConfigRepository($pdo);
 $mixMatchService = new MixMatchService($productRepository, $mixMatchConfigRepository);
 $mixMatchRepository = new MixMatchRepository($pdo, $mixMatchService);
@@ -155,6 +159,11 @@ $router->get('/api/news/{id}', [$newsController, 'show']);
 $router->post('/api/news', [$newsController, 'store'], [$authMiddleware, $managerRoleMiddleware]);
 $router->patch('/api/news/{id}', [$newsController, 'update'], [$authMiddleware, $managerRoleMiddleware]);
 $router->delete('/api/news/{id}', [$newsController, 'destroy'], [$authMiddleware, $managerRoleMiddleware]);
+
+$router->get('/api/home-view', [$homeViewSettingsController, 'index']);
+$router->post('/api/home-view', [$homeViewSettingsController, 'store'], [$authMiddleware, $managerRoleMiddleware]);
+$router->patch('/api/home-view', [$homeViewSettingsController, 'update'], [$authMiddleware, $managerRoleMiddleware]);
+
 $router->get('/api/categories', [$categoryController, 'index']);
 $router->get('/api/vouchers', [$voucherController, 'index'], [$authMiddleware, $managerRoleMiddleware]);
 $router->post('/api/vouchers', [$voucherController, 'store'], [$authMiddleware, $managerRoleMiddleware]);

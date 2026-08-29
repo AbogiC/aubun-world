@@ -302,5 +302,38 @@ CREATE TABLE stockists (
 );
 
 
+CREATE TABLE home_view_settings (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    hero_background_image VARCHAR(500) NULL,
+    hero_kicker VARCHAR(120) NULL,
+    hero_title VARCHAR(190) NULL,
+    hero_copy TEXT NULL,
+    hero_primary_button_text VARCHAR(120) NULL,
+    hero_primary_button_link VARCHAR(255) NULL,
+    hero_secondary_button_text VARCHAR(120) NULL,
+    hero_secondary_button_link VARCHAR(255) NULL,
+    featured_title VARCHAR(120) NULL,
+    featured_subtitle TEXT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE home_view_featured_items (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    home_view_setting_id INT UNSIGNED NOT NULL,
+    label VARCHAR(120) NOT NULL,
+    route_category VARCHAR(120) NOT NULL,
+    title VARCHAR(190) NOT NULL,
+    eyebrow VARCHAR(120) NULL,
+    description TEXT NULL,
+    product_id INT UNSIGNED NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_hvfi_setting FOREIGN KEY (home_view_setting_id) REFERENCES home_view_settings(id) ON DELETE CASCADE,
+    CONSTRAINT fk_hvfi_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+);
+
 ALTER TABLE users ADD INDEX idx_verification_token (verification_token);
 ALTER TABLE orders ADD INDEX idx_orders_paypal_order_id (paypal_order_id);

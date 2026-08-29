@@ -59,6 +59,12 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ["manager", "admin"] },
     },
     {
+      path: "/home-customization",
+      name: "admin-home-customization",
+      component: () => import("../views/HomeCustomizationView.vue"),
+      meta: { requiresAuth: true, roles: ["manager", "admin"] },
+    },
+    {
       path: "/profile",
       name: "admin-profile",
       component: () => import("../views/ProfileView.vue"),
