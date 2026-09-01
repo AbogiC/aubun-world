@@ -67,6 +67,7 @@
                 <thead>
                   <tr>
                     <th>Product</th>
+                    <th>Visible</th>
                     <th>Category</th>
                     <th>Price</th>
                     <th>Featured</th>
@@ -83,6 +84,11 @@
                           <div class="small text-muted">{{ product.sizes.join(", ") }}</div>
                         </div>
                       </div>
+                    </td>
+                    <td>
+                      <span :class="['badge rounded-pill', product.isShowed ? 'text-bg-dark' : 'text-bg-light']">
+                        {{ product.isShowed ? "Yes" : "No" }}
+                      </span>
                     </td>
                     <td>{{ product.category }}</td>
                     <td>

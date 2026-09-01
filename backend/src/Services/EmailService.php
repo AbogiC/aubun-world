@@ -59,6 +59,62 @@ final class EmailService
         }
     }
 
+    public function sendOrderConfirmation(string $toEmail, string $toName, array $order): void
+    {
+        $subject = 'Your AUBUN WORLD Order Confirmation';
+        $body = $this->buildOrderConfirmationBody($toName, $order);
+
+        $headers = [
+            'MIME-Version: 1.0',
+            'Content-Type: text/html; charset=UTF-8',
+            'From: ' . $this->fromName . ' <' . $this->fromEmail . '>',
+            'Reply-To: ' . $this->fromEmail,
+        ];
+
+        mail($toEmail, $subject, $body, implode("\r\n", $headers));
+    }
+
+    private function buildOrderConfirmationBody(string $name, array $order): string
+    {
+        $itemsHtml = '';
+        foreach ($order['items'] ?? [] as $item) {
+            $itemsHtml .= sprintf(
+                '<tr><td style="padding:10px 0; border-bottom:1px solid #eee;">%s</td><td style="padding:10px 0; border-bottom:1px solid #eee; text-align:center;">%s</td><td style="padding:10px 0; border-bottom:1px solid #eee;">%s</td><td style="padding:10px 0; border-bottom:1px solid #eee; text-align:right;">$%s</td></tr>',
+                htmlspecialchars($item['name'] ?? '', ENT_QUOTES),
+                htmlspecialchars($item['size'] ?? '', ENT_QUOTES) . ' / ' . htmlspecialchars($item['color'] ?? '', ENT_QUOTES) . ' x ' . (int)($item['quantity'] ?? 0),
+                htmlspecialchars($item['unit_price'] ?? '', ENT_QUOTES),
+                htmlspecialchars(number_format((float)($item['line_total'] ?? 0), 2), ENT_QUOTES)
+            );
+        }
+
+        return sprintf(
+            '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Order Confirmation</title></head><body style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 40px; background: #f7f7f5;">' .
+            '<div style="background: white; padding: 48px; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.08);">' .
+            '<h1 style="color: #0b0b0c; margin-bottom: 24px; letter-spacing: 0.08em; text-transform: uppercase; font-size: 1.4rem;">Order Confirmed</h1>' .
+            '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Dear %s,</p>' .
+            '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Thank you for your purchase! Here are your order details:</p>' .
+            '<table style="width:100%%; border-collapse:collapse; margin-bottom:24px;">' .
+            '<tr style="background:#fafafa;"><th style="text-align:left; padding:8px; border-bottom:2px solid #eee;">Product</th><th style="text-align:center; padding:8px; border-bottom:2px solid #eee;">Details</th><th style="text-align:center; padding:8px; border-bottom:2px solid #eee;">Unit Price</th><th style="text-align:right; padding:8px; border-bottom:2px solid #eee;">Total</th></tr>' .
+            '%s' .
+            '</table>' .
+            '<div style="background:#fafafa; padding:16px; border-radius:8px; margin-bottom:24px;">' .
+            '<p style="margin:4px 0;"><strong>Order Number:</strong> %s</p>' .
+            '<p style="margin:4px 0;"><strong>Subtotal:</strong> $%s</p>' .
+            '<p style="margin:4px 0;"><strong>Shipping:</strong> $%s</p>' .
+            '<p style="margin:4px 0;"><strong>Total:</strong> <strong>$%s</strong></p>' .
+            '</div>' .
+            '<p style="color: #6f6f74; font-size: 0.9rem; line-height: 1.6; margin-top: 24px;">If you have any questions, please contact us.</p>' .
+            '<p style="color: #6f6f74; font-size: 0.85rem; margin-top: 48px; border-top: 1px solid rgba(11,11,12,0.08); padding-top: 24px;">Best regards,<br>AUBUN WORLD Team</p>' .
+            '</div></body></html>',
+            htmlspecialchars($name, ENT_QUOTES),
+            $itemsHtml,
+            htmlspecialchars($order['orderNumber'] ?? '', ENT_QUOTES),
+            htmlspecialchars(number_format((float)($order['subtotal'] ?? 0), 2), ENT_QUOTES),
+            htmlspecialchars(number_format((float)($order['shipping'] ?? 0), 2), ENT_QUOTES),
+            htmlspecialchars(number_format((float)($order['total'] ?? 0), 2), ENT_QUOTES)
+        );
+    }
+
     private function buildVerificationEmailBody(string $name, string $verifyUrl): string
     {
         return sprintf(

@@ -2,6 +2,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 const TOKEN_KEY = "aubun_auth_token";
 const CUSTOMER_LOCATION_KEY = "aubun_customer_location";
 
+const ASSET_BASE_URL = import.meta.env.VITE_ASSET_BASE_URL || "https://aubunworld.com";
+
 export function resolveAssetUrl(path) {
   if (!path) return "";
 
@@ -13,7 +15,7 @@ export function resolveAssetUrl(path) {
     return `${window.location.protocol}${path}`;
   }
 
-  return new URL(path, window.location.origin).toString();
+  return new URL(path, ASSET_BASE_URL).toString();
 }
 
 export function getAuthToken() {

@@ -166,14 +166,11 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useProductsStore } from "../stores/products";
 import { useCartStore } from "../stores/cart";
-import { useAuthStore } from "../stores/auth";
 
 const route = useRoute();
 const router = useRouter();
 const productsStore = useProductsStore();
 const cartStore = useCartStore();
-const authStore = useAuthStore();
-
 const product = computed(() => {
   const found = productsStore.products.find((p) => p.id === parseInt(route.params.id));
   if (found && found.isShowed === false) return null;
@@ -199,10 +196,6 @@ onMounted(() => {
 });
 
 const addToCart = () => {
-  if (!authStore.isAuthenticated) {
-    router.push({ path: "/login", query: { redirect: "/cart" } });
-    return;
-  }
   cartStore.addToCart(product.value, selectedSize.value, selectedColor.value, quantity.value);
   router.push("/cart");
 };

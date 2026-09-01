@@ -109,7 +109,7 @@ $authController = new AuthController($userRepository, $authService, $emailServic
 $productController = new ProductController($productRepository, $productImageDirectory, $notificationRepository);
 $categoryController = new CategoryController($productRepository);
 $cartController = new CartController($cartRepository);
-$orderController = new OrderController($orderRepository, $cartRepository, $paypalService);
+$orderController = new OrderController($orderRepository, $cartRepository, $paypalService, $emailService);
 $shippingController = new ShippingController($shippingRepository);
 $stockistController = new StockistController($stockistRepository);
 $guidelineController = new GuidelineController($guidelineRepository, $notificationRepository);
@@ -177,11 +177,11 @@ $router->delete('/api/cart/items/{id}', [$cartController, 'deleteItem'], [$authM
 $router->post('/api/cart/apply-discount', [$cartController, 'applyDiscount'], [$authMiddleware]);
 $router->delete('/api/cart', [$cartController, 'clear'], [$authMiddleware]);
 $router->get('/api/orders', [$orderController, 'index'], [$authMiddleware]);
-$router->get('/api/orders/paypal-config', [$orderController, 'paypalConfig'], [$authMiddleware]);
-$router->post('/api/orders', [$orderController, 'create'], [$authMiddleware]);
-$router->post('/api/orders/{orderID}/capture', [$orderController, 'capture'], [$authMiddleware]);
-$router->post('/api/orders/checkout', [$orderController, 'checkout'], [$authMiddleware]);
-$router->get('/api/shipping-options', [$shippingController, 'options'], [$authMiddleware]);
+$router->get('/api/orders/paypal-config', [$orderController, 'paypalConfig']);
+$router->post('/api/orders', [$orderController, 'create']);
+$router->post('/api/orders/{orderID}/capture', [$orderController, 'capture']);
+$router->post('/api/orders/checkout', [$orderController, 'checkout']);
+$router->get('/api/shipping-options', [$shippingController, 'options']);
 $router->get('/api/shipping-settings', [$shippingController, 'index'], [$authMiddleware, $managerRoleMiddleware]);
 $router->post('/api/shop-countries', [$shippingController, 'storeShopCountry'], [$authMiddleware, $managerRoleMiddleware]);
 $router->delete('/api/shop-countries/{id}', [$shippingController, 'destroyShopCountry'], [$authMiddleware, $managerRoleMiddleware]);

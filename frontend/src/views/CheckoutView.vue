@@ -266,7 +266,13 @@ const shippingSummaryLabel = computed(() => {
   return "Choose option";
 });
 const totalWithShipping = computed(() => cartStore.total + shippingAmount.value);
-const checkoutPayload = computed(() => ({ ...form, shippingRateId: selectedShippingRateId.value }));
+const checkoutPayload = computed(() => ({
+  ...form,
+  shippingRateId: selectedShippingRateId.value,
+  shippingCost: shippingAmount.value,
+  shippingTierName: selectedShippingOption.value?.tierName || '',
+  shopCountryName: shippingQuote.shopCountryName || '',
+}));
 const canPlaceOrder = computed(() => {
   if (!form.country.trim() || shippingLoading.value) return false;
   if (!shippingQuote.available) return false;

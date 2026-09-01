@@ -271,8 +271,10 @@ const goToProfileForVerification = () => {
 
 const proceedToCheckout = async () => {
   try { await authStore.refreshUser(); } catch { /* keep local fallback */ }
-  const isEmailVerified = Boolean(authStore.user?.email_verified || authStore.user?.emailVerified);
-  if (!isEmailVerified) { showVerificationModal.value = true; return; }
+  if (authStore.isAuthenticated) {
+    const isEmailVerified = Boolean(authStore.user?.email_verified || authStore.user?.emailVerified);
+    if (!isEmailVerified) { showVerificationModal.value = true; return; }
+  }
   router.push("/checkout");
 };
 </script>

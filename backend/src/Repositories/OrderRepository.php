@@ -20,15 +20,92 @@ final class OrderRepository
     public function createFromCart(int $userId, array $payload): array
     {
         $checkout = $this->prepareCheckoutFromCart($userId, $payload);
+
+        return $this->createOrder($checkout['customer_name'], $checkout['email'], $checkout, $userId, $checkout['cart']);
+    }
+
+    public function createFromGuestCart(array $payload, array $items): array
+    {
+        $customerName = trim(sprintf(
+            '%s %s',
+            (string) ($payload['first_name'] ?? ''),
+            (string) ($payload['last_name'] ?? '')
+        ));
+        $email = strtolower(trim((string) ($payload['email'] ?? '')));
+        $address = trim((string) ($payload['address'] ?? ''));
+        $city = trim((string) ($payload['city'] ?? ''));
+        $country = trim((string) ($payload['country'] ?? ''));
+        $postalCode = trim((string) ($payload['postal_code'] ?? ''));
+        $shippingRateId = (int) ($payload['shipping_rate_id'] ?? 0);
+        $discount = (float) ($payload['discount'] ?? 0);
+        $subtotal = (float) ($payload['subtotal'] ?? 0);
+        $shippingCost = (float) ($payload['shipping_cost'] ?? 0);
+        $total = (float) ($payload['total'] ?? 0);
+        $shippingTierName = (string) ($payload['shipping_tier_name'] ?? '');
+        $shopCountryName = (string) ($payload['shop_country_name'] ?? '');
         $status = trim((string) ($payload['status'] ?? 'pending')) ?: 'pending';
         $paypalOrderId = trim((string) ($payload['paypal_order_id'] ?? '')) ?: null;
+
+        if ($customerName === '' || $email === '' || $address === '' || $city === '' || $country === '' || $postalCode === '') {
+            throw new RuntimeException('Checkout data is incomplete.', 422);
+        }
+
+        if ($items === []) {
+            throw new RuntimeException('Your cart is empty.', 422);
+        }
+
+        $availableRates = $this->shipping->shippingOptionsForCountry($country);
+
+        if ($availableRates === null || $availableRates['shippingRates'] === []) {
+            throw new RuntimeException('Shipping is not available for the selected country yet.', 422);
+        }
+
+        if (count($availableRates['shippingRates']) === 1 && $shippingRateId <= 0) {
+            $selectedRate = $availableRates['shippingRates'][0];
+        } else {
+            if ($shippingRateId <= 0) {
+                throw new RuntimeException('Please choose a shipping option.', 422);
+            }
+
+            $selected = $this->shipping->shippingRateForCountry($country, $shippingRateId);
+
+            if ($selected === null) {
+                throw new RuntimeException('Selected shipping option is not valid for this country.', 422);
+            }
+
+            $selectedRate = $selected['shippingRate'];
+        }
+
+        $shipping = (float) $selectedRate['shippingCost'];
+
+        $checkout = [
+            'customer_name' => $customerName,
+            'email' => $email,
+            'address' => $address,
+            'city' => $city,
+            'country' => $country,
+            'postal_code' => $postalCode,
+            'cart' => ['items' => $items],
+            'subtotal' => $subtotal,
+            'discount' => $discount,
+            'available_rates' => $availableRates,
+            'selected_rate' => $selectedRate,
+            'shipping' => $shipping,
+            'total' => $total,
+        ];
+
+        return $this->createOrder($customerName, $email, $checkout, null, ['items' => $items]);
+    }
+
+    private function createOrder(string $customerName, string $email, array $checkout, ?int $userId, array $cart): array
+    {
+        $status = trim((string) ($checkout['status'] ?? 'pending')) ?: 'pending';
+        $paypalOrderId = trim((string) ($checkout['paypal_order_id'] ?? '')) ?: null;
         $customerName = $checkout['customer_name'];
-        $email = $checkout['email'];
         $address = $checkout['address'];
         $city = $checkout['city'];
         $country = $checkout['country'];
         $postalCode = $checkout['postal_code'];
-        $cart = $checkout['cart'];
         $subtotal = $checkout['subtotal'];
         $discount = $checkout['discount'];
         $selectedRate = $checkout['selected_rate'];
@@ -95,10 +172,15 @@ final class OrderRepository
                 ]);
             }
 
-            $this->clearCart((int) $cart['id']);
+            if ($userId !== null) {
+                $this->clearCart($userId);
+            }
+
             $this->pdo->commit();
 
-            return $this->findById($orderId, $userId) ?? throw new RuntimeException('Unable to load the created order.', 500);
+            $order = $this->findById($orderId, $userId);
+
+            return $order ?? throw new RuntimeException('Unable to load the created order.', 500);
         } catch (Throwable $exception) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
@@ -180,6 +262,78 @@ final class OrderRepository
         ];
     }
 
+    public function prepareGuestCheckout(array $payload): array
+    {
+        $customerName = trim(sprintf(
+            '%s %s',
+            (string) ($payload['first_name'] ?? ''),
+            (string) ($payload['last_name'] ?? '')
+        ));
+        $email = strtolower(trim((string) ($payload['email'] ?? '')));
+        $address = trim((string) ($payload['address'] ?? ''));
+        $city = trim((string) ($payload['city'] ?? ''));
+        $country = trim((string) ($payload['country'] ?? ''));
+        $postalCode = trim((string) ($payload['postal_code'] ?? ''));
+        $shippingRateId = (int) ($payload['shipping_rate_id'] ?? 0);
+
+        if ($customerName === '' || $email === '' || $address === '' || $city === '' || $country === '' || $postalCode === '') {
+            throw new RuntimeException('Checkout data is incomplete.', 422);
+        }
+
+        $items = $payload['items'] ?? [];
+
+        if ($items === []) {
+            throw new RuntimeException('Your cart is empty.', 422);
+        }
+
+        $subtotal = (float) ($payload['subtotal'] ?? array_reduce(
+            $items,
+            static fn (float $sum, array $item): float => $sum + ($item['unit_price'] * $item['quantity']),
+            0.0
+        ));
+        $discount = (float) ($payload['discount'] ?? 0);
+        $availableRates = $this->shipping->shippingOptionsForCountry($country);
+
+        if ($availableRates === null || $availableRates['shippingRates'] === []) {
+            throw new RuntimeException('Shipping is not available for the selected country yet.', 422);
+        }
+
+        if (count($availableRates['shippingRates']) === 1 && $shippingRateId <= 0) {
+            $selectedRate = $availableRates['shippingRates'][0];
+        } else {
+            if ($shippingRateId <= 0) {
+                throw new RuntimeException('Please choose a shipping option.', 422);
+            }
+
+            $selected = $this->shipping->shippingRateForCountry($country, $shippingRateId);
+
+            if ($selected === null) {
+                throw new RuntimeException('Selected shipping option is not valid for this country.', 422);
+            }
+
+            $selectedRate = $selected['shippingRate'];
+        }
+
+        $shipping = (float) $selectedRate['shippingCost'];
+        $total = max($subtotal - $discount, 0) + $shipping;
+
+        return [
+            'customer_name' => $customerName,
+            'email' => $email,
+            'address' => $address,
+            'city' => $city,
+            'country' => $country,
+            'postal_code' => $postalCode,
+            'cart' => ['items' => $items],
+            'subtotal' => $subtotal,
+            'discount' => $discount,
+            'available_rates' => $availableRates,
+            'selected_rate' => $selectedRate,
+            'shipping' => $shipping,
+            'total' => $total,
+        ];
+    }
+
     public function allByUser(int $userId): array
     {
         $statement = $this->pdo->prepare('SELECT * FROM orders WHERE user_id = :user_id ORDER BY id DESC');
@@ -208,13 +362,18 @@ final class OrderRepository
         ]);
     }
 
-    private function findById(int $orderId, int $userId): ?array
+    private function findById(int $orderId, ?int $userId): ?array
     {
-        $statement = $this->pdo->prepare('SELECT * FROM orders WHERE id = :id AND user_id = :user_id LIMIT 1');
-        $statement->execute([
-            'id' => $orderId,
-            'user_id' => $userId,
-        ]);
+        if ($userId !== null) {
+            $statement = $this->pdo->prepare('SELECT * FROM orders WHERE id = :id AND user_id = :user_id LIMIT 1');
+            $statement->execute([
+                'id' => $orderId,
+                'user_id' => $userId,
+            ]);
+        } else {
+            $statement = $this->pdo->prepare('SELECT * FROM orders WHERE id = :id LIMIT 1');
+            $statement->execute(['id' => $orderId]);
+        }
         $order = $statement->fetch();
 
         return $order ? $this->mapOrder($order) : null;
@@ -224,7 +383,7 @@ final class OrderRepository
     {
         return [
             'id' => (int) $order['id'],
-            'userId' => (int) $order['user_id'],
+            'userId' => $order['user_id'] !== null ? (int) $order['user_id'] : null,
             'orderNumber' => $order['order_number'],
             'status' => $order['status'],
             'paypalOrderId' => $order['paypal_order_id'],

@@ -133,18 +133,88 @@ export const useCartStore = defineStore("cart", {
     },
 
     async checkout(payload) {
+      const isGuest = !getAuthToken();
+      if (isGuest) {
+        payload = {
+          ...payload,
+          items: this.items.map((item) => ({
+            product_id: item.id,
+            name: item.name,
+            image: item.image,
+            quantity: item.quantity,
+            size: item.size,
+            color: item.color,
+            unit_price: item.price,
+            line_total: item.price * item.quantity,
+          })),
+          subtotal: this.subtotal,
+          discount: this.discount,
+          shipping_cost: payload.shippingCost || 0,
+          total: this.total + (payload.shippingCost || 0),
+          shipping_tier_name: payload.shippingTierName || '',
+          shop_country_name: payload.shopCountryName || '',
+        };
+      }
       const { order, cart } = await api.post("/orders/checkout", payload);
-      this.syncFromPayload(cart);
+      if (cart) {
+        this.syncFromPayload(cart);
+      }
       return order;
     },
 
     async createPayPalOrder(payload) {
+      const isGuest = !getAuthToken();
+      if (isGuest) {
+        payload = {
+          ...payload,
+          items: this.items.map((item) => ({
+            product_id: item.id,
+            name: item.name,
+            image: item.image,
+            quantity: item.quantity,
+            size: item.size,
+            color: item.color,
+            unit_price: item.price,
+            line_total: item.price * item.quantity,
+          })),
+          subtotal: this.subtotal,
+          discount: this.discount,
+          shipping_cost: payload.shippingCost || 0,
+          total: this.total + (payload.shippingCost || 0),
+          shipping_tier_name: payload.shippingTierName || '',
+          shop_country_name: payload.shopCountryName || '',
+        };
+      }
       return api.post("/orders", payload);
     },
 
     async capturePayPalOrder(orderId, payload) {
+      const isGuest = !getAuthToken();
+      if (isGuest) {
+        payload = {
+          ...payload,
+          items: this.items.map((item) => ({
+            product_id: item.id,
+            name: item.name,
+            image: item.image,
+            quantity: item.quantity,
+            size: item.size,
+            color: item.color,
+            unit_price: item.price,
+            line_total: item.price * item.quantity,
+          })),
+          subtotal: this.subtotal,
+          discount: this.discount,
+          shipping_cost: payload.shippingCost || 0,
+          total: this.total + (payload.shippingCost || 0),
+          shipping_tier_name: payload.shippingTierName || '',
+          shop_country_name: payload.shopCountryName || '',
+        };
+      }
       const { order, cart, paypalOrder } = await api.post(`/orders/${orderId}/capture`, payload);
-      this.syncFromPayload(cart);
+      if (cart) {
+        this.syncFromPayload(cart);
+      }
       return { order, paypalOrder };
     },
   },

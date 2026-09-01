@@ -570,10 +570,6 @@ const shuffleLook = () => {
 
 const addOutfitToCart = () => {
   if (!activeOutfitSlots.value.length) return;
-  if (!authStore.isAuthenticated) {
-    router.push({ path: "/login", query: { redirect: "/mix-match" } });
-    return;
-  }
   activeOutfitSlots.value.forEach((slot) => {
     const selection = selections[slot.key];
     cartStore.addToCart(selection.product, selection.size, selection.color, 1);

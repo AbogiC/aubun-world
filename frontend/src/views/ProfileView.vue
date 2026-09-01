@@ -241,6 +241,30 @@
                 </button>
               </form>
             </section>
+
+            <!-- My Orders Section -->
+            <section class="profile-section mt-5" v-if="authStore.isAuthenticated">
+              <h2 class="h4 mb-3 pb-2 border-bottom">My Orders</h2>
+              <div v-if="ordersLoading" class="text-muted">Loading orders...</div>
+              <div v-else-if="ordersError" class="alert alert-danger">{{ ordersError }}</div>
+              <div v-else-if="orders.length === 0" class="text-muted">No orders found.</div>
+              <div v-else class="order-list">
+                <div v-for="order in orders" :key="order.id" class="order-card surface-elevated p-3 mb-3">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <span class="fw-semibold">{{ order.orderNumber }}</span>
+                      <span class="text-muted small ms-2">{{ formatDate(order.createdAt) }}</span>
+                    </div>
+                    <span class="fw-semibold">${{ order.total.toLocaleString() }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span class="text-muted small">{{ order.customerName }}</span>
+                    <span class="text-muted small">{{ order.shippingCity }}, {{ order.shippingCountry }}</span>
+                  </div>
+                  <div class="small text-muted mt-1">{{ order.items.length }} item(s)</div>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </div>
@@ -251,6 +275,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
+import { api } from "../lib/api";
 import { useAuthStore } from "../stores/auth";
 import { useNotificationStore } from "../stores/notifications";
 
@@ -320,6 +345,33 @@ const addressSuccess = ref("");
 // Email verification
 const resendCooldown = ref(0);
 const verificationSuccess = ref(false);
+
+// Orders
+const orders = ref([]);
+const ordersLoading = ref(false);
+const ordersError = ref("");
+
+const fetchOrders = async () => {
+  ordersLoading.value = true;
+  ordersError.value = "";
+  try {
+    const payload = await api.get("/orders");
+    orders.value = payload.orders || [];
+  } catch (error) {
+    ordersError.value = error.message || "Unable to load orders.";
+  } finally {
+    ordersLoading.value = false;
+  }
+};
+
+const formatDate = (value) => {
+  if (!value) return "-";
+  return new Date(value).toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
 
 // Initialize form values from user data
 const initializeForms = () => {
@@ -441,6 +493,7 @@ onMounted(async () => {
   await authStore.refreshUser();
   initializeForms();
   await loadNotificationPrefs();
+  await fetchOrders();
 });
 </script>
 
@@ -536,5 +589,12 @@ onMounted(async () => {
 .notif-switch {
   flex-shrink: 0;
   margin: 0;
+}
+
+.order-card {
+  padding: 1rem;
+  border: 1px solid rgba(77, 16, 24, 0.1);
+  border-radius: var(--radius-md);
+  background: rgba(255, 248, 228, 0.5);
 }
 </style>
