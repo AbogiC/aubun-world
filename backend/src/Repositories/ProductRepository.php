@@ -20,6 +20,12 @@ final class ProductRepository
         $conditions = [];
         $params = [];
 
+        // Only show visible products by default (unless explicitly filtered otherwise)
+        $showHidden = $filters['includeHidden'] ?? false;
+        if (!$showHidden) {
+            $conditions[] = 'is_showed = 1';
+        }
+
         if (!empty($filters['category']) && $filters['category'] !== 'All') {
             $conditions[] = 'category = :category';
             $params['category'] = $filters['category'];

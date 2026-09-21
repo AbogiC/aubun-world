@@ -12,7 +12,8 @@ final class OrderRepository
 {
     public function __construct(
         private readonly PDO $pdo,
-        private readonly ShippingRepository $shipping
+        private readonly ShippingRepository $shipping,
+        private readonly \App\Services\EmailService $email
     )
     {
     }
@@ -353,6 +354,10 @@ final class OrderRepository
 
     public function updateStatus(int $orderId, string $status): void
     {
+        // Get current order to check old status
+        $orderBefore = $this->findById($orderId, null);
+        $oldStatus = $orderBefore['status'] ?? 'pending';
+
         $statement = $this->pdo->prepare(
             'UPDATE orders SET status = :status, updated_at = NOW() WHERE id = :id'
         );
@@ -360,6 +365,25 @@ final class OrderRepository
             'id' => $orderId,
             'status' => $status,
         ]);
+
+        // Send appropriate email based on status change
+        if ($orderBefore) {
+            if ($oldStatus !== 'paid' && $status === 'paid') {
+                // Payment just confirmed
+                $this->email->sendPaymentConfirmedEmail(
+                    $orderBefore['customerEmail'],
+                    $orderBefore['customerName'],
+                    $orderBefore
+                );
+            } else {
+                // Other status changes (shipping updates)
+                $this->email->sendShippingUpdateEmail(
+                    $orderBefore['customerEmail'],
+                    $orderBefore['customerName'],
+                    array_merge($orderBefore, ['status' => $status])
+                );
+            }
+        }
     }
 
     private function findById(int $orderId, ?int $userId): ?array

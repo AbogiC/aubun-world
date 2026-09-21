@@ -95,7 +95,7 @@ $productImageDirectory = dirname(__DIR__) . '/store/products/image';
 $cartRepository = new CartRepository($pdo, $productRepository, $voucherRepository);
 $shippingRepository = new ShippingRepository($pdo);
 $stockistRepository = new StockistRepository($pdo);
-$orderRepository = new OrderRepository($pdo, $shippingRepository);
+$orderRepository = new OrderRepository($pdo, $shippingRepository, $emailService);
 $notificationRepository = new NotificationRepository($pdo);
 $homeViewSettingsRepository = new HomeViewSettingsRepository($pdo);
 $paypalService = new PayPalOrderService(
@@ -106,7 +106,7 @@ $paypalService = new PayPalOrderService(
 );
 
 $authController = new AuthController($userRepository, $authService, $emailService);
-$productController = new ProductController($productRepository, $productImageDirectory, $notificationRepository);
+$productController = new ProductController($productRepository, $productImageDirectory, $notificationRepository, $config['app']['api_base_url']);
 $categoryController = new CategoryController($productRepository);
 $cartController = new CartController($cartRepository);
 $orderController = new OrderController($orderRepository, $cartRepository, $paypalService, $emailService);
@@ -178,6 +178,7 @@ $router->post('/api/cart/apply-discount', [$cartController, 'applyDiscount'], [$
 $router->delete('/api/cart', [$cartController, 'clear'], [$authMiddleware]);
 $router->get('/api/orders', [$orderController, 'index'], [$authMiddleware]);
 $router->get('/api/orders/paypal-config', [$orderController, 'paypalConfig']);
+$router->post('/api/orders/webhook', [$orderController, 'paypalWebhook']);
 $router->post('/api/orders', [$orderController, 'create']);
 $router->post('/api/orders/{orderID}/capture', [$orderController, 'capture']);
 $router->post('/api/orders/checkout', [$orderController, 'checkout']);

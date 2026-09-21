@@ -235,10 +235,6 @@ const closeNavbarMenu = () => {
 };
 
 const goToBag = () => {
-  if (!authStore.isAuthenticated) {
-    router.push({ path: "/login", query: { redirect: "/cart" } });
-    return;
-  }
   router.push("/cart");
 };
 

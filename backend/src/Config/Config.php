@@ -43,6 +43,7 @@ final class Config
             'app' => [
                 'key' => $env['APP_KEY'],
                 'base_url' => $env['BASE_URL'] ?? 'http://localhost:5173',
+                'api_base_url' => $env['API_BASE_URL'] ?? ($env['BASE_URL'] ?? 'http://localhost:5173'),
             ],
             'db' => [
                 'host' => $env['DB_HOST'],

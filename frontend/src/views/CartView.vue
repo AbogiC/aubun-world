@@ -202,7 +202,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from "vue";
+import { reactive, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useCartStore } from "../stores/cart";
@@ -277,6 +277,12 @@ const proceedToCheckout = async () => {
   }
   router.push("/checkout");
 };
+
+onMounted(async () => {
+  if (authStore.isAuthenticated) {
+    await cartStore.refreshFromApi();
+  }
+});
 </script>
 
 <style scoped>

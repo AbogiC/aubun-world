@@ -20,6 +20,7 @@ final class ProductController
         private readonly ProductRepository $products,
         private readonly string $productImageDirectory,
         private readonly NotificationRepository $notifications,
+        private readonly string $baseUrl
     )
     {
     }
@@ -147,11 +148,13 @@ final class ProductController
             throw new RuntimeException('Unable to store uploaded image.', 500);
         }
 
+        $base = rtrim($this->baseUrl, '/');
+
         return [
             'message' => 'Image uploaded successfully.',
             'image' => [
                 'filename' => $filename,
-                'url' => '/api/product-images/' . rawurlencode($filename),
+                'url' => $base . '/api/product-images/' . rawurlencode($filename),
             ],
             'status' => 201,
         ];

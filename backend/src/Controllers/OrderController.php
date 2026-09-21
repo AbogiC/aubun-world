@@ -76,11 +76,14 @@ final class OrderController
             ]);
         }
 
-        $this->email->sendOrderConfirmation(
-            $order['customerEmail'],
-            $order['customerName'],
-            $order
-        );
+        // Send "awaiting payment" email for pending orders
+        if (($order['status'] ?? 'pending') === 'pending') {
+            $this->email->sendPaymentPendingEmail(
+                $order['customerEmail'],
+                $order['customerName'],
+                $order
+            );
+        }
 
         $result = [
             'message' => 'Order placed successfully.',
@@ -128,26 +131,37 @@ final class OrderController
         $capture = $this->paypal->captureOrder($paypalOrderId);
         $paypalOrder = $this->paypal->getOrder($paypalOrderId);
 
+        $resolvedStatus = $this->resolveOrderStatus($paypalOrder);
+
         if ($isGuest) {
             $payload = $this->checkoutPayload($request);
             $order = $this->orders->createFromGuestCart([
                 ...$payload,
-                'status' => $this->resolveOrderStatus($paypalOrder),
+                'status' => $resolvedStatus,
                 'paypal_order_id' => $paypalOrderId,
             ], $payload['items'] ?? []);
         } else {
             $order = $this->orders->createFromCart($userId, [
                 ...$this->checkoutPayload($request),
-                'status' => $this->resolveOrderStatus($paypalOrder),
+                'status' => $resolvedStatus,
                 'paypal_order_id' => $paypalOrderId,
             ]);
         }
 
-        $this->email->sendOrderConfirmation(
-            $order['customerEmail'],
-            $order['customerName'],
-            $order
-        );
+        // Send appropriate email based on payment status
+        if ($resolvedStatus === 'paid') {
+            $this->email->sendPaymentConfirmedEmail(
+                $order['customerEmail'],
+                $order['customerName'],
+                $order
+            );
+        } else {
+            $this->email->sendPaymentPendingEmail(
+                $order['customerEmail'],
+                $order['customerName'],
+                $order
+            );
+        }
 
         $result = [
             'message' => 'Order placed successfully.',
@@ -170,6 +184,64 @@ final class OrderController
             'currencyCode' => $this->paypal->currency(),
             'enabled' => $this->paypal->isConfigured(),
         ];
+    }
+
+    public function paypalWebhook(Request $request): array
+    {
+        $payload = $request->getParsedBody();
+        $eventType = $payload['event_type'] ?? '';
+
+        // Only process payment-related events
+        if (!in_array($eventType, [
+            'CHECKOUT.ORDER.APPROVED',
+            'PAYMENT.CAPTURE.COMPLETED',
+            'PAYMENT.CAPTURE.DENIED',
+            'PAYMENT.CAPTURE.REFUNDED',
+            'PAYMENT.CAPTURE.PENDING',
+            'CHECKOUT.ORDER.COMPLETED',
+        ], true)) {
+            return ['received' => true, 'processed' => false];
+        }
+
+        $resource = $payload['resource'] ?? [];
+        $paypalOrderId = $resource['id'] ?? ($resource['supplementary_data'] ?? [])['related_ids'] ?? ['order_id' => ''];
+        if (is_array($paypalOrderId)) {
+            $paypalOrderId = $paypalOrderId['order_id'] ?? '';
+        }
+
+        if (empty($paypalOrderId)) {
+            return ['received' => true, 'processed' => false, 'error' => 'No order ID in webhook'];
+        }
+
+        try {
+            $paypalOrder = $this->paypal->getOrder($paypalOrderId);
+            $newStatus = $this->resolveOrderStatus($paypalOrder);
+
+            // Find order by PayPal order ID
+            $orders = $this->orders->all();
+            $order = null;
+            foreach ($orders as $o) {
+                if (($o['paypalOrderId'] ?? '') === $paypalOrderId) {
+                    $order = $o;
+                    break;
+                }
+            }
+
+            if (!$order) {
+                return ['received' => true, 'processed' => false, 'error' => 'Order not found'];
+            }
+
+            $currentStatus = $order['status'] ?? 'pending';
+
+            // Only update if status changed
+            if ($newStatus !== $currentStatus) {
+                $this->orders->updateStatus((int) $order['id'], $newStatus);
+            }
+
+            return ['received' => true, 'processed' => true, 'status' => $newStatus];
+        } catch (\Throwable $e) {
+            return ['received' => true, 'processed' => false, 'error' => $e->getMessage()];
+        }
     }
 
     private function checkoutPayload(Request $request): array
