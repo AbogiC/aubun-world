@@ -45,6 +45,14 @@ final class CartRepository
             throw new RuntimeException('Product not found.', 404);
         }
 
+        // Check stock availability
+        $requestedQuantity = max(1, (int) $payload['quantity']);
+        $currentStock = (int) ($product['stock'] ?? 0);
+
+        if ($currentStock < $requestedQuantity) {
+            throw new RuntimeException('Not enough stock available.', 409);
+        }
+
         $cart = $this->getOrCreateCart($userId);
         $statement = $this->pdo->prepare(
             'SELECT id, quantity FROM cart_items WHERE cart_id = :cart_id AND product_id = :product_id AND size = :size AND color = :color LIMIT 1'

@@ -13,6 +13,7 @@ final class OrderRepository
     public function __construct(
         private readonly PDO $pdo,
         private readonly ShippingRepository $shipping,
+        private readonly ProductRepository $products,
         private readonly \App\Services\EmailService $email
     )
     {
@@ -173,6 +174,9 @@ final class OrderRepository
                 ]);
             }
 
+            // Reserve stock for the order
+            $this->reserveStock($cart['items']);
+
             if ($userId !== null) {
                 $this->clearCart($userId);
             }
@@ -188,6 +192,32 @@ final class OrderRepository
             }
 
             throw $exception;
+        }
+    }
+
+    private function reserveStock(array $items): void
+    {
+        $update = $this->pdo->prepare(
+            'UPDATE products SET stock = stock - :quantity, updated_at = NOW() WHERE id = :id'
+        );
+
+        foreach ($items as $item) {
+            $productId = (int) $item['product_id'];
+            $quantity = (int) $item['quantity'];
+
+            // Verify stock is still available
+            $check = $this->pdo->prepare('SELECT stock FROM products WHERE id = :id FOR UPDATE');
+            $check->execute(['id' => $productId]);
+            $product = $check->fetch();
+
+            if (!$product || (int) $product['stock'] < $quantity) {
+                throw new RuntimeException('Insufficient stock for product ID ' . $productId, 409);
+            }
+
+            $update->execute([
+                'id' => $productId,
+                'quantity' => $quantity,
+            ]);
         }
     }
 
@@ -503,5 +533,96 @@ final class OrderRepository
     private function generateOrderNumber(): string
     {
         return 'AUB-' . date('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(3)));
+    }
+
+    public function restoreStockForOrder(int $orderId): bool
+    {
+        $order = $this->findById($orderId, null);
+
+        if (!$order) {
+            return false;
+        }
+
+        $items = $order['items'] ?? [];
+
+        if ($items === []) {
+            return false;
+        }
+
+        try {
+            $this->pdo->beginTransaction();
+
+            $update = $this->pdo->prepare(
+                'UPDATE products SET stock = stock + :quantity, updated_at = NOW() WHERE id = :id'
+            );
+
+            foreach ($items as $item) {
+                $productId = (int) $item['productId'];
+                $quantity = (int) $item['quantity'];
+
+                $update->execute([
+                    'id' => $productId,
+                    'quantity' => $quantity,
+                ]);
+            }
+
+            $this->pdo->commit();
+            return true;
+        } catch (Throwable $exception) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            return false;
+        }
+    }
+
+    public function cancelExpiredOrders(int $hours = 1): array
+    {
+        // Find orders with status 'pending' created more than $hours ago
+        $statement = $this->pdo->prepare(
+            'SELECT * FROM orders WHERE status = :status AND created_at < DATE_SUB(NOW(), INTERVAL :hours HOUR)'
+        );
+        $statement->execute([
+            'status' => 'pending',
+            'hours' => $hours,
+        ]);
+        $expiredOrders = $statement->fetchAll();
+
+        $cancelled = [];
+
+        foreach ($expiredOrders as $order) {
+            $orderId = (int) $order['id'];
+
+            // Restore stock
+            $this->restoreStockForOrder($orderId);
+
+            // Update order status to cancelled
+            $update = $this->pdo->prepare('UPDATE orders SET status = :status, updated_at = NOW() WHERE id = :id');
+            $update->execute([
+                'id' => $orderId,
+                'status' => 'cancelled',
+            ]);
+
+            // Send cancellation email
+            if ($this->email) {
+                try {
+                    $this->email->sendOrderCancelledEmail(
+                        $order['customer_email'],
+                        $order['customer_name'],
+                        array_merge($order, ['status' => 'cancelled'])
+                    );
+                } catch (\Throwable) {
+                    // Log error but don't fail the cancellation
+                }
+            }
+
+            $cancelled[] = [
+                'id' => $orderId,
+                'orderNumber' => $order['order_number'],
+                'customerEmail' => $order['customer_email'],
+            ];
+        }
+
+        return $cancelled;
     }
 }

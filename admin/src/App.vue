@@ -120,22 +120,6 @@
             <h1 class="admin-page-title">{{ pageTitle }}</h1>
           </div>
           <div class="admin-header-right">
-            <button class="admin-header-btn" @click="goToStorefront" title="View Storefront">
-              <i class="bi bi-shop-window"></i>
-            </button>
-            <button
-              class="admin-header-btn"
-              @click="toggleNotifications"
-              title="Notifications"
-            >
-              <i class="bi bi-bell"></i>
-              <span
-                v-if="notificationStore.unreadCount"
-                class="badge"
-              >
-                {{ notificationStore.unreadCount > 9 ? "9+" : notificationStore.unreadCount }}
-              </span>
-            </button>
             <div class="dropdown">
               <button
                 class="admin-header-btn dropdown-toggle"
@@ -180,20 +164,17 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import LoadingScreen from "./components/LoadingScreen.vue";
 import { useAuthStore } from "./stores/auth";
-import { useNotificationStore } from "./stores/notifications";
 import { useProductsStore } from "./stores/products";
 import { useCartStore } from "./stores/cart";
-import { resolveCustomerLocationOnLoad } from "./lib/location";
 
 const authStore = useAuthStore();
-const notificationStore = useNotificationStore();
 const productsStore = useProductsStore();
 const cartStore = useCartStore();
 const router = useRouter();
 const route = useRoute();
 
 const isLoading = ref(true);
-const sidebarCollapsed = ref(true);
+const sidebarCollapsed = ref(false);
 const sidebarRef = ref(null);
 
 const userInitial = computed(() => {
@@ -226,34 +207,18 @@ const toggleSidebar = () => {
   sidebarCollapsed.value = !sidebarCollapsed.value;
 };
 
-const toggleNotifications = () => {
-  // Notification bell click - could open a dropdown or navigate
-  // For now, we'll rely on the dropdown from the user menu
-};
-
-const goToStorefront = () => {
-  window.open("/", "_blank");
-};
-
 const logout = () => {
   authStore.logout();
   router.push("/login");
 };
 
 onMounted(async () => {
-  await resolveCustomerLocationOnLoad();
-
   if (!productsStore.loaded) {
     await productsStore.fetchProducts();
   }
 
   await authStore.initialize();
   cartStore.refreshFromApi();
-
-  if (authStore.isAuthenticated) {
-    await notificationStore.initialize();
-    notificationStore.startPolling();
-  }
 
   // Restore sidebar state from localStorage
   const savedCollapsed = localStorage.getItem("admin_sidebar_collapsed");

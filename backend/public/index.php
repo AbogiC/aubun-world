@@ -10,6 +10,7 @@ use App\Config\Config;
 use App\Controllers\AuthController;
 use App\Controllers\CartController;
 use App\Controllers\CategoryController;
+use App\Controllers\CronController;
 use App\Controllers\MixMatchController;
 use App\Controllers\NotificationController;
 use App\Controllers\OrderController;
@@ -95,7 +96,7 @@ $productImageDirectory = dirname(__DIR__) . '/store/products/image';
 $cartRepository = new CartRepository($pdo, $productRepository, $voucherRepository);
 $shippingRepository = new ShippingRepository($pdo);
 $stockistRepository = new StockistRepository($pdo);
-$orderRepository = new OrderRepository($pdo, $shippingRepository, $emailService);
+$orderRepository = new OrderRepository($pdo, $shippingRepository, $productRepository, $emailService);
 $notificationRepository = new NotificationRepository($pdo);
 $homeViewSettingsRepository = new HomeViewSettingsRepository($pdo);
 $paypalService = new PayPalOrderService(
@@ -110,6 +111,7 @@ $productController = new ProductController($productRepository, $productImageDire
 $categoryController = new CategoryController($productRepository);
 $cartController = new CartController($cartRepository);
 $orderController = new OrderController($orderRepository, $cartRepository, $paypalService, $emailService);
+$cronController = new CronController($orderRepository);
 $shippingController = new ShippingController($shippingRepository);
 $stockistController = new StockistController($stockistRepository);
 $guidelineController = new GuidelineController($guidelineRepository, $notificationRepository);
@@ -182,6 +184,9 @@ $router->post('/api/orders/webhook', [$orderController, 'paypalWebhook']);
 $router->post('/api/orders', [$orderController, 'create']);
 $router->post('/api/orders/{orderID}/capture', [$orderController, 'capture']);
 $router->post('/api/orders/checkout', [$orderController, 'checkout']);
+
+// Cron jobs
+$router->post('/api/cron/cancel-expired-orders', [$cronController, 'cancelExpiredOrders']);
 $router->get('/api/shipping-options', [$shippingController, 'options']);
 $router->get('/api/shipping-settings', [$shippingController, 'index'], [$authMiddleware, $managerRoleMiddleware]);
 $router->post('/api/shop-countries', [$shippingController, 'storeShopCountry'], [$authMiddleware, $managerRoleMiddleware]);

@@ -136,9 +136,9 @@ final class ProductRepository
 
             $statement = $this->pdo->prepare(
                 'INSERT INTO products (
-                    name, category, price, original_price, image, description, rating, reviews, sizes, colors, stock, featured, is_showed, created_at, updated_at
+                    name, category, subcategory, price, original_price, image, description, rating, reviews, sizes, colors, stock, featured, is_showed, created_at, updated_at
                 ) VALUES (
-                    :name, :category, :price, :original_price, :image, :description, :rating, :reviews, :sizes, :colors, :stock, :featured, :is_showed, NOW(), NOW()
+                    :name, :category, :subcategory, :price, :original_price, :image, :description, :rating, :reviews, :sizes, :colors, :stock, :featured, :is_showed, NOW(), NOW()
                 )'
             );
             $statement->execute($this->persistedProduct($payload));
@@ -166,6 +166,7 @@ final class ProductRepository
                 'UPDATE products SET
                     name = :name,
                     category = :category,
+                    subcategory = :subcategory,
                     price = :price,
                     original_price = :original_price,
                     image = :image,
