@@ -53,12 +53,6 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ["manager", "admin"] },
     },
     {
-      path: "/stocklist",
-      name: "admin-stocklist",
-      component: () => import("../views/StocklistManageView.vue"),
-      meta: { requiresAuth: true, roles: ["manager", "admin"] },
-    },
-    {
       path: "/home-customization",
       name: "admin-home-customization",
       component: () => import("../views/HomeCustomizationView.vue"),

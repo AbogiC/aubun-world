@@ -26,6 +26,15 @@
           <div class="nav-section">
             <span class="nav-section-label">Dashboard</span>
             <router-link
+              to="/home-customization"
+              class="nav-link-item"
+              :class="{ 'router-link-active': isActiveRoute('/home-customization') }"
+            >
+              <i class="bi bi-house-door"></i>
+              <span class="nav-link-text">Home Customization</span>
+              <div class="nav-tooltip" v-if="sidebarCollapsed">Homepage Settings</div>
+            </router-link>
+            <router-link
               to="/products"
               class="nav-link-item"
               :class="{ 'router-link-active': isActiveRoute('/products') }"
@@ -86,24 +95,6 @@
               <i class="bi bi-journal-text"></i>
               <span class="nav-link-text">Guidelines</span>
               <div class="nav-tooltip" v-if="sidebarCollapsed">Guidelines Management</div>
-            </router-link>
-            <router-link
-              to="/stocklist"
-              class="nav-link-item"
-              :class="{ 'router-link-active': isActiveRoute('/stocklist') }"
-            >
-              <i class="bi bi-shop"></i>
-              <span class="nav-link-text">Stocklist</span>
-              <div class="nav-tooltip" v-if="sidebarCollapsed">Stockists Management</div>
-            </router-link>
-            <router-link
-              to="/home-customization"
-              class="nav-link-item"
-              :class="{ 'router-link-active': isActiveRoute('/home-customization') }"
-            >
-              <i class="bi bi-house-door"></i>
-              <span class="nav-link-text">Home Customization</span>
-              <div class="nav-tooltip" v-if="sidebarCollapsed">Homepage Settings</div>
             </router-link>
           </div>
         </nav>
@@ -218,7 +209,6 @@ const pageTitle = computed(() => {
     "/vouchers": "Vouchers",
     "/news": "News Articles",
     "/guidelines": "Guidelines",
-    "/stocklist": "Stocklist",
     "/home-customization": "Home Customization",
     "/profile": "Profile",
   };

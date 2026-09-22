@@ -16,7 +16,8 @@ CREATE TABLE users (
 CREATE TABLE products (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(190) NOT NULL,
-    category VARCHAR(120) NOT NULL,
+    category ENUM('Men','Women','Unisex','Kids','Accessories','Footwear') NOT NULL,
+    subcategory VARCHAR(120) NULL,
     price DECIMAL(10,2) NOT NULL,
     original_price DECIMAL(10,2) NULL,
     image VARCHAR(255) NOT NULL,
@@ -25,6 +26,7 @@ CREATE TABLE products (
     reviews INT UNSIGNED NOT NULL DEFAULT 0,
     sizes JSON NOT NULL,
     colors JSON NOT NULL,
+    stock INT UNSIGNED NOT NULL DEFAULT 0,
     featured TINYINT(1) NOT NULL DEFAULT 0,
     is_showed TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
@@ -336,3 +338,37 @@ CREATE TABLE home_view_featured_items (
 
 ALTER TABLE users ADD INDEX idx_verification_token (verification_token);
 ALTER TABLE orders ADD INDEX idx_orders_paypal_order_id (paypal_order_id);
+
+-- Migration: Add subcategory column and convert category to ENUM
+-- Run this on existing databases:
+-- ALTER TABLE products 
+--   ADD COLUMN subcategory VARCHAR(120) NULL AFTER category,
+--   MODIFY COLUMN category ENUM('Men','Women','Unisex','Kids','Accessories','Footwear') NOT NULL DEFAULT 'Unisex';
+-- 
+-- Update existing categories to match new enum:
+-- UPDATE products SET category = CASE 
+--   WHEN LOWER(category) IN ('men','mens','man') THEN 'Men'
+--   WHEN LOWER(category) IN ('women','womens','woman') THEN 'Women'
+--   WHEN LOWER(category) IN ('kid','kids','children','child') THEN 'Kids'
+--   WHEN LOWER(category) IN ('accessory','accessories') THEN 'Accessories'
+--   WHEN LOWER(category) IN ('shoe','shoes','footwear') THEN 'Footwear'
+--   ELSE 'Unisex'
+-- END;
+-- 
+-- Set subcategories based on old category names:
+-- UPDATE products SET subcategory = CASE
+--   WHEN category = 'Men' AND LOWER(name) LIKE '%shirt%' THEN 'T-Shirts'
+--   WHEN category = 'Men' AND LOWER(name) LIKE '%pant%' THEN 'Pants'
+--   WHEN category = 'Men' AND LOWER(name) LIKE '%jacket%' THEN 'Jackets'
+--   WHEN category = 'Men' AND LOWER(name) LIKE '%short%' THEN 'Shorts'
+--   WHEN category = 'Women' AND LOWER(name) LIKE '%shirt%' THEN 'T-Shirts'
+--   WHEN category = 'Women' AND LOWER(name) LIKE '%dress%' THEN 'Dresses'
+--   WHEN category = 'Women' AND LOWER(name) LIKE '%blouse%' THEN 'Blouses'
+--   WHEN category = 'Women' AND LOWER(name) LIKE '%skirt%' THEN 'Skirts'
+--   WHEN category = 'Women' AND LOWER(name) LIKE '%pant%' THEN 'Pants'
+--   WHEN category = 'Accessories' AND LOWER(name) LIKE '%bag%' THEN 'Bags'
+--   WHEN category = 'Accessories' AND LOWER(name) LIKE '%hat%' THEN 'Hats'
+--   WHEN category = 'Accessories' AND LOWER(name) LIKE '%belt%' THEN 'Belts'
+--   WHEN category = 'Accessories' AND LOWER(name) LIKE '%wallet%' THEN 'Wallets'
+--   ELSE NULL
+-- END;

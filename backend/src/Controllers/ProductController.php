@@ -186,6 +186,7 @@ final class ProductController
     {
         $name = trim((string) $request->input('name'));
         $category = trim((string) $request->input('category'));
+        $subcategory = trim((string) $request->input('subcategory'));
         $image = trim((string) $request->input('image'));
         $description = trim((string) $request->input('description'));
         $sizes = $this->normalizedList($request->input('sizes', []));
@@ -195,12 +196,33 @@ final class ProductController
         $originalPrice = $originalPriceInput === null || $originalPriceInput === '' ? null : (float) $originalPriceInput;
         $rating = (float) $request->input('rating', 0);
         $reviews = (int) $request->input('reviews', 0);
+        $stock = (int) $request->input('stock', 0);
         $featured = (bool) $request->input('featured', false);
         $isShowed = (bool) $request->input('isShowed', true);
         $countryPrices = $this->normalizedCountryPrices($request->input('countryPrices', []));
 
+        $validCategories = ['Men', 'Women', 'Unisex', 'Kids', 'Accessories', 'Footwear'];
+        $validSubcategories = [
+            'Men' => ['T-Shirts', 'Shirts', 'Pants', 'Jackets', 'Shorts'],
+            'Women' => ['T-Shirts', 'Dresses', 'Blouses', 'Skirts', 'Pants'],
+            'Accessories' => ['Bags', 'Hats', 'Belts', 'Wallets'],
+            'Unisex' => [],
+            'Kids' => [],
+            'Footwear' => [],
+        ];
+
         if ($name === '' || $category === '' || $image === '' || $description === '') {
             throw new RuntimeException('Name, category, image, and description are required.', 422);
+        }
+
+        if (!in_array($category, $validCategories, true)) {
+            throw new RuntimeException('Invalid category. Must be one of: ' . implode(', ', $validCategories), 422);
+        }
+
+        if ($subcategory !== '' && isset($validSubcategories[$category])) {
+            if (!in_array($subcategory, $validSubcategories[$category], true)) {
+                throw new RuntimeException('Invalid subcategory for ' . $category . '. Valid options: ' . implode(', ', $validSubcategories[$category]), 422);
+            }
         }
 
         if ($price <= 0) {
@@ -209,6 +231,10 @@ final class ProductController
 
         if ($originalPrice !== null && $originalPrice < $price) {
             throw new RuntimeException('Original price must be greater than or equal to price.', 422);
+        }
+
+        if ($stock < 0) {
+            throw new RuntimeException('Stock cannot be negative.', 422);
         }
 
         if ($sizes === []) {
@@ -230,12 +256,14 @@ final class ProductController
         return [
             'name' => $name,
             'category' => $category,
+            'subcategory' => $subcategory ?: null,
             'price' => $price,
             'originalPrice' => $originalPrice,
             'image' => $image,
             'description' => $description,
             'rating' => $rating,
             'reviews' => $reviews,
+            'stock' => $stock,
             'sizes' => $sizes,
             'colors' => $colors,
             'featured' => $featured,

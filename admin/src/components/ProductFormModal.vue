@@ -23,7 +23,23 @@
 
             <div class="col-md-6">
               <label class="form-label">Category</label>
-              <input v-model="form.category" type="text" class="form-control" required />
+              <select v-model="form.category" class="form-select" required @change="onCategoryChange">
+                <option value="">Select Category</option>
+                <option value="Men">Men</option>
+                <option value="Women">Women</option>
+                <option value="Unisex">Unisex</option>
+                <option value="Kids">Kids</option>
+                <option value="Accessories">Accessories</option>
+                <option value="Footwear">Footwear</option>
+              </select>
+            </div>
+
+            <div class="col-md-6" v-if="subcategoryOptions.length">
+              <label class="form-label">Subcategory</label>
+              <select v-model="form.subcategory" class="form-select">
+                <option value="">Select Subcategory (Optional)</option>
+                <option v-for="sub in subcategoryOptions" :key="sub" :value="sub">{{ sub }}</option>
+              </select>
             </div>
 
             <div class="col-md-6">
@@ -37,13 +53,8 @@
             </div>
 
             <div class="col-md-6">
-              <label class="form-label">Rating</label>
-              <input v-model.number="form.rating" type="number" min="0" max="5" step="0.1" class="form-control" required />
-            </div>
-
-            <div class="col-md-6">
-              <label class="form-label">Reviews</label>
-              <input v-model.number="form.reviews" type="number" min="0" step="1" class="form-control" required />
+              <label class="form-label">Stock Quantity</label>
+              <input v-model.number="form.stock" type="number" min="0" step="1" class="form-control" required />
             </div>
 
             <div class="col-md-6">
@@ -154,7 +165,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed, watch, toRefs } from "vue";
+
+const props = defineProps({
   modelValue: Boolean,
   form: Object,
   editingProductId: [Number, String],
@@ -163,6 +176,8 @@ defineProps({
   feedback: Object,
   groupedCountryPrices: Array,
 });
+
+const { form } = toRefs(props);
 
 defineEmits([
   "update:modelValue",
@@ -173,6 +188,25 @@ defineEmits([
   "filterCountryPriceBy",
   "removeCountryPriceGroup",
 ]);
+
+const subcategoryMap = {
+  Men: ['T-Shirts', 'Shirts', 'Pants', 'Jackets', 'Shorts'],
+  Women: ['T-Shirts', 'Dresses', 'Blouses', 'Skirts', 'Pants'],
+  Accessories: ['Bags', 'Hats', 'Belts', 'Wallets'],
+  Unisex: [],
+  Kids: [],
+  Footwear: [],
+};
+
+const subcategoryOptions = computed(() => subcategoryMap[form.value.category] || []);
+
+const onCategoryChange = () => {
+  if (!subcategoryOptions.value.includes(form.value.subcategory)) {
+    form.value.subcategory = '';
+  }
+};
+
+watch(() => form.value.category, onCategoryChange);
 </script>
 
 <style scoped>

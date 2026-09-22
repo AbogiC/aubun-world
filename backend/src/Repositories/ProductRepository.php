@@ -81,9 +81,20 @@ final class ProductRepository
 
     public function categories(): array
     {
-        $statement = $this->pdo->query('SELECT DISTINCT category FROM products ORDER BY category');
+        return ['All', 'Men', 'Women', 'Unisex', 'Kids', 'Accessories', 'Footwear'];
+    }
 
-        return array_merge(['All'], array_column($statement->fetchAll(), 'category'));
+    public function subcategories(string $category): array
+    {
+        $map = [
+            'Men' => ['T-Shirts', 'Shirts', 'Pants', 'Jackets', 'Shorts'],
+            'Women' => ['T-Shirts', 'Dresses', 'Blouses', 'Skirts', 'Pants'],
+            'Accessories' => ['Bags', 'Hats', 'Belts', 'Wallets'],
+            'Unisex' => [],
+            'Kids' => [],
+            'Footwear' => [],
+        ];
+        return $map[$category] ?? [];
     }
 
     public function findMany(array $ids, ?string $customerCountry = null): array
@@ -125,9 +136,9 @@ final class ProductRepository
 
             $statement = $this->pdo->prepare(
                 'INSERT INTO products (
-                    name, category, price, original_price, image, description, rating, reviews, sizes, colors, featured, is_showed, created_at, updated_at
+                    name, category, price, original_price, image, description, rating, reviews, sizes, colors, stock, featured, is_showed, created_at, updated_at
                 ) VALUES (
-                    :name, :category, :price, :original_price, :image, :description, :rating, :reviews, :sizes, :colors, :featured, :is_showed, NOW(), NOW()
+                    :name, :category, :price, :original_price, :image, :description, :rating, :reviews, :sizes, :colors, :stock, :featured, :is_showed, NOW(), NOW()
                 )'
             );
             $statement->execute($this->persistedProduct($payload));
@@ -163,6 +174,7 @@ final class ProductRepository
                     reviews = :reviews,
                     sizes = :sizes,
                     colors = :colors,
+                    stock = :stock,
                     featured = :featured,
                     is_showed = :is_showed,
                     updated_at = NOW()
@@ -222,8 +234,10 @@ final class ProductRepository
         $product['originalPrice'] = $product['original_price'] !== null ? (float) $product['original_price'] : null;
         $product['rating'] = (float) $product['rating'];
         $product['reviews'] = (int) $product['reviews'];
+        $product['stock'] = (int) $product['stock'];
         $product['featured'] = (bool) $product['featured'];
         $product['isShowed'] = (bool) $product['is_showed'];
+        $product['subcategory'] = $product['subcategory'] ?? null;
         $product['sizes'] = json_decode($product['sizes'], true, 512, JSON_THROW_ON_ERROR);
         $product['colors'] = json_decode($product['colors'], true, 512, JSON_THROW_ON_ERROR);
 
@@ -249,12 +263,14 @@ final class ProductRepository
             return [
                 'name' => $payload['name'],
                 'category' => $payload['category'],
+                'subcategory' => $payload['subcategory'] ?? null,
                 'price' => $payload['price'],
                 'original_price' => $payload['originalPrice'],
                 'image' => $payload['image'],
                 'description' => $payload['description'],
                 'rating' => $payload['rating'],
                 'reviews' => $payload['reviews'],
+                'stock' => $payload['stock'] ?? 0,
                 'sizes' => json_encode($payload['sizes'], JSON_THROW_ON_ERROR),
                 'colors' => json_encode($payload['colors'], JSON_THROW_ON_ERROR),
                 'featured' => $payload['featured'] ? 1 : 0,
