@@ -12,6 +12,7 @@
       </main>
       <Footer />
       <PermissionConsent />
+      <ToastContainer />
     </template>
   </div>
 </template>
@@ -22,6 +23,7 @@ import LoadingScreen from "./components/LoadingScreen.vue";
 import PermissionConsent from "./components/PermissionConsent.vue";
 import Navbar from "./components/Navbar.vue";
 import Footer from "./components/Footer.vue";
+import ToastContainer from "./components/ToastContainer.vue";
 import { resolveCustomerLocationOnLoad } from "./lib/location";
 import { useProductsStore } from "./stores/products";
 import { useCartStore } from "./stores/cart";

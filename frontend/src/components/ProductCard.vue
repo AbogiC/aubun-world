@@ -45,17 +45,24 @@
 <script setup>
 import { useRouter } from "vue-router";
 import { useCartStore } from "../stores/cart";
+import { useToastStore } from "../stores/toast";
 
 const props = defineProps({
   product: Object,
 });
 
 const cartStore = useCartStore();
+const toastStore = useToastStore();
 const router = useRouter();
 
 const quickAdd = () => {
-  cartStore.addToCart(props.product, "M", props.product.colors[0], 1);
-  router.push("/cart");
+  try {
+    cartStore.addToCart(props.product, "M", props.product.colors[0], 1);
+    toastStore.success("Added to cart!");
+    router.push("/cart");
+  } catch (error) {
+    toastStore.error(error.message);
+  }
 };
 </script>
 

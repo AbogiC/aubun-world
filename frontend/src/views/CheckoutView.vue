@@ -114,36 +114,6 @@
                 {{ errorMessage }}
               </div>
 
-              <div class="shipping-options-panel p-3 p-md-4 mt-4">
-                <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-center">
-                  <div>
-                    <h2 class="h5 mb-2">Pay with PayPal</h2>
-                    <p class="text-muted mb-0 small">
-                      Complete checkout with the PayPal flow.
-                    </p>
-                  </div>
-                  <div v-if="paypalLoading" class="text-muted small">Loading PayPal...</div>
-                </div>
-
-                <div v-if="paypalErrorMessage" class="alert alert-danger mt-3 mb-0">
-                  {{ paypalErrorMessage }}
-                </div>
-
-                <div v-if="!paypalEnabled && !paypalLoading" class="alert alert-warning mt-3 mb-0">
-                  PayPal checkout is not configured yet. Add your PayPal client credentials on the backend first.
-                </div>
-
-                <div
-                  v-show="paypalEnabled"
-                  id="paypal-button-container"
-                  class="mt-3"
-                  :class="{ 'paypal-button-container--busy': submitting }"
-                ></div>
-
-                <div v-if="paypalResultMessage" class="alert alert-success mt-3 mb-0">
-                  {{ paypalResultMessage }}
-                </div>
-              </div>
             </form>
           </div>
         </div>
@@ -181,6 +151,103 @@
               <strong>Total</strong>
               <strong>${{ totalWithShipping.toLocaleString() }}</strong>
             </div>
+
+            <button
+              type="button"
+              class="btn btn-luxury w-100 mt-4"
+              :disabled="processingPayment || !canPlaceOrder"
+              @click="processPayment"
+            >
+              {{ processingPayment ? "Processing Payment..." : "Process Payment" }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="showPaymentModal"
+        class="modal-overlay"
+        @click.self="closePaymentModal"
+      >
+        <div class="modal-dialog-box surface-elevated payment-modal-box">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <p class="section-kicker mb-2">Payment</p>
+              <h2 class="modal-title mb-0">Choose a payment method</h2>
+            </div>
+            <button type="button" class="btn btn-close-custom" @click="closePaymentModal">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <div class="payment-method-switch mb-4">
+            <button
+              type="button"
+              class="payment-method-button"
+              :class="{ active: selectedPaymentMethod === 'paypal' }"
+              @click="selectedPaymentMethod = 'paypal'"
+            >
+              PayPal
+            </button>
+            <button
+              type="button"
+              class="payment-method-button"
+              :class="{ active: selectedPaymentMethod === 'card' }"
+              @click="selectedPaymentMethod = 'card'"
+            >
+              Credit / Debit Card
+            </button>
+          </div>
+
+          <div v-if="paymentErrorMessage" class="alert alert-danger mb-3">
+            {{ paymentErrorMessage }}
+          </div>
+
+          <div v-if="selectedPaymentMethod === 'paypal'">
+            <div v-if="paypalLoading" class="text-muted small text-center">Loading PayPal...</div>
+            <div v-if="paypalErrorMessage" class="alert alert-danger mt-3 mb-0">
+              {{ paypalErrorMessage }}
+            </div>
+            <div
+              v-show="paypalEnabled && !paypalLoading"
+              id="checkout-paypal-button-container"
+              class="mt-3"
+              :class="{ 'paypal-button-container--busy': submitting }"
+            ></div>
+            <div v-if="!paypalEnabled && !paypalLoading" class="alert alert-warning mt-3 mb-0">
+              PayPal checkout is not configured yet. Add your PayPal client credentials on the backend first.
+            </div>
+          </div>
+
+          <div v-else class="card-payment-panel">
+            <div class="alert alert-info mb-3">
+              After this step, the order is set to pending payment and the customer is emailed that payment is in progress.
+            </div>
+
+            <form @submit.prevent="submitCardPayment">
+              <div class="mb-3 text-start">
+                <label class="form-label">Cardholder Name</label>
+                <input v-model="cardForm.name" class="form-control form-control-lg" required />
+              </div>
+              <div class="mb-3 text-start">
+                <label class="form-label">Card Number</label>
+                <input v-model="cardForm.number" class="form-control form-control-lg" inputmode="numeric" placeholder="1234 5678 9012 3456" required />
+              </div>
+              <div class="row g-3 mb-3 text-start">
+                <div class="col-6">
+                  <label class="form-label">Expiry</label>
+                  <input v-model="cardForm.expiry" class="form-control form-control-lg" placeholder="MM/YY" required />
+                </div>
+                <div class="col-6">
+                  <label class="form-label">CVV</label>
+                  <input v-model="cardForm.cvv" class="form-control form-control-lg" inputmode="numeric" placeholder="123" required />
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-luxury w-100" :disabled="cardProcessing">
+                {{ cardProcessing ? "Submitting Card Payment..." : "Pay with Card" }}
+              </button>
+            </form>
           </div>
         </div>
       </div>
@@ -210,12 +277,13 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { api } from "../lib/api";
 import { getBrowserLocation, lookupLocationByIp, reverseGeocode } from "../lib/location";
 import { useAuthStore } from "../stores/auth";
 import { useCartStore } from "../stores/cart";
 
+const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const cartStore = useCartStore();
@@ -232,6 +300,11 @@ const paypalErrorMessage = ref("");
 const paypalResultMessage = ref("");
 const paypalButtonsRendered = ref(false);
 const showOrderSuccessModal = ref(false);
+const showPaymentModal = ref(false);
+const selectedPaymentMethod = ref("paypal");
+const processingPayment = ref(false);
+const cardProcessing = ref(false);
+const paymentErrorMessage = ref("");
 const orderSuccessMessage = ref("");
 const shippingOptions = ref([]);
 const selectedShippingRateId = ref(null);
@@ -243,6 +316,12 @@ const shippingQuote = reactive({
   message: "Enter or detect your shipping country to see available delivery options.",
   alertClass: "alert-secondary",
   available: false,
+});
+const cardForm = reactive({
+  name: "",
+  number: "",
+  expiry: "",
+  cvv: "",
 });
 const form = reactive({
   firstName: authStore.user?.name?.split(" ")[0] || "",
@@ -400,6 +479,49 @@ const closeOrderSuccessModal = () => {
   router.push("/");
 };
 
+const closePaymentModal = () => {
+  showPaymentModal.value = false;
+  paymentErrorMessage.value = "";
+};
+
+const processPayment = async () => {
+  if (!validateCheckoutBeforePayment()) return;
+
+  processingPayment.value = true;
+  paymentErrorMessage.value = "";
+
+  try {
+    await cartStore.checkout(checkoutPayload.value);
+    showPaymentModal.value = true;
+    selectedPaymentMethod.value = "paypal";
+    paypalErrorMessage.value = "";
+    paypalResultMessage.value = "";
+    await initPayPalCheckout();
+  } catch (error) {
+    errorMessage.value = error.message || "Unable to process payment for this order.";
+  } finally {
+    processingPayment.value = false;
+  }
+};
+
+const submitCardPayment = async () => {
+  if (!validateCheckoutBeforePayment()) return;
+
+  cardProcessing.value = true;
+  paymentErrorMessage.value = "";
+
+  try {
+    await cartStore.checkout(checkoutPayload.value);
+    orderSuccessMessage.value = `${form.firstName || "Customer"}, your payment is being processed and a confirmation email has been sent.`;
+    showPaymentModal.value = false;
+    showOrderSuccessModal.value = true;
+  } catch (error) {
+    paymentErrorMessage.value = error.message || "Card payment could not be processed right now.";
+  } finally {
+    cardProcessing.value = false;
+  }
+};
+
 const loadPayPalSdk = (clientId, currencyCode) =>
   new Promise((resolve, reject) => {
     const existingScript = document.querySelector("#paypal-sdk-script");
@@ -419,7 +541,13 @@ const loadPayPalSdk = (clientId, currencyCode) =>
   });
 
 const renderPayPalButtons = async () => {
-  if (!paypalEnabled.value || paypalButtonsRendered.value || !paypalClientId.value) return;
+  const containerSelector = "#checkout-paypal-button-container";
+  const existingButtons = document.querySelector(containerSelector + " .paypal-buttons");
+  if (existingButtons) {
+    existingButtons.remove();
+  }
+
+  if (!paypalEnabled.value || !paypalClientId.value) return;
   paypalLoading.value = true;
 
   try {
@@ -465,12 +593,13 @@ const renderPayPalButtons = async () => {
             ? `Transaction ${transaction.status}: ${transaction.id}`
             : `Order ${order.orderNumber} placed successfully.`;
           orderSuccessMessage.value = `Order ${order.orderNumber} placed successfully.`;
+          closePaymentModal();
           showOrderSuccessModal.value = true;
         } catch (error) {
           paypalErrorMessage.value = error.message || "Sorry, your transaction could not be processed.";
         } finally { submitting.value = false; }
       },
-    }).render("#paypal-button-container");
+    }).render(containerSelector);
 
     paypalButtonsRendered.value = true;
   } catch (error) {
@@ -486,17 +615,35 @@ const initPayPalCheckout = async () => {
     paypalEnabled.value = Boolean(config.enabled && config.clientId);
     paypalClientId.value = config.clientId || "";
     paypalCurrencyCode.value = config.currencyCode || "USD";
-    if (paypalEnabled.value) await renderPayPalButtons();
+    if (paypalEnabled.value && showPaymentModal.value) await renderPayPalButtons();
   } catch (error) {
     paypalEnabled.value = false;
     paypalErrorMessage.value = error.message || "Unable to load PayPal checkout settings.";
   } finally { paypalLoading.value = false; }
 };
 
+watch(showPaymentModal, async (isOpen) => {
+  if (isOpen) {
+    await initPayPalCheckout();
+  }
+});
+
 watch(() => form.country, (country) => { fetchShippingOptions(country); });
 
 onMounted(() => {
   fetchShippingOptions(form.country);
+
+  const shouldResumePayment = [
+    route.query.resumePayment,
+    route.query.resume,
+  ].some((value) => value === "1" || value === "true" || value === "yes");
+
+  if (shouldResumePayment) {
+    showPaymentModal.value = true;
+    selectedPaymentMethod.value = "paypal";
+    paymentErrorMessage.value = "";
+  }
+
   initPayPalCheckout();
 });
 </script>

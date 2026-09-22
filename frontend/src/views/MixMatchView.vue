@@ -408,11 +408,13 @@ import { api } from "../lib/api";
 import { useProductsStore } from "../stores/products";
 import { useCartStore } from "../stores/cart";
 import { useAuthStore } from "../stores/auth";
+import { useToastStore } from "../stores/toast";
 
 const router = useRouter();
 const productsStore = useProductsStore();
 const cartStore = useCartStore();
 const authStore = useAuthStore();
+const toastStore = useToastStore();
 
 const mixRootRef = ref(null);
 const selectedSlot = ref("");
@@ -570,12 +572,25 @@ const shuffleLook = () => {
 
 const addOutfitToCart = () => {
   if (!activeOutfitSlots.value.length) return;
+  let successCount = 0;
+  let errorCount = 0;
   activeOutfitSlots.value.forEach((slot) => {
     const selection = selections[slot.key];
-    cartStore.addToCart(selection.product, selection.size, selection.color, 1);
+    try {
+      cartStore.addToCart(selection.product, selection.size, selection.color, 1);
+      successCount++;
+    } catch (error) {
+      errorCount++;
+    }
   });
+  if (successCount > 0) {
+    toastStore.success(`${successCount} item(s) added to cart!`);
+  }
+  if (errorCount > 0) {
+    toastStore.error(`${errorCount} item(s) exceeded available stock.`);
+  }
   addedModal.open = true;
-  addedModal.count = activeOutfitSlots.value.length;
+  addedModal.count = successCount;
 };
 
 const closeAddedModal = () => { addedModal.open = false; };

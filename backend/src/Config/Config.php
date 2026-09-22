@@ -20,6 +20,13 @@ final class Config
             'PAYPAL_CLIENT_SECRET' => '',
             'PAYPAL_BASE_URL' => 'https://api-m.sandbox.paypal.com',
             'PAYPAL_CURRENCY' => 'USD',
+            'SMTP_HOST' => 'smtpout.secureserver.net',
+            'SMTP_PORT' => '587',
+            'SMTP_USERNAME' => 'no-reply@aubunworld.com',
+            'SMTP_PASSWORD' => '',
+            'SMTP_ENCRYPTION' => 'tls',
+            'SMTP_FROM_EMAIL' => 'no-reply@aubunworld.com',
+            'SMTP_FROM_NAME' => 'AUBUN WORLD',
         ];
 
         $env = $defaults;
@@ -57,6 +64,15 @@ final class Config
                 'client_secret' => $env['PAYPAL_CLIENT_SECRET'] ?? '',
                 'base_url' => $env['PAYPAL_BASE_URL'] ?? 'https://api-m.sandbox.paypal.com',
                 'currency' => strtoupper($env['PAYPAL_CURRENCY'] ?? 'USD'),
+            ],
+            'smtp' => [
+                'host' => $env['SMTP_HOST'] ?? 'smtpout.secureserver.net',
+                'port' => (int) ($env['SMTP_PORT'] ?? 587),
+                'username' => $env['SMTP_USERNAME'] ?? 'noreply@aubunworld.com',
+                'password' => $env['SMTP_PASSWORD'] ?? '',
+                'encryption' => $env['SMTP_ENCRYPTION'] ?? 'tls',
+                'from_email' => $env['SMTP_FROM_EMAIL'] ?? 'noreply@aubunworld.com',
+                'from_name' => $env['SMTP_FROM_NAME'] ?? 'AUBUN WORLD',
             ],
         ];
     }

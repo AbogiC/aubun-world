@@ -165,11 +165,9 @@ import { useRoute, useRouter } from "vue-router";
 import LoadingScreen from "./components/LoadingScreen.vue";
 import { useAuthStore } from "./stores/auth";
 import { useProductsStore } from "./stores/products";
-import { useCartStore } from "./stores/cart";
 
 const authStore = useAuthStore();
 const productsStore = useProductsStore();
-const cartStore = useCartStore();
 const router = useRouter();
 const route = useRoute();
 
@@ -218,7 +216,6 @@ onMounted(async () => {
   }
 
   await authStore.initialize();
-  cartStore.refreshFromApi();
 
   // Restore sidebar state from localStorage
   const savedCollapsed = localStorage.getItem("admin_sidebar_collapsed");

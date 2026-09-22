@@ -52,12 +52,20 @@ export const useCartStore = defineStore("cart", {
     },
 
     addToCart(product, size, color, quantity = 1) {
+      const availableStock = product.stock ?? 0;
       const existingItem = this.items.find(
         (item) => item.id === product.id && item.size === size && item.color === color,
       );
 
+      const currentInCart = existingItem ? existingItem.quantity : 0;
+      const newQuantity = currentInCart + quantity;
+
+      if (newQuantity > availableStock) {
+        throw new Error(`Only ${availableStock} item(s) available in stock.`);
+      }
+
       if (existingItem) {
-        existingItem.quantity += quantity;
+        existingItem.quantity = newQuantity;
       } else {
         this.items.push({
           id: product.id,
@@ -102,6 +110,11 @@ export const useCartStore = defineStore("cart", {
         (item) => item.id === productId && item.size === size && item.color === color,
       );
       if (item) {
+        // We need the product stock info - check if available in item or we need to pass product
+        // For now, just validate quantity > 0
+        if (quantity <= 0) {
+          throw new Error('Quantity must be at least 1.');
+        }
         item.quantity = quantity;
         this.persistLocalState();
 

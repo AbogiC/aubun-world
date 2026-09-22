@@ -21,6 +21,7 @@ use App\Controllers\GuidelineController;
 use App\Controllers\NewsController;
 use App\Controllers\VoucherController;
 use App\Controllers\HomeViewSettingsController;
+use App\Controllers\TestEmailController;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
@@ -83,9 +84,14 @@ $pdo = $database->connection();
 
 $authService = new AuthService($config['app']['key']);
 $emailService = new EmailService(
-    'noreply@aubunworld.com',
-    'AUBUN WORLD',
-    $config['app']['base_url']
+    $config['smtp']['from_email'] ?: 'noreply@aubunworld.com',
+    $config['smtp']['from_name'] ?: 'AUBUN WORLD',
+    $config['app']['base_url'],
+    $config['smtp']['host'],
+    $config['smtp']['port'],
+    $config['smtp']['username'],
+    $config['smtp']['password'],
+    $config['smtp']['encryption']
 );
 $userRepository = new UserRepository($pdo);
 $productRepository = new ProductRepository($pdo);
@@ -119,6 +125,7 @@ $newsController = new NewsController($newsRepository, $notificationRepository);
 $voucherController = new VoucherController($voucherRepository, $productRepository);
 $notificationController = new NotificationController($notificationRepository);
 $homeViewSettingsController = new HomeViewSettingsController($homeViewSettingsRepository);
+$testEmailController = new TestEmailController($emailService);
 $mixMatchConfigRepository = new MixMatchConfigRepository($pdo);
 $mixMatchService = new MixMatchService($productRepository, $mixMatchConfigRepository);
 $mixMatchRepository = new MixMatchRepository($pdo, $mixMatchService);
@@ -184,6 +191,7 @@ $router->post('/api/orders/webhook', [$orderController, 'paypalWebhook']);
 $router->post('/api/orders', [$orderController, 'create']);
 $router->post('/api/orders/{orderID}/capture', [$orderController, 'capture']);
 $router->post('/api/orders/checkout', [$orderController, 'checkout']);
+$router->post('/api/test-email', [$testEmailController, 'send']);
 
 // Cron jobs
 $router->post('/api/cron/cancel-expired-orders', [$cronController, 'cancelExpiredOrders']);

@@ -166,11 +166,13 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useProductsStore } from "../stores/products";
 import { useCartStore } from "../stores/cart";
+import { useToastStore } from "../stores/toast";
 
 const route = useRoute();
 const router = useRouter();
 const productsStore = useProductsStore();
 const cartStore = useCartStore();
+const toastStore = useToastStore();
 const product = computed(() => {
   const found = productsStore.products.find((p) => p.id === parseInt(route.params.id));
   if (found && found.isShowed === false) return null;
@@ -196,8 +198,13 @@ onMounted(() => {
 });
 
 const addToCart = () => {
-  cartStore.addToCart(product.value, selectedSize.value, selectedColor.value, quantity.value);
-  router.push("/cart");
+  try {
+    cartStore.addToCart(product.value, selectedSize.value, selectedColor.value, quantity.value);
+    toastStore.success("Added to cart!");
+    router.push("/cart");
+  } catch (error) {
+    toastStore.error(error.message);
+  }
 };
 </script>
 
