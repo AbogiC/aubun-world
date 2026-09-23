@@ -27,6 +27,10 @@ final class Config
             'SMTP_ENCRYPTION' => 'tls',
             'SMTP_FROM_EMAIL' => 'no-reply@aubunworld.com',
             'SMTP_FROM_NAME' => 'AUBUN WORLD',
+            'MICROSOFT_CLIENT_ID' => '',
+            'MICROSOFT_TENANT_ID' => '',
+            'MICROSOFT_CLIENT_SECRET' => '',
+            'MICROSOFT_SENDER_EMAIL' => 'no-reply@aubunworld.com',
         ];
 
         $env = $defaults;
@@ -73,6 +77,12 @@ final class Config
                 'encryption' => $env['SMTP_ENCRYPTION'] ?? 'tls',
                 'from_email' => $env['SMTP_FROM_EMAIL'] ?? 'noreply@aubunworld.com',
                 'from_name' => $env['SMTP_FROM_NAME'] ?? 'AUBUN WORLD',
+            ],
+            'microsoft' => [
+                'client_id' => $env['MICROSOFT_CLIENT_ID'] ?? '',
+                'tenant_id' => $env['MICROSOFT_TENANT_ID'] ?? '',
+                'client_secret' => $env['MICROSOFT_CLIENT_SECRET'] ?? '',
+                'sender_email' => $env['MICROSOFT_SENDER_EMAIL'] ?? 'no-reply@aubunworld.com',
             ],
         ];
     }

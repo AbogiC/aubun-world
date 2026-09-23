@@ -114,14 +114,40 @@ final class OrderController
         $isGuest = !$user || empty($user['id']);
         $userId = $isGuest ? null : (int) $user['id'];
 
-        if ($isGuest) {
-            $payload = $this->checkoutPayload($request);
-            $checkout = $this->orders->prepareGuestCheckout($payload);
-        } else {
-            $checkout = $this->orders->prepareCheckoutFromCart($userId, $this->checkoutPayload($request));
-        }
+        $payload = $this->checkoutPayload($request);
+        $checkout = $isGuest
+            ? $this->orders->prepareGuestCheckout($payload)
+            : $this->orders->prepareCheckoutFromCart($userId, $payload);
 
         $paypalOrder = $this->paypal->createOrder($checkout);
+        $paypalOrderId = (string) ($paypalOrder['id'] ?? '');
+
+        if ($paypalOrderId !== '') {
+            $pendingPayload = [
+                ...$payload,
+                'status' => 'pending',
+                'paypal_order_id' => $paypalOrderId,
+            ];
+
+            try {
+                if ($isGuest) {
+                    $order = $this->orders->createFromGuestCart($pendingPayload, $payload['items'] ?? []);
+                } else {
+                    $order = $this->orders->createFromCart($userId, $pendingPayload);
+                }
+
+                $this->email->sendPaymentPendingEmail(
+                    $order['customerEmail'],
+                    $order['customerName'],
+                    array_merge($order, [
+                        'paymentMethod' => $payload['payment_method'] ?? 'paypal',
+                        'paymentMethodLabel' => $payload['payment_method_label'] ?: 'PayPal',
+                    ])
+                );
+            } catch (\Throwable $e) {
+                error_log('Pending-order email failed for PayPal order ' . $paypalOrderId . ': ' . $e->getMessage());
+            }
+        }
 
         return [
             ...$paypalOrder,
@@ -141,35 +167,45 @@ final class OrderController
         $paypalOrder = $this->paypal->getOrder($paypalOrderId);
 
         $resolvedStatus = $this->resolveOrderStatus($paypalOrder);
+        $payload = $this->checkoutPayload($request);
+
+        $existingOrder = $this->orders->findByPayPalOrderId($paypalOrderId);
+        if ($existingOrder && ($existingOrder['status'] ?? '') === 'paid') {
+            $resolvedStatus = 'paid';
+        }
 
         if ($isGuest) {
-            $payload = $this->checkoutPayload($request);
-            $order = $this->orders->createFromGuestCart([
-                ...$payload,
-                'status' => $resolvedStatus,
-                'paypal_order_id' => $paypalOrderId,
-            ], $payload['items'] ?? []);
+            $order = $existingOrder
+                ? $this->orders->createFromGuestCart([
+                    ...$payload,
+                    'status' => $resolvedStatus,
+                    'paypal_order_id' => $paypalOrderId,
+                ], $payload['items'] ?? [])
+                : $this->orders->createFromGuestCart([
+                    ...$payload,
+                    'status' => $resolvedStatus,
+                    'paypal_order_id' => $paypalOrderId,
+                ], $payload['items'] ?? []);
         } else {
-            $order = $this->orders->createFromCart($userId, [
-                ...$this->checkoutPayload($request),
-                'status' => $resolvedStatus,
-                'paypal_order_id' => $paypalOrderId,
-            ]);
+            if ($existingOrder) {
+                $this->orders->updateStatus((int) $existingOrder['id'], $resolvedStatus);
+                $order = $this->orders->findByPayPalOrderId($paypalOrderId) ?? $existingOrder;
+            } else {
+                $order = $this->orders->createFromCart($userId, [
+                    ...$payload,
+                    'status' => $resolvedStatus,
+                    'paypal_order_id' => $paypalOrderId,
+                ]);
+            }
         }
 
         // Send appropriate email based on payment status.
-        // Email must not block order creation — order already exists at this point.
+        // Only send the final confirmation after successful payment.
         $order['paymentMethod'] = $payload['payment_method'] ?? 'paypal';
         $order['paymentMethodLabel'] = $payload['payment_method_label'] ?: 'PayPal';
         try {
-            if ($resolvedStatus === 'paid') {
+            if ($resolvedStatus === 'paid' && ($existingOrder['status'] ?? 'pending') !== 'paid') {
                 $this->email->sendPaymentConfirmedEmail(
-                    $order['customerEmail'],
-                    $order['customerName'],
-                    $order
-                );
-            } else {
-                $this->email->sendPaymentPendingEmail(
                     $order['customerEmail'],
                     $order['customerName'],
                     $order

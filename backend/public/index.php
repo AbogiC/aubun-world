@@ -126,7 +126,12 @@ $newsController = new NewsController($newsRepository, $notificationRepository);
 $voucherController = new VoucherController($voucherRepository, $productRepository);
 $notificationController = new NotificationController($notificationRepository);
 $homeViewSettingsController = new HomeViewSettingsController($homeViewSettingsRepository);
-$testEmailController = new TestEmailController($emailService);
+$testEmailController = new TestEmailController(
+    $config['microsoft']['client_id'] ?? '',
+    $config['microsoft']['tenant_id'] ?? '',
+    $config['microsoft']['client_secret'] ?? '',
+    $config['microsoft']['sender_email'] ?? ''
+);
 $userController = new UserController($userRepository);
 $mixMatchConfigRepository = new MixMatchConfigRepository($pdo);
 $mixMatchService = new MixMatchService($productRepository, $mixMatchConfigRepository);

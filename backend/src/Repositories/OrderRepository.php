@@ -94,9 +94,20 @@ final class OrderRepository
             'selected_rate' => $selectedRate,
             'shipping' => $shipping,
             'total' => $total,
+            'status' => $status,
+            'paypal_order_id' => $paypalOrderId,
         ];
 
         return $this->createOrder($customerName, $email, $checkout, null, ['items' => $items]);
+    }
+
+    public function findByPayPalOrderId(string $paypalOrderId): ?array
+    {
+        $statement = $this->pdo->prepare('SELECT * FROM orders WHERE paypal_order_id = :paypal_order_id LIMIT 1');
+        $statement->execute(['paypal_order_id' => $paypalOrderId]);
+        $order = $statement->fetch();
+
+        return $order ? $this->mapOrder($order) : null;
     }
 
     private function createOrder(string $customerName, string $email, array $checkout, ?int $userId, array $cart): array
