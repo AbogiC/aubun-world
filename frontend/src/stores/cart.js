@@ -57,8 +57,14 @@ export const useCartStore = defineStore("cart", {
         const { cart } = await api.get("/cart");
         this.syncFromPayload(cart);
         clearLocalCart();
-      } catch {
-        // Keep storefront usable even if the visitor is not logged in yet.
+      } catch (error) {
+        // If authenticated but API fails, clear localStorage to avoid stale data
+        if (getAuthToken()) {
+          clearLocalCart();
+          this.items = [];
+          this.discount = 0;
+          this.discountCode = null;
+        }
       }
     },
 

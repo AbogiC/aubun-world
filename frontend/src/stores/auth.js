@@ -76,7 +76,9 @@ export const useAuthStore = defineStore("auth", {
         
         // Migrate localStorage cart to database for logged-in user
         const cartStore = useCartStore();
-        if (cartStore.items.length > 0) {
+        const hadLocalItems = cartStore.items.length > 0;
+        
+        if (hadLocalItems) {
           try {
             for (const item of cartStore.items) {
               await api.post("/cart/items", {
@@ -86,14 +88,13 @@ export const useAuthStore = defineStore("auth", {
                 color: item.color,
               });
             }
-            // Refresh cart from API and clear localStorage
-            await cartStore.refreshFromApi();
-          } catch {
-            // If migration fails, still proceed with login
+          } catch (migrationError) {
+            console.warn('Cart migration failed:', migrationError);
           }
-        } else {
-          await cartStore.refreshFromApi();
         }
+        
+        // Always refresh from API after login (this will clear localStorage)
+        await cartStore.refreshFromApi();
         
         return user;
       } catch (error) {
