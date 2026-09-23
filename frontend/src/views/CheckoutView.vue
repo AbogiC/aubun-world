@@ -164,59 +164,20 @@
         </div>
       </div>
 
-      <div
-        v-if="showPaymentModal"
-        class="modal-overlay"
-        @click.self="closePaymentModal"
-      >
-        <div class="modal-dialog-box surface-elevated payment-modal-box">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <p class="section-kicker mb-2">Payment</p>
-              <h2 class="modal-title mb-0">Choose a payment method</h2>
-            </div>
-            <button type="button" class="btn btn-close-custom" @click="closePaymentModal">
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </div>
-
-          <div class="payment-method-switch mb-4" aria-label="Payment method selector">
-            <button
-              type="button"
-              class="payment-method-button active"
-              disabled
-            >
-              PayPal
-            </button>
-          </div>
-
-          <div v-if="paymentErrorMessage" class="alert alert-danger mb-3">
-            {{ paymentErrorMessage }}
-          </div>
-
-          <div v-if="pendingInvoiceEmail" class="alert mb-3" :class="pendingInvoiceSent ? 'alert-success' : 'alert-info'">
-            <i class="bi bi-envelope-check"></i>
-            Order invoice {{ pendingInvoiceSent ? 'sent' : 'being sent' }} to <strong>{{ pendingInvoiceEmail }}</strong>.
-            Complete your PayPal payment below to confirm the order.
-          </div>
-
-          <div>
-            <div v-if="paypalLoading" class="text-muted small text-center">Loading PayPal...</div>
-            <div v-if="paypalErrorMessage" class="alert alert-danger mt-3 mb-0">
-              {{ paypalErrorMessage }}
-            </div>
-            <div
-              v-show="paypalEnabled && !paypalLoading"
-              id="checkout-paypal-button-container"
-              class="mt-3"
-              :class="{ 'paypal-button-container--busy': submitting }"
-            ></div>
-            <div v-if="!paypalEnabled && !paypalLoading" class="alert alert-warning mt-3 mb-0">
-              PayPal checkout is not configured yet. Add your PayPal client credentials on the backend first.
-            </div>
-          </div>
-        </div>
-      </div>
+      <CheckoutPaymentModal
+        :show="showPaymentModal"
+        :email="form.email"
+        :item-count="pendingItemCount ?? cartStore.totalItems"
+        :total="pendingPayPalTotal ?? totalWithShipping"
+        :payment-error="paymentErrorMessage"
+        :invoice-email="pendingInvoiceEmail"
+        :invoice-sent="pendingInvoiceSent"
+        :paypal-loading="paypalLoading"
+        :paypal-error="paypalErrorMessage"
+        :paypal-enabled="paypalEnabled"
+        :submitting="submitting"
+        @close="closePaymentModal"
+      />
 
       <div
         v-if="showOrderSuccessModal"
@@ -246,8 +207,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import CheckoutPaymentModal from "../components/CheckoutPaymentModal.vue";
 import { api } from "../lib/api";
 import { getBrowserLocation, lookupLocationByIp, reverseGeocode } from "../lib/location";
 import { useAuthStore } from "../stores/auth";
@@ -279,6 +241,8 @@ const pendingPayPalOrderId = ref(null);
 const pendingPayPalTotal = ref(null);
 const pendingInvoiceEmail = ref("");
 const pendingInvoiceSent = ref(false);
+const pendingItemCount = ref(null);
+const pendingPayloadSnapshot = ref(null);
 const orderSuccessMessage = ref("");
 const orderInvoiceEmail = ref("");
 const shippingOptions = ref([]);
@@ -436,30 +400,26 @@ const formatDistanceRange = (option) => {
   return `${Number(option.minDistanceKm).toLocaleString()}-${Number(option.maxDistanceKm).toLocaleString()} km distance band`;
 };
 
-const validateCheckoutBeforePayment = () => {
-  paypalResultMessage.value = "";
+const validateFormOnly = () => {
   if (checkoutFormRef.value && !checkoutFormRef.value.reportValidity()) {
     errorMessage.value = "Please complete all required checkout fields before continuing to PayPal.";
     return false;
   }
-  
-  // Check cart based on authentication status
-  if (isAuthenticated.value) {
-    // For logged-in users, cart should come from database
-    if (!cartStore.items.length) {
-      errorMessage.value = "Your cart is empty. Please add items to your cart before checkout.";
-      return false;
-    }
-  } else {
-    // For guest users, cart should come from localStorage
-    if (!cartStore.items.length) {
-      errorMessage.value = "Your cart is empty. Please add items to your cart before checkout.";
-      return false;
-    }
-  }
-  
   if (!canPlaceOrder.value) { errorMessage.value = "Please choose an available shipping option before placing your order."; return false; }
   errorMessage.value = "";
+  return true;
+};
+
+const validateCheckoutBeforePayment = () => {
+  paypalResultMessage.value = "";
+  if (!validateFormOnly()) return false;
+
+  // Check cart based on authentication status
+  if (!cartStore.items.length && !pendingPayloadSnapshot.value) {
+    errorMessage.value = "Your cart is empty. Please add items to your cart before checkout.";
+    return false;
+  }
+
   return true;
 };
 
@@ -486,6 +446,16 @@ const closePaymentModal = () => {
 };
 
 const processPayment = async () => {
+  // Reopen case: cart was already cleared after the invoice email was
+  // sent, but the pending PayPal order still awaits payment.
+  if (!cartStore.items.length && pendingPayPalOrderId.value && pendingPayloadSnapshot.value) {
+    if (!validateFormOnly()) return;
+    selectedPaymentMethod.value = "paypal";
+    destroyPayPalButtons();
+    showPaymentModal.value = true;
+    return;
+  }
+
   if (!validateCheckoutBeforePayment()) return;
 
   // Create the pending order + send the "awaiting payment" invoice email
@@ -505,6 +475,10 @@ const processPayment = async () => {
       pendingInvoiceEmail.value !== form.email;
 
     if (needsNewOrder) {
+      // Snapshot the order payload BEFORE clearing: capture needs these
+      // exact items/totals after the cart is emptied below.
+      const payloadToSend = cartStore.buildOrderPayload(checkoutPayload.value);
+      const itemCountToSend = cartStore.totalItems;
       const orderData = await cartStore.createPayPalOrder(checkoutPayload.value);
       if (!orderData?.id) {
         throw new Error("Could not initiate PayPal checkout. Please try again.");
@@ -513,6 +487,13 @@ const processPayment = async () => {
       pendingPayPalTotal.value = currentTotal;
       pendingInvoiceEmail.value = form.email;
       pendingInvoiceSent.value = Boolean(orderData.pendingEmailSent);
+      pendingItemCount.value = itemCountToSend;
+      pendingPayloadSnapshot.value = payloadToSend;
+
+      // Invoice email sent — empty the cart now, for guests (localStorage)
+      // and logged-in users (DB cart via API + backend cleared it when the
+      // pending order was created).
+      cartStore.clearCart();
     }
 
     selectedPaymentMethod.value = "paypal";
@@ -562,7 +543,10 @@ const renderPayPalButtons = async () => {
     await window.paypal.Buttons({
       style: { shape: "rect", layout: "vertical", color: "gold", label: "paypal" },
       async onClick(_data, actions) {
-        if (!validateCheckoutBeforePayment()) return actions.reject();
+        // Cart is already cleared once the invoice email is sent — in that
+        // case the snapshot holds the order, so only the form needs to be valid.
+        const valid = pendingPayloadSnapshot.value ? validateFormOnly() : validateCheckoutBeforePayment();
+        if (!valid) return actions.reject();
         paypalErrorMessage.value = "";
         return actions.resolve();
       },
@@ -571,15 +555,14 @@ const renderPayPalButtons = async () => {
         paypalErrorMessage.value = "";
         try {
           // Reuse the pending PayPal order created by Process Payment
-          // (invoice email already sent). Only create a fresh one when
-          // resuming via email link or when the total changed.
-          if (pendingPayPalOrderId.value && pendingPayPalTotal.value === totalWithShipping.value) {
+          // (invoice email already sent, cart already cleared).
+          if (pendingPayPalOrderId.value) {
             return pendingPayPalOrderId.value;
           }
-          const orderData = await cartStore.createPayPalOrder(checkoutPayload.value);
+          const orderData = await cartStore.createPayPalOrder(pendingPayloadSnapshot.value ?? checkoutPayload.value);
           if (orderData.id) {
             pendingPayPalOrderId.value = orderData.id;
-            pendingPayPalTotal.value = totalWithShipping.value;
+            pendingPayPalTotal.value = pendingPayloadSnapshot.value?.total ?? totalWithShipping.value;
             pendingInvoiceEmail.value = form.email;
             pendingInvoiceSent.value = Boolean(orderData.pendingEmailSent);
             return orderData.id;
@@ -596,7 +579,7 @@ const renderPayPalButtons = async () => {
         paypalErrorMessage.value = "";
         paypalResultMessage.value = "";
         try {
-          const { order, paypalOrder } = await cartStore.capturePayPalOrder(data.orderID, checkoutPayload.value);
+          const { order, paypalOrder } = await cartStore.capturePayPalOrder(data.orderID, pendingPayloadSnapshot.value ?? checkoutPayload.value);
           const errorDetail = paypalOrder?.details?.[0];
           if (errorDetail?.issue === "INSTRUMENT_DECLINED") return actions.restart();
           if (errorDetail) throw new Error(`${errorDetail.description} (${paypalOrder.debug_id})`);
@@ -615,13 +598,13 @@ const renderPayPalButtons = async () => {
           orderInvoiceEmail.value = order.customerEmail || form.email;
           // Pending order is now paid — clear it so the next checkout
           // creates a fresh PayPal order instead of reusing this one.
+          // (Cart was already emptied when the invoice email was sent.)
           pendingPayPalOrderId.value = null;
           pendingPayPalTotal.value = null;
           pendingInvoiceSent.value = false;
-          if (!getAuthToken()) {
-            // Backend has no server cart for guests, so clear localStorage cart here.
-            cartStore.clearCart();
-          }
+          pendingItemCount.value = null;
+          pendingPayloadSnapshot.value = null;
+          cartStore.clearCart();
           closePaymentModal();
           showOrderSuccessModal.value = true;
         } catch (error) {
@@ -653,6 +636,9 @@ const initPayPalCheckout = async () => {
 
 watch(showPaymentModal, async (isOpen) => {
   if (isOpen) {
+    // Teleported modal mounts async — wait a tick so the PayPal
+    // container exists before rendering buttons into it.
+    await nextTick();
     destroyPayPalButtons();
     await initPayPalCheckout();
   }
@@ -666,6 +652,7 @@ watch(selectedPaymentMethod, async (method) => {
     return;
   }
 
+  await nextTick();
   destroyPayPalButtons();
   await initPayPalCheckout();
 });
@@ -757,47 +744,335 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
+  padding: 1.25rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background:
-    linear-gradient(180deg, rgba(20, 10, 12, 0.5), rgba(20, 10, 12, 0.66)),
-    radial-gradient(circle at top, rgba(40, 167, 69, 0.14), transparent 38%);
-  backdrop-filter: blur(6px);
+    linear-gradient(180deg, rgba(20, 10, 12, 0.55), rgba(20, 10, 12, 0.72)),
+    radial-gradient(circle at 50% 0%, rgba(254, 181, 17, 0.16), transparent 42%),
+    radial-gradient(circle at 85% 100%, rgba(40, 167, 69, 0.1), transparent 40%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: overlayFade 0.22s ease;
+}
+
+@keyframes overlayFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.payment-overlay {
+  padding: clamp(0.75rem, 3vw, 1.5rem);
 }
 
 .payment-modal-box {
   width: min(100%, 620px);
-  padding: 1.5rem 1.25rem;
-  border: 1px solid rgba(77, 16, 24, 0.08);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.28);
   border-radius: 1.5rem;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 24px 60px rgba(20, 10, 12, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 251, 235, 0.98));
+  box-shadow:
+    0 32px 80px rgba(20, 10, 12, 0.28),
+    0 2px 0 rgba(212, 175, 55, 0.35) inset;
+}
+
+.payment-lux {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: min(90vh, 760px);
+  max-height: min(90dvh, 760px);
+}
+
+.payment-lux__glow {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 120px;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(77, 16, 24, 0.1), transparent 45%),
+    linear-gradient(315deg, rgba(212, 175, 55, 0.22), transparent 55%);
+}
+
+.payment-lux__header {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+  padding: 1.4rem 1.4rem 1rem;
+  border-bottom: 1px solid rgba(77, 16, 24, 0.08);
+}
+
+.payment-lux__subtitle {
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+}
+
+.payment-lux__subtitle i {
+  color: var(--success);
+  margin-right: 0.3rem;
+}
+
+.payment-lux__close {
+  flex-shrink: 0;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(77, 16, 24, 0.12);
+  background: rgba(255, 255, 255, 0.8);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.payment-lux__close:hover {
+  transform: rotate(90deg);
+  box-shadow: 0 8px 20px rgba(77, 16, 24, 0.14);
+}
+
+.payment-lux__summary {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 1.4fr 0.6fr 1fr;
+  gap: 0.75rem;
+  margin: 1rem 1.4rem 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(77, 16, 24, 0.08);
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgba(77, 16, 24, 0.04), rgba(254, 181, 17, 0.12));
+}
+
+.payment-lux__summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.payment-lux__summary-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.payment-lux__summary-value {
+  font-size: 0.95rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.payment-lux__summary-value--truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.payment-lux__summary-item--total {
+  text-align: right;
+}
+
+.payment-lux__total {
+  font-family: Georgia, serif;
+  font-size: 1.25rem;
+  letter-spacing: 0.01em;
+  background: linear-gradient(135deg, #4d1018, #8a6d1c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.payment-lux__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 1.4rem 1.2rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(77, 16, 24, 0.3) transparent;
+}
+
+.payment-lux__body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.payment-lux__body::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(77, 16, 24, 0.35), rgba(212, 175, 55, 0.5));
+}
+
+.payment-lux__body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .payment-method-switch {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.75rem;
-  padding: 0.35rem;
+  padding: 0.4rem;
   border: 1px solid rgba(77, 16, 24, 0.08);
   border-radius: 1rem;
   background: rgba(77, 16, 24, 0.03);
 }
 
 .payment-method-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
   border: 1px solid transparent;
   border-radius: 0.8rem;
   background: transparent;
   color: var(--ink-soft);
-  font-weight: 600;
-  padding: 0.9rem 1rem;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  padding: 0.95rem 1rem;
   transition: all 220ms ease;
 }
 
+.payment-method-button i {
+  font-size: 1.25rem;
+  color: #003087;
+}
+
 .payment-method-button.active {
-  background: linear-gradient(135deg, rgba(77, 16, 24, 0.08), rgba(254, 181, 17, 0.2));
-  border-color: rgba(77, 16, 24, 0.12);
+  background: linear-gradient(135deg, rgba(77, 16, 24, 0.07), rgba(254, 181, 17, 0.22));
+  border-color: rgba(212, 175, 55, 0.4);
   color: var(--ink);
   box-shadow: 0 8px 20px rgba(77, 16, 24, 0.08);
+}
+
+.payment-lux__badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  color: #4d1018;
+  background: linear-gradient(135deg, #feb511, #f3d27a);
+  box-shadow: 0 4px 12px rgba(254, 181, 17, 0.4);
+}
+
+.payment-lux__methods {
+  margin-bottom: 0.9rem;
+}
+
+.payment-lux__secure-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  padding: 0 0.35rem 0.15rem;
+}
+
+.payment-lux__secure-note i {
+  color: var(--success);
+  margin-top: 0.15rem;
+}
+
+.payment-lux__invoice {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  border-radius: 1rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  border: 1px solid;
+}
+
+.payment-lux__invoice i {
+  font-size: 1.25rem;
+  margin-top: 0.1rem;
+}
+
+.payment-lux__invoice--sent {
+  color: #1e7e34;
+  background: linear-gradient(135deg, #e8f5e9, #f4fbf4);
+  border-color: rgba(40, 167, 69, 0.32);
+}
+
+.payment-lux__invoice--pending {
+  color: #7a5b00;
+  background: linear-gradient(135deg, #fff8e1, #fffdf3);
+  border-color: rgba(254, 181, 17, 0.45);
+}
+
+.payment-lux__paypal {
+  min-height: 90px;
+}
+
+.payment-lux__skeleton-line {
+  height: 0.8rem;
+  width: 55%;
+  margin: 0 auto 0.9rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eee 25%, #f7f7f7 50%, #eee 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
+.payment-lux__skeleton-btn {
+  height: 3rem;
+  border-radius: 0.8rem;
+  margin-bottom: 0.7rem;
+  background: linear-gradient(90deg, #ffc439 25%, #ffd970 50%, #ffc439 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
+.payment-lux__skeleton-btn--dark {
+  background: linear-gradient(90deg, #2c2e2f 25%, #4a4d4f 50%, #2c2e2f 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.payment-lux__footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.9rem 1.4rem 1.2rem;
+  border-top: 1px solid rgba(77, 16, 24, 0.08);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.payment-lux__assurance {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.payment-lux__assurance i {
+  color: var(--success);
+}
+
+.payment-lux__cancel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 0.3rem 0.4rem;
+}
+
+.payment-lux__cancel:hover {
+  color: var(--ink);
+  text-decoration: underline;
 }
 
 .card-payment-panel {
@@ -811,6 +1086,10 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   text-align: center;
   animation: modalIn 0.25s ease;
+  max-height: min(90vh, 720px);
+  max-height: min(90dvh, 720px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 @keyframes modalIn {
@@ -867,16 +1146,75 @@ onMounted(() => {
 }
 
 @media (max-width: 575.98px) {
-  .payment-modal-box {
-    padding: 1.1rem 1rem;
-    border-radius: 1.15rem;
+  .modal-overlay,
+  .payment-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .payment-modal-box,
+  .payment-lux {
+    width: 100%;
+    max-height: 94vh;
+    max-height: 94dvh;
+    border-radius: 1.25rem 1.25rem 0 0;
+  }
+
+  .payment-lux__header,
+  .payment-lux__body,
+  .payment-lux__footer {
+    padding-left: 1.1rem;
+    padding-right: 1.1rem;
+  }
+
+  .payment-lux__summary {
+    grid-template-columns: 1fr 1fr;
+    margin-left: 1.1rem;
+    margin-right: 1.1rem;
+  }
+
+  .payment-lux__summary-item--total {
+    grid-column: 1 / -1;
+    text-align: left;
+    border-top: 1px dashed rgba(77, 16, 24, 0.15);
+    padding-top: 0.6rem;
   }
 
   .payment-method-switch {
     grid-template-columns: 1fr;
   }
 
+  .payment-lux__footer {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .payment-lux__assurance {
+    order: 2;
+  }
+
+  .payment-lux__cancel {
+    order: 1;
+    width: 100%;
+    padding: 0.7rem;
+    border: 1px solid rgba(77, 16, 24, 0.12);
+    border-radius: 0.8rem;
+  }
+
   .modal-dialog-box { padding: 1.5rem; }
+  .payment-modal-box { padding: 0; }
   .modal-actions .btn { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal-dialog-box,
+  .payment-lux__close,
+  .payment-lux__skeleton-line,
+  .payment-lux__skeleton-btn {
+    animation: none;
+    transition: none;
+  }
 }
 </style>

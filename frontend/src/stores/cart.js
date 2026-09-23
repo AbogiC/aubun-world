@@ -166,9 +166,13 @@ export const useCartStore = defineStore("cart", {
       // Always include frontend items: the backend uses the DB cart for
       // logged-in users but falls back to these items when the DB cart is
       // empty/out of sync (prevents "Your cart is empty" at PayPal time).
-      return {
-        ...payload,
-        items: this.items.map((item) => ({
+      // When a snapshot payload (with items) is passed in — e.g. capture
+      // after the cart was already cleared — respect it instead of the
+      // (now empty) live cart.
+      const hasSnapshotItems = Array.isArray(payload.items) && payload.items.length > 0;
+      const items = hasSnapshotItems
+        ? payload.items
+        : this.items.map((item) => ({
           product_id: item.id ?? item.productId,
           name: item.name,
           image: item.image,
@@ -177,11 +181,15 @@ export const useCartStore = defineStore("cart", {
           color: item.color,
           unit_price: item.price,
           line_total: item.price * item.quantity,
-        })),
-        subtotal: this.subtotal,
-        discount: this.discount,
-        shipping_cost: payload.shippingCost || 0,
-        total: this.total + (payload.shippingCost || 0),
+        }));
+      const shippingCost = payload.shippingCost || 0;
+      return {
+        ...payload,
+        items,
+        subtotal: hasSnapshotItems && typeof payload.subtotal === "number" ? payload.subtotal : this.subtotal,
+        discount: hasSnapshotItems && typeof payload.discount === "number" ? payload.discount : this.discount,
+        shipping_cost: hasSnapshotItems && typeof payload.shipping_cost === "number" ? payload.shipping_cost : shippingCost,
+        total: hasSnapshotItems && typeof payload.total === "number" ? payload.total : this.total + shippingCost,
         shipping_tier_name: payload.shippingTierName || '',
         shop_country_name: payload.shopCountryName || '',
       };
