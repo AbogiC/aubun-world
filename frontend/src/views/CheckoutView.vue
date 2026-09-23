@@ -242,6 +242,7 @@ import { api } from "../lib/api";
 import { getBrowserLocation, lookupLocationByIp, reverseGeocode } from "../lib/location";
 import { useAuthStore } from "../stores/auth";
 import { useCartStore } from "../stores/cart";
+import { getAuthToken } from "../lib/api";
 
 const route = useRoute();
 const router = useRouter();
@@ -286,6 +287,8 @@ const form = reactive({
   country: "",
   postalCode: "",
 });
+
+const isAuthenticated = computed(() => Boolean(getAuthToken()));
 
 const selectedShippingOption = computed(() =>
   shippingOptions.value.find((option) => option.id === selectedShippingRateId.value) || null,
@@ -425,7 +428,22 @@ const validateCheckoutBeforePayment = () => {
     errorMessage.value = "Please complete all required checkout fields before continuing to PayPal.";
     return false;
   }
-  if (!cartStore.items.length) { errorMessage.value = "Your cart is empty."; return false; }
+  
+  // Check cart based on authentication status
+  if (isAuthenticated.value) {
+    // For logged-in users, cart should come from database
+    if (!cartStore.items.length) {
+      errorMessage.value = "Your cart is empty. Please add items to your cart before checkout.";
+      return false;
+    }
+  } else {
+    // For guest users, cart should come from localStorage
+    if (!cartStore.items.length) {
+      errorMessage.value = "Your cart is empty. Please add items to your cart before checkout.";
+      return false;
+    }
+  }
+  
   if (!canPlaceOrder.value) { errorMessage.value = "Please choose an available shipping option before placing your order."; return false; }
   errorMessage.value = "";
   return true;
@@ -597,6 +615,13 @@ watch(selectedPaymentMethod, async (method) => {
 });
 
 watch(() => form.country, (country) => { fetchShippingOptions(country); });
+
+// Watch for authentication changes to refresh cart
+watch(() => authStore.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    cartStore.refreshFromApi();
+  }
+});
 
 onMounted(() => {
   fetchShippingOptions(form.country);

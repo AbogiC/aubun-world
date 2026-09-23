@@ -11,6 +11,14 @@ function loadLocalItems() {
   }
 }
 
+function isAuthenticated() {
+  return Boolean(getAuthToken());
+}
+
+function clearLocalCart() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
 export const useCartStore = defineStore("cart", {
   state: () => ({
     items: loadLocalItems(),
@@ -26,7 +34,9 @@ export const useCartStore = defineStore("cart", {
 
   actions: {
     persistLocalState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.items));
+      if (!isAuthenticated()) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.items));
+      }
     },
 
     syncFromPayload(cart) {
@@ -46,6 +56,7 @@ export const useCartStore = defineStore("cart", {
       try {
         const { cart } = await api.get("/cart");
         this.syncFromPayload(cart);
+        clearLocalCart();
       } catch {
         // Keep storefront usable even if the visitor is not logged in yet.
       }

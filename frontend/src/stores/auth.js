@@ -73,7 +73,28 @@ export const useAuthStore = defineStore("auth", {
         const { token, user } = await api.post("/auth/login", credentials);
         setAuthToken(token);
         this.user = user;
-        await useCartStore().refreshFromApi();
+        
+        // Migrate localStorage cart to database for logged-in user
+        const cartStore = useCartStore();
+        if (cartStore.items.length > 0) {
+          try {
+            for (const item of cartStore.items) {
+              await api.post("/cart/items", {
+                product_id: item.id,
+                quantity: item.quantity,
+                size: item.size,
+                color: item.color,
+              });
+            }
+            // Refresh cart from API and clear localStorage
+            await cartStore.refreshFromApi();
+          } catch {
+            // If migration fails, still proceed with login
+          }
+        } else {
+          await cartStore.refreshFromApi();
+        }
+        
         return user;
       } catch (error) {
         this.error = error.message;
@@ -93,7 +114,28 @@ export const useAuthStore = defineStore("auth", {
         const { token, user } = response;
         setAuthToken(token);
         this.user = user;
-        await useCartStore().refreshFromApi();
+        
+        // Migrate localStorage cart to database for logged-in user
+        const cartStore = useCartStore();
+        if (cartStore.items.length > 0) {
+          try {
+            for (const item of cartStore.items) {
+              await api.post("/cart/items", {
+                product_id: item.id,
+                quantity: item.quantity,
+                size: item.size,
+                color: item.color,
+              });
+            }
+            // Refresh cart from API and clear localStorage
+            await cartStore.refreshFromApi();
+          } catch {
+            // If migration fails, still proceed with registration
+          }
+        } else {
+          await cartStore.refreshFromApi();
+        }
+        
         return response;
       } catch (error) {
         this.error = error.message;
