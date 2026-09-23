@@ -677,7 +677,9 @@ const resumePendingOrder = async (orderNumber) => {
       errorMessage.value =
         (order.status ?? "") === "paid"
           ? `Order ${order.orderNumber} has already been paid. Thank you!`
-          : `Order ${order.orderNumber} can no longer be paid (status: ${order.status}). Please place a new order.`;
+          : (order.status ?? "") === "cancelled"
+            ? `Order ${order.orderNumber} was automatically cancelled because payment was not received within 1 hour, and the items were returned to stock. Please place a new order.`
+            : `Order ${order.orderNumber} can no longer be paid (status: ${order.status}). Please place a new order.`;
       return;
     }
 

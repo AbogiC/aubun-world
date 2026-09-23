@@ -10,7 +10,8 @@ use App\Repositories\OrderRepository;
 final class CronController
 {
     public function __construct(
-        private readonly OrderRepository $orders
+        private readonly OrderRepository $orders,
+        private readonly string $cronSecret = ''
     )
     {
     }
@@ -18,8 +19,8 @@ final class CronController
     public function cancelExpiredOrders(Request $request): array
     {
         // Verify cron secret to prevent unauthorized access
-        $providedSecret = $request->header('X-Cron-Secret');
-        $expectedSecret = $_ENV['CRON_SECRET'] ?? '';
+        $providedSecret = (string) $request->header('X-Cron-Secret');
+        $expectedSecret = $this->cronSecret !== '' ? $this->cronSecret : ($_ENV['CRON_SECRET'] ?? (string) getenv('CRON_SECRET'));
 
         if ($expectedSecret === '' || !hash_equals($expectedSecret, $providedSecret)) {
             http_response_code(401);

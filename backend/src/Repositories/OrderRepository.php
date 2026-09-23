@@ -646,51 +646,115 @@ final class OrderRepository
 
     public function cancelExpiredOrders(int $hours = 1): array
     {
+        // NOTE: hours is interpolated (not bound) because MySQL does not
+        // allow placeholders inside INTERVAL ... HOUR in prepared statements.
+        $hours = max(1, (int) $hours);
+
         // Find orders with status 'pending' created more than $hours ago
         $statement = $this->pdo->prepare(
-            'SELECT * FROM orders WHERE status = :status AND created_at < DATE_SUB(NOW(), INTERVAL :hours HOUR)'
+            'SELECT * FROM orders WHERE status = :status AND created_at < DATE_SUB(NOW(), INTERVAL ' . $hours . ' HOUR)'
         );
         $statement->execute([
             'status' => 'pending',
-            'hours' => $hours,
         ]);
         $expiredOrders = $statement->fetchAll();
 
         $cancelled = [];
 
         foreach ($expiredOrders as $order) {
-            $orderId = (int) $order['id'];
+            $cancelledOrder = $this->cancelSingleExpiredOrder($order);
 
-            // Restore stock
-            $this->restoreStockForOrder($orderId);
-
-            // Update order status to cancelled
-            $update = $this->pdo->prepare('UPDATE orders SET status = :status, updated_at = NOW() WHERE id = :id');
-            $update->execute([
-                'id' => $orderId,
-                'status' => 'cancelled',
-            ]);
-
-            // Send cancellation email
-            if ($this->email) {
-                try {
-                    $this->email->sendOrderCancelledEmail(
-                        $order['customer_email'],
-                        $order['customer_name'],
-                        array_merge($order, ['status' => 'cancelled'])
-                    );
-                } catch (\Throwable) {
-                    // Log error but don't fail the cancellation
-                }
+            if ($cancelledOrder !== null) {
+                $cancelled[] = [
+                    'id' => $cancelledOrder['id'],
+                    'orderNumber' => $cancelledOrder['orderNumber'],
+                    'customerEmail' => $cancelledOrder['customerEmail'],
+                ];
             }
-
-            $cancelled[] = [
-                'id' => $orderId,
-                'orderNumber' => $order['order_number'],
-                'customerEmail' => $order['customer_email'],
-            ];
         }
 
         return $cancelled;
+    }
+
+    /**
+     * Cancel one raw DB order row that is already known to be overdue:
+     * restores stock, marks cancelled, sends the cancellation email with
+     * properly mapped order data. Returns the mapped cancelled order.
+     */
+    private function cancelSingleExpiredOrder(array $order): ?array
+    {
+        $orderId = (int) ($order['id'] ?? 0);
+
+        if ($orderId <= 0) {
+            return null;
+        }
+
+        // Restore stock
+        $this->restoreStockForOrder($orderId);
+
+        // Update order status to cancelled
+        $update = $this->pdo->prepare('UPDATE orders SET status = :status, updated_at = NOW() WHERE id = :id');
+        $update->execute([
+            'id' => $orderId,
+            'status' => 'cancelled',
+        ]);
+
+        $mapped = $this->findById($orderId, null);
+
+        if ($mapped === null) {
+            return null;
+        }
+
+        // Send cancellation email (mapped row carries items + camelCase
+        // totals; the raw row does not, which previously produced an
+        // empty invoice table in this email).
+        if ($this->email) {
+            try {
+                $this->email->sendOrderCancelledEmail(
+                    $mapped['customerEmail'],
+                    $mapped['customerName'],
+                    array_merge($mapped, ['status' => 'cancelled'])
+                );
+            } catch (\Throwable) {
+                // Log error but don't fail the cancellation
+            }
+        }
+
+        return $mapped;
+    }
+
+    /**
+     * If the given mapped order is still pending but older than $hours,
+     * cancel it now (stock back, email sent) and return the fresh mapped
+     * cancelled order. Returns null when nothing had to be done.
+     */
+    public function expireOrderIfOverdue(array $order, int $hours = 1): ?array
+    {
+        if (($order['status'] ?? '') !== 'pending') {
+            return null;
+        }
+
+        $orderId = (int) ($order['id'] ?? 0);
+
+        if ($orderId <= 0) {
+            return null;
+        }
+
+        $hours = max(1, (int) $hours);
+
+        $check = $this->pdo->prepare(
+            'SELECT * FROM orders WHERE id = :id AND status = :status AND created_at < DATE_SUB(NOW(), INTERVAL ' . $hours . ' HOUR) LIMIT 1'
+        );
+        $check->execute([
+            'id' => $orderId,
+            'status' => 'pending',
+        ]);
+        $overdue = $check->fetch();
+
+        if (!$overdue) {
+            return null;
+        }
+
+        return $this->cancelSingleExpiredOrder($overdue);
     }
 }

@@ -189,6 +189,15 @@ final class OrderController
             $resolvedStatus = 'paid';
         }
 
+        // Enforce the 1-hour payment window at capture time as well.
+        if ($existingOrder && !$wasAlreadyPaid) {
+            $expired = $this->orders->expireOrderIfOverdue($existingOrder, 1);
+
+            if ($expired !== null) {
+                throw new RuntimeException('Payment time expired. This order was automatically cancelled and the items were returned to stock. Please place a new order.', 410);
+            }
+        }
+
         if ($isGuest) {
             if ($existingOrder) {
                 // Reuse the pending order created in create() — do NOT insert
@@ -276,6 +285,15 @@ final class OrderController
             throw new RuntimeException('Order not found or expired.', 404);
         }
 
+        // Enforce the 1-hour payment window even if the cron has not swept
+        // yet: an overdue pending order is cancelled on the spot (stock
+        // returned, cancellation email sent).
+        $expired = $this->orders->expireOrderIfOverdue($order, 1);
+
+        if ($expired !== null) {
+            $order = $expired;
+        }
+
         return [
             'order' => $order,
             'canPay' => ($order['status'] ?? '') === 'pending',
@@ -305,6 +323,12 @@ final class OrderController
 
         if (($order['status'] ?? '') !== 'pending') {
             throw new RuntimeException('This order can no longer be paid (status: ' . ($order['status'] ?? 'unknown') . ').', 409);
+        }
+
+        $expired = $this->orders->expireOrderIfOverdue($order, 1);
+
+        if ($expired !== null) {
+            throw new RuntimeException('Payment time expired. This order was automatically cancelled and the items were returned to stock. Please place a new order.', 410);
         }
 
         if (!empty($order['paypalOrderId'])) {

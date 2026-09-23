@@ -242,12 +242,16 @@ final class EmailService
         $itemsHtml = '';
 
         foreach ($order['items'] ?? [] as $item) {
+            // Order rows from the DB use price/lineTotal keys, guest-cart
+            // rows use unit_price/line_total — accept both.
+            $unitPrice = $item['unit_price'] ?? $item['price'] ?? '';
+            $lineTotal = $item['line_total'] ?? $item['lineTotal'] ?? 0;
             $itemsHtml .= sprintf(
                 '<tr><td style="padding:10px 0; border-bottom:1px solid #eee;">%s</td><td style="padding:10px 0; border-bottom:1px solid #eee; text-align:center;">%s</td><td style="padding:10px 0; border-bottom:1px solid #eee;">%s</td><td style="padding:10px 0; border-bottom:1px solid #eee; text-align:right;">$%s</td></tr>',
                 htmlspecialchars((string) ($item['name'] ?? ''), ENT_QUOTES),
                 htmlspecialchars((string) ($item['size'] ?? ''), ENT_QUOTES) . ' / ' . htmlspecialchars((string) ($item['color'] ?? ''), ENT_QUOTES) . ' x ' . (int) ($item['quantity'] ?? 0),
-                htmlspecialchars((string) ($item['unit_price'] ?? ''), ENT_QUOTES),
-                htmlspecialchars(number_format((float) ($item['line_total'] ?? 0), 2), ENT_QUOTES)
+                htmlspecialchars((string) $unitPrice, ENT_QUOTES),
+                htmlspecialchars(number_format((float) $lineTotal, 2), ENT_QUOTES)
             );
         }
 
