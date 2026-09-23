@@ -395,17 +395,19 @@ final class EmailService
         $paymentLink = $this->baseUrl !== ''
             ? rtrim($this->baseUrl, '/') . '/checkout?resumePayment=1&order=' . urlencode($orderNumber)
             : '#';
+        $paymentMethod = (string) (($order['paymentMethodLabel'] ?? $order['paymentMethod'] ?? 'PayPal') ?: 'PayPal');
 
         $content = sprintf(
             '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Dear %s,</p>' .
             '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Thank you for your order! We have received your order and it is currently <strong>awaiting payment</strong>. Your order will be processed once payment is confirmed.</p>' .
-            '<div style="background: #fff9e6; border: 1px solid #f5a623; border-radius: 8px; padding: 16px; margin-bottom: 24px;"><p style="margin: 0; color: #8a6d00;"><strong>Status:</strong> Pending Payment</p></div>' .
+            '<div style="background: #fff9e6; border: 1px solid #f5a623; border-radius: 8px; padding: 16px; margin-bottom: 24px;"><p style="margin: 0; color: #8a6d00;"><strong>Status:</strong> Pending Payment</p><p style="margin: 8px 0 0; color: #8a6d00;"><strong>Payment Method:</strong> %s</p></div>' .
             '<div style="text-align: center; margin: 32px 0;">' .
             '<a href="%s" style="background: #0b0b0c; color: #ffffff; padding: 16px 28px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.74rem; border-radius: 999px; display: inline-block;">Pay with PayPal / Card</a>' .
             '</div>' .
             '%s%s' .
             '<p style="color: #6f6f74; font-size: 0.9rem; line-height: 1.6; margin-top: 24px;">If you have already completed payment, please allow a few minutes for processing. If you have any questions, please contact us.</p>',
             htmlspecialchars($name, ENT_QUOTES),
+            htmlspecialchars($paymentMethod, ENT_QUOTES),
             htmlspecialchars($paymentLink, ENT_QUOTES),
             $this->buildOrderTable($order),
             $this->buildOrderSummary($order)
@@ -416,14 +418,18 @@ final class EmailService
 
     private function buildPaymentConfirmedBody(string $name, array $order): string
     {
+        $paymentMethod = (string) (($order['paymentMethodLabel'] ?? $order['paymentMethod'] ?? 'PayPal') ?: 'PayPal');
+
         $content = sprintf(
             '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Dear %s,</p>' .
-            '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Great news! We have successfully received your payment for order <strong>%s</strong>. Your order is now being processed and will be shipped soon.</p>' .
-            '<div style="background: #e8f5e9; border: 1px solid #28a745; border-radius: 8px; padding: 16px; margin-bottom: 24px;"><p style="margin: 0; color: #1e7e34;"><strong>Status:</strong> Payment Received - Processing</p></div>' .
+            '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Great news! We have successfully received your payment for order <strong>%s</strong> using <strong>%s</strong>. Your order is now being processed and will be shipped soon.</p>' .
+            '<div style="background: #e8f5e9; border: 1px solid #28a745; border-radius: 8px; padding: 16px; margin-bottom: 24px;"><p style="margin: 0; color: #1e7e34;"><strong>Status:</strong> Payment Received - Processing</p><p style="margin: 8px 0 0; color: #1e7e34;"><strong>Payment Method:</strong> %s</p></div>' .
             '%s%s' .
             '<p style="color: #6f6f74; font-size: 0.9rem; line-height: 1.6; margin-top: 24px;">You will receive another notification when your order ships with tracking information. If you have any questions, please contact us.</p>',
             htmlspecialchars($name, ENT_QUOTES),
             htmlspecialchars((string) ($order['orderNumber'] ?? ''), ENT_QUOTES),
+            htmlspecialchars($paymentMethod, ENT_QUOTES),
+            htmlspecialchars($paymentMethod, ENT_QUOTES),
             $this->buildOrderTable($order),
             $this->buildOrderSummary($order, 'Total Paid')
         );

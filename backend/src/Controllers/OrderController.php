@@ -52,6 +52,8 @@ final class OrderController
             'country' => (string) $request->input('country'),
             'postal_code' => (string) $request->input('postalCode'),
             'shipping_rate_id' => $request->input('shippingRateId'),
+            'payment_method' => (string) ($request->input('paymentMethod') ?? $request->input('payment_method') ?? 'paypal'),
+            'payment_method_label' => (string) ($request->input('paymentMethodLabel') ?? $request->input('payment_method_label') ?? 'PayPal'),
             'items' => $request->input('items') ?? [],
             'subtotal' => (float) ($request->input('subtotal') ?? 0),
             'discount' => (float) ($request->input('discount') ?? 0),
@@ -78,6 +80,8 @@ final class OrderController
 
         // Send "awaiting payment" email for pending orders
         if (($order['status'] ?? 'pending') === 'pending') {
+            $order['paymentMethod'] = $payload['payment_method'] ?: 'paypal';
+            $order['paymentMethodLabel'] = $payload['payment_method_label'] ?: 'PayPal';
             $this->email->sendPaymentPendingEmail(
                 $order['customerEmail'],
                 $order['customerName'],
@@ -255,6 +259,8 @@ final class OrderController
             'country' => (string) $request->input('country'),
             'postal_code' => (string) $request->input('postalCode'),
             'shipping_rate_id' => $request->input('shippingRateId'),
+            'payment_method' => (string) ($request->input('paymentMethod') ?? $request->input('payment_method') ?? 'paypal'),
+            'payment_method_label' => (string) ($request->input('paymentMethodLabel') ?? $request->input('payment_method_label') ?? 'PayPal'),
             'items' => $request->input('items') ?? [],
             'subtotal' => (float) ($request->input('subtotal') ?? 0),
             'discount' => (float) ($request->input('discount') ?? 0),

@@ -180,22 +180,13 @@
             </button>
           </div>
 
-          <div class="payment-method-switch mb-4">
+          <div class="payment-method-switch mb-4" aria-label="Payment method selector">
             <button
               type="button"
-              class="payment-method-button"
-              :class="{ active: selectedPaymentMethod === 'paypal' }"
-              @click="selectedPaymentMethod = 'paypal'"
+              class="payment-method-button active"
+              disabled
             >
               PayPal
-            </button>
-            <button
-              type="button"
-              class="payment-method-button"
-              :class="{ active: selectedPaymentMethod === 'card' }"
-              @click="selectedPaymentMethod = 'card'"
-            >
-              Credit / Debit Card
             </button>
           </div>
 
@@ -203,7 +194,7 @@
             {{ paymentErrorMessage }}
           </div>
 
-          <div v-if="selectedPaymentMethod === 'paypal'">
+          <div>
             <div v-if="paypalLoading" class="text-muted small text-center">Loading PayPal...</div>
             <div v-if="paypalErrorMessage" class="alert alert-danger mt-3 mb-0">
               {{ paypalErrorMessage }}
@@ -217,37 +208,6 @@
             <div v-if="!paypalEnabled && !paypalLoading" class="alert alert-warning mt-3 mb-0">
               PayPal checkout is not configured yet. Add your PayPal client credentials on the backend first.
             </div>
-          </div>
-
-          <div v-else class="card-payment-panel">
-            <div class="alert alert-info mb-3">
-              After this step, the order is set to pending payment and the customer is emailed that payment is in progress.
-            </div>
-
-            <form @submit.prevent="submitCardPayment">
-              <div class="mb-3 text-start">
-                <label class="form-label">Cardholder Name</label>
-                <input v-model="cardForm.name" class="form-control form-control-lg" required />
-              </div>
-              <div class="mb-3 text-start">
-                <label class="form-label">Card Number</label>
-                <input v-model="cardForm.number" class="form-control form-control-lg" inputmode="numeric" placeholder="1234 5678 9012 3456" required />
-              </div>
-              <div class="row g-3 mb-3 text-start">
-                <div class="col-6">
-                  <label class="form-label">Expiry</label>
-                  <input v-model="cardForm.expiry" class="form-control form-control-lg" placeholder="MM/YY" required />
-                </div>
-                <div class="col-6">
-                  <label class="form-label">CVV</label>
-                  <input v-model="cardForm.cvv" class="form-control form-control-lg" inputmode="numeric" placeholder="123" required />
-                </div>
-              </div>
-
-              <button type="submit" class="btn btn-luxury w-100" :disabled="cardProcessing">
-                {{ cardProcessing ? "Submitting Card Payment..." : "Pay with Card" }}
-              </button>
-            </form>
           </div>
         </div>
       </div>
@@ -303,9 +263,9 @@ const showOrderSuccessModal = ref(false);
 const showPaymentModal = ref(false);
 const selectedPaymentMethod = ref("paypal");
 const processingPayment = ref(false);
-const cardProcessing = ref(false);
 const paymentErrorMessage = ref("");
 const orderSuccessMessage = ref("");
+const checkoutPrepared = ref(false);
 const shippingOptions = ref([]);
 const selectedShippingRateId = ref(null);
 const latestShippingLookup = ref(0);
@@ -316,12 +276,6 @@ const shippingQuote = reactive({
   message: "Enter or detect your shipping country to see available delivery options.",
   alertClass: "alert-secondary",
   available: false,
-});
-const cardForm = reactive({
-  name: "",
-  number: "",
-  expiry: "",
-  cvv: "",
 });
 const form = reactive({
   firstName: authStore.user?.name?.split(" ")[0] || "",
@@ -345,8 +299,11 @@ const shippingSummaryLabel = computed(() => {
   return "Choose option";
 });
 const totalWithShipping = computed(() => cartStore.total + shippingAmount.value);
+const paymentMethodLabel = computed(() => "PayPal");
 const checkoutPayload = computed(() => ({
   ...form,
+  paymentMethod: selectedPaymentMethod.value,
+  paymentMethodLabel: paymentMethodLabel.value,
   shippingRateId: selectedShippingRateId.value,
   shippingCost: shippingAmount.value,
   shippingTierName: selectedShippingOption.value?.tierName || '',
@@ -479,9 +436,20 @@ const closeOrderSuccessModal = () => {
   router.push("/");
 };
 
+const destroyPayPalButtons = () => {
+  const container = document.querySelector("#checkout-paypal-button-container");
+  if (!container) return;
+
+  container.innerHTML = "";
+  paypalButtonsRendered.value = false;
+};
+
 const closePaymentModal = () => {
   showPaymentModal.value = false;
   paymentErrorMessage.value = "";
+  paypalErrorMessage.value = "";
+  paypalResultMessage.value = "";
+  destroyPayPalButtons();
 };
 
 const processPayment = async () => {
@@ -491,34 +459,20 @@ const processPayment = async () => {
   paymentErrorMessage.value = "";
 
   try {
-    await cartStore.checkout(checkoutPayload.value);
-    showPaymentModal.value = true;
+    if (!checkoutPrepared.value) {
+      await cartStore.checkout(checkoutPayload.value);
+      checkoutPrepared.value = true;
+    }
+
     selectedPaymentMethod.value = "paypal";
     paypalErrorMessage.value = "";
     paypalResultMessage.value = "";
-    await initPayPalCheckout();
+    destroyPayPalButtons();
+    showPaymentModal.value = true;
   } catch (error) {
     errorMessage.value = error.message || "Unable to process payment for this order.";
   } finally {
     processingPayment.value = false;
-  }
-};
-
-const submitCardPayment = async () => {
-  if (!validateCheckoutBeforePayment()) return;
-
-  cardProcessing.value = true;
-  paymentErrorMessage.value = "";
-
-  try {
-    await cartStore.checkout(checkoutPayload.value);
-    orderSuccessMessage.value = `${form.firstName || "Customer"}, your payment is being processed and a confirmation email has been sent.`;
-    showPaymentModal.value = false;
-    showOrderSuccessModal.value = true;
-  } catch (error) {
-    paymentErrorMessage.value = error.message || "Card payment could not be processed right now.";
-  } finally {
-    cardProcessing.value = false;
   }
 };
 
@@ -542,9 +496,10 @@ const loadPayPalSdk = (clientId, currencyCode) =>
 
 const renderPayPalButtons = async () => {
   const containerSelector = "#checkout-paypal-button-container";
-  const existingButtons = document.querySelector(containerSelector + " .paypal-buttons");
-  if (existingButtons) {
-    existingButtons.remove();
+  const container = document.querySelector(containerSelector);
+
+  if (container) {
+    container.innerHTML = "";
   }
 
   if (!paypalEnabled.value || !paypalClientId.value) return;
@@ -624,8 +579,21 @@ const initPayPalCheckout = async () => {
 
 watch(showPaymentModal, async (isOpen) => {
   if (isOpen) {
+    destroyPayPalButtons();
     await initPayPalCheckout();
   }
+});
+
+watch(selectedPaymentMethod, async (method) => {
+  if (!showPaymentModal.value) return;
+
+  if (method !== "paypal") {
+    destroyPayPalButtons();
+    return;
+  }
+
+  destroyPayPalButtons();
+  await initPayPalCheckout();
 });
 
 watch(() => form.country, (country) => { fetchShippingOptions(country); });
@@ -715,6 +683,46 @@ onMounted(() => {
   backdrop-filter: blur(6px);
 }
 
+.payment-modal-box {
+  width: min(100%, 620px);
+  padding: 1.5rem 1.25rem;
+  border: 1px solid rgba(77, 16, 24, 0.08);
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 60px rgba(20, 10, 12, 0.18);
+}
+
+.payment-method-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0.35rem;
+  border: 1px solid rgba(77, 16, 24, 0.08);
+  border-radius: 1rem;
+  background: rgba(77, 16, 24, 0.03);
+}
+
+.payment-method-button {
+  border: 1px solid transparent;
+  border-radius: 0.8rem;
+  background: transparent;
+  color: var(--ink-soft);
+  font-weight: 600;
+  padding: 0.9rem 1rem;
+  transition: all 220ms ease;
+}
+
+.payment-method-button.active {
+  background: linear-gradient(135deg, rgba(77, 16, 24, 0.08), rgba(254, 181, 17, 0.2));
+  border-color: rgba(77, 16, 24, 0.12);
+  color: var(--ink);
+  box-shadow: 0 8px 20px rgba(77, 16, 24, 0.08);
+}
+
+.card-payment-panel {
+  text-align: left;
+}
+
 .modal-dialog-box {
   width: min(100%, 480px);
   padding: 2rem;
@@ -758,6 +766,15 @@ onMounted(() => {
 }
 
 @media (max-width: 575.98px) {
+  .payment-modal-box {
+    padding: 1.1rem 1rem;
+    border-radius: 1.15rem;
+  }
+
+  .payment-method-switch {
+    grid-template-columns: 1fr;
+  }
+
   .modal-dialog-box { padding: 1.5rem; }
   .modal-actions .btn { width: 100%; }
 }
