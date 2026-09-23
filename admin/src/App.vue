@@ -52,6 +52,15 @@
               <span class="nav-link-text">Orders</span>
               <div class="nav-tooltip" v-if="sidebarCollapsed">Orders</div>
             </router-link>
+            <router-link
+              to="/users"
+              class="nav-link-item"
+              :class="{ 'router-link-active': isActiveRoute('/users') }"
+            >
+              <i class="bi bi-people"></i>
+              <span class="nav-link-text">Users</span>
+              <div class="nav-tooltip" v-if="sidebarCollapsed">User Management</div>
+            </router-link>
           </div>
 
           <div class="nav-section">
@@ -184,6 +193,7 @@ const pageTitle = computed(() => {
   const titles = {
     "/products": "Products",
     "/orders": "Orders",
+    "/users": "User Management",
     "/shipping": "Shipping Settings",
     "/vouchers": "Vouchers",
     "/news": "News Articles",

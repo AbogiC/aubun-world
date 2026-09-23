@@ -81,6 +81,10 @@ final class AuthController
             throw new RuntimeException('Invalid credentials.', 401);
         }
 
+        if (isset($user['is_active']) && (int) $user['is_active'] === 0) {
+            throw new RuntimeException('This account is currently inactive.', 403);
+        }
+
         return [
             'message' => 'Login successful.',
             'token' => $this->auth->issueToken((int) $user['id'], $user['email']),

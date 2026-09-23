@@ -22,6 +22,7 @@ use App\Controllers\NewsController;
 use App\Controllers\VoucherController;
 use App\Controllers\HomeViewSettingsController;
 use App\Controllers\TestEmailController;
+use App\Controllers\UserController;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
@@ -126,6 +127,7 @@ $voucherController = new VoucherController($voucherRepository, $productRepositor
 $notificationController = new NotificationController($notificationRepository);
 $homeViewSettingsController = new HomeViewSettingsController($homeViewSettingsRepository);
 $testEmailController = new TestEmailController($emailService);
+$userController = new UserController($userRepository);
 $mixMatchConfigRepository = new MixMatchConfigRepository($pdo);
 $mixMatchService = new MixMatchService($productRepository, $mixMatchConfigRepository);
 $mixMatchRepository = new MixMatchRepository($pdo, $mixMatchService);
@@ -201,6 +203,8 @@ $router->post('/api/shop-countries', [$shippingController, 'storeShopCountry'], 
 $router->delete('/api/shop-countries/{id}', [$shippingController, 'destroyShopCountry'], [$authMiddleware, $managerRoleMiddleware]);
 $router->post('/api/shipping-settings/sync', [$shippingController, 'syncMappings'], [$authMiddleware, $managerRoleMiddleware]);
 
+$router->get('/api/users', [$userController, 'index'], [$authMiddleware, $managerRoleMiddleware]);
+$router->patch('/api/users/{id}', [$userController, 'update'], [$authMiddleware, $managerRoleMiddleware]);
 $router->get('/api/notifications', [$notificationController, 'index'], [$authMiddleware]);
 $router->get('/api/notifications/unread-count', [$notificationController, 'unreadCount'], [$authMiddleware]);
 $router->patch('/api/notifications/{id}/read', [$notificationController, 'markRead'], [$authMiddleware]);

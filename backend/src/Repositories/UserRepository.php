@@ -30,14 +30,52 @@ final class UserRepository
         return $user ?: null;
     }
 
+    public function all(): array
+    {
+        $statement = $this->pdo->query(
+            'SELECT * FROM users ORDER BY created_at DESC, id DESC'
+        );
+
+        $users = $statement ? $statement->fetchAll() : [];
+
+        return array_map(fn (array $user): array => $this->sanitize($user), $users);
+    }
+
     public function create(string $name, string $email, string $password, string $role = 'customer'): array
     {
         $statement = $this->pdo->prepare(
-            'INSERT INTO users (name, email, role, password, created_at, updated_at) VALUES (:name, :email, :role, :password, NOW(), NOW())'
+            'INSERT INTO users (name, email, role, password, is_active, created_at, updated_at) VALUES (:name, :email, :role, :password, 1, NOW(), NOW())'
         );
         $statement->execute(compact('name', 'email', 'role', 'password'));
 
         return $this->findById((int) $this->pdo->lastInsertId());
+    }
+
+    public function updateUser(int $userId, ?string $role = null, ?bool $isActive = null): ?array
+    {
+        $updates = [];
+        $params = ['id' => $userId];
+
+        if ($role !== null) {
+            $updates[] = 'role = :role';
+            $params['role'] = $role;
+        }
+
+        if ($isActive !== null) {
+            $updates[] = 'is_active = :is_active';
+            $params['is_active'] = $isActive ? 1 : 0;
+        }
+
+        if ($updates === []) {
+            return $this->findById($userId);
+        }
+
+        $statement = $this->pdo->prepare(
+            'UPDATE users SET ' . implode(', ', $updates) . ', updated_at = NOW() WHERE id = :id'
+        );
+        $statement->execute($params);
+
+        return $this->findById($userId);
     }
 
     public function sanitize(array $user): array
@@ -46,6 +84,13 @@ final class UserRepository
 
         $isSubscribed = isset($user['isSubscribed']) && (int) $user['isSubscribed'] === 1;
         $user['isSubscribed'] = $isSubscribed;
+
+        $isActive = isset($user['is_active'])
+            ? (bool) (int) $user['is_active']
+            : (isset($user['isActive']) ? (bool) $user['isActive'] : true);
+
+        $user['is_active'] = $isActive;
+        $user['isActive'] = $isActive;
 
         // Decode shipping_address JSON if present
         if (isset($user['shipping_address']) && $user['shipping_address']) {

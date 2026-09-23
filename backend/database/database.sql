@@ -5,6 +5,7 @@ CREATE TABLE users (
     isSubscribed TINYINT(1) NOT NULL DEFAULT 0,
     role ENUM('customer', 'manager', 'admin') NOT NULL DEFAULT 'customer',
     password VARCHAR(255) NOT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
     email_verified_at TIMESTAMP NULL DEFAULT NULL,
     verification_token VARCHAR(255) NULL DEFAULT NULL,
     verification_token_expires_at TIMESTAMP NULL DEFAULT NULL,
