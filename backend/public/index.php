@@ -85,14 +85,12 @@ $pdo = $database->connection();
 
 $authService = new AuthService($config['app']['key']);
 $emailService = new EmailService(
-    $config['smtp']['from_email'] ?: 'noreply@aubunworld.com',
-    $config['smtp']['from_name'] ?: 'AUBUN WORLD',
+    $config['microsoft']['sender_email'] ?? $config['smtp']['from_email'] ?? 'no-reply@aubunworld.com',
+    $config['smtp']['from_name'] ?? 'AUBUN WORLD',
     $config['app']['base_url'],
-    $config['smtp']['host'],
-    $config['smtp']['port'],
-    $config['smtp']['username'],
-    $config['smtp']['password'],
-    $config['smtp']['encryption']
+    $config['microsoft']['client_id'] ?? '',
+    $config['microsoft']['tenant_id'] ?? '',
+    $config['microsoft']['client_secret'] ?? ''
 );
 $userRepository = new UserRepository($pdo);
 $productRepository = new ProductRepository($pdo);

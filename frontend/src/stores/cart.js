@@ -162,29 +162,33 @@ export const useCartStore = defineStore("cart", {
       return true;
     },
 
+    buildOrderPayload(payload) {
+      // Always include frontend items: the backend uses the DB cart for
+      // logged-in users but falls back to these items when the DB cart is
+      // empty/out of sync (prevents "Your cart is empty" at PayPal time).
+      return {
+        ...payload,
+        items: this.items.map((item) => ({
+          product_id: item.id ?? item.productId,
+          name: item.name,
+          image: item.image,
+          quantity: item.quantity,
+          size: item.size,
+          color: item.color,
+          unit_price: item.price,
+          line_total: item.price * item.quantity,
+        })),
+        subtotal: this.subtotal,
+        discount: this.discount,
+        shipping_cost: payload.shippingCost || 0,
+        total: this.total + (payload.shippingCost || 0),
+        shipping_tier_name: payload.shippingTierName || '',
+        shop_country_name: payload.shopCountryName || '',
+      };
+    },
+
     async checkout(payload) {
-      const isGuest = !getAuthToken();
-      if (isGuest) {
-        payload = {
-          ...payload,
-          items: this.items.map((item) => ({
-            product_id: item.id,
-            name: item.name,
-            image: item.image,
-            quantity: item.quantity,
-            size: item.size,
-            color: item.color,
-            unit_price: item.price,
-            line_total: item.price * item.quantity,
-          })),
-          subtotal: this.subtotal,
-          discount: this.discount,
-          shipping_cost: payload.shippingCost || 0,
-          total: this.total + (payload.shippingCost || 0),
-          shipping_tier_name: payload.shippingTierName || '',
-          shop_country_name: payload.shopCountryName || '',
-        };
-      }
+      payload = this.buildOrderPayload(payload);
       const { order, cart } = await api.post("/orders/checkout", payload);
       if (cart) {
         this.syncFromPayload(cart);
@@ -193,54 +197,12 @@ export const useCartStore = defineStore("cart", {
     },
 
     async createPayPalOrder(payload) {
-      const isGuest = !getAuthToken();
-      if (isGuest) {
-        payload = {
-          ...payload,
-          items: this.items.map((item) => ({
-            product_id: item.id,
-            name: item.name,
-            image: item.image,
-            quantity: item.quantity,
-            size: item.size,
-            color: item.color,
-            unit_price: item.price,
-            line_total: item.price * item.quantity,
-          })),
-          subtotal: this.subtotal,
-          discount: this.discount,
-          shipping_cost: payload.shippingCost || 0,
-          total: this.total + (payload.shippingCost || 0),
-          shipping_tier_name: payload.shippingTierName || '',
-          shop_country_name: payload.shopCountryName || '',
-        };
-      }
+      payload = this.buildOrderPayload(payload);
       return api.post("/orders", payload);
     },
 
     async capturePayPalOrder(orderId, payload) {
-      const isGuest = !getAuthToken();
-      if (isGuest) {
-        payload = {
-          ...payload,
-          items: this.items.map((item) => ({
-            product_id: item.id,
-            name: item.name,
-            image: item.image,
-            quantity: item.quantity,
-            size: item.size,
-            color: item.color,
-            unit_price: item.price,
-            line_total: item.price * item.quantity,
-          })),
-          subtotal: this.subtotal,
-          discount: this.discount,
-          shipping_cost: payload.shippingCost || 0,
-          total: this.total + (payload.shippingCost || 0),
-          shipping_tier_name: payload.shippingTierName || '',
-          shop_country_name: payload.shopCountryName || '',
-        };
-      }
+      payload = this.buildOrderPayload(payload);
       const { order, cart, paypalOrder } = await api.post(`/orders/${orderId}/capture`, payload);
       if (cart) {
         this.syncFromPayload(cart);

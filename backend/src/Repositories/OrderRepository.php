@@ -191,8 +191,9 @@ final class OrderRepository
             if ($userId !== null) {
                 // $cart comes from cartWithItems() and carries the carts.id —
                 // never pass the user id here or the wrong cart rows are cleared.
-                $cartId = isset($cart['id']) ? (int) $cart['id'] : $userId;
-                $this->clearCart($cartId);
+                if (isset($cart['id']) && (int) $cart['id'] > 0) {
+                    $this->clearCart((int) $cart['id']);
+                }
             }
 
             $this->pdo->commit();
@@ -253,10 +254,63 @@ final class OrderRepository
             throw new RuntimeException('Checkout data is incomplete.', 422);
         }
 
-        $cart = $this->cartWithItems($userId);
+        $cart = null;
 
-        if ($cart['items'] === []) {
-            throw new RuntimeException('Your cart is empty.', 422);
+        try {
+            $cart = $this->cartWithItems($userId);
+        } catch (RuntimeException $exception) {
+            $cart = null;
+        }
+
+        if ($cart === null || $cart['items'] === []) {
+            // Fallback: use frontend-supplied items (fixes "Your cart is empty"
+            // when the DB cart is out of sync but the UI clearly has items).
+            $fallbackItems = $payload['items'] ?? [];
+
+            if ($fallbackItems === []) {
+                throw new RuntimeException('Your cart is empty.', 422);
+            }
+
+            $guestCheckout = $this->prepareGuestCheckout($payload);
+
+            // Preserve the real DB cart id so post-order cleanup clears the
+            // correct cart rows instead of falling back to the user id.
+            $dbCartId = null;
+
+            if (is_array($cart) && isset($cart['id'])) {
+                $dbCartId = (int) $cart['id'];
+            } else {
+                try {
+                    $existingCart = $this->cartWithItems($userId);
+                    $dbCartId = isset($existingCart['id']) ? (int) $existingCart['id'] : null;
+                } catch (RuntimeException) {
+                    $dbCartId = null;
+                }
+            }
+
+            // Prefer the voucher discount already stored on the DB cart when
+            // the frontend did not send one.
+            $dbDiscount = 0.0;
+
+            if (is_array($cart) && isset($cart['discount_amount'])) {
+                $dbDiscount = (float) $cart['discount_amount'];
+            }
+
+            $payloadDiscount = (float) ($payload['discount'] ?? 0);
+            $discount = $payloadDiscount !== 0.0 ? $payloadDiscount : $dbDiscount;
+            $subtotal = (float) $guestCheckout['subtotal'];
+            $shipping = (float) $guestCheckout['shipping'];
+            $total = max($subtotal - $discount, 0) + $shipping;
+
+            return [
+                ...$guestCheckout,
+                'discount' => $discount,
+                'total' => $total,
+                'cart' => [
+                    'id' => $dbCartId,
+                    'items' => $guestCheckout['cart']['items'],
+                ],
+            ];
         }
 
         $subtotal = array_reduce(
@@ -398,10 +452,9 @@ final class OrderRepository
 
     public function updateStatus(int $orderId, string $status): void
     {
-        // Get current order to check old status
-        $orderBefore = $this->findById($orderId, null);
-        $oldStatus = $orderBefore['status'] ?? 'pending';
-
+        // Pure status update — no emails here. Callers (capture / webhook)
+        // are responsible for sending exactly one confirmation email, so
+        // listing orders or background refreshes never trigger duplicate mail.
         $statement = $this->pdo->prepare(
             'UPDATE orders SET status = :status, updated_at = NOW() WHERE id = :id'
         );
@@ -409,25 +462,6 @@ final class OrderRepository
             'id' => $orderId,
             'status' => $status,
         ]);
-
-        // Send appropriate email based on status change
-        if ($orderBefore) {
-            if ($oldStatus !== 'paid' && $status === 'paid') {
-                // Payment just confirmed
-                $this->email->sendPaymentConfirmedEmail(
-                    $orderBefore['customerEmail'],
-                    $orderBefore['customerName'],
-                    $orderBefore
-                );
-            } else {
-                // Other status changes (shipping updates)
-                $this->email->sendShippingUpdateEmail(
-                    $orderBefore['customerEmail'],
-                    $orderBefore['customerName'],
-                    array_merge($orderBefore, ['status' => $status])
-                );
-            }
-        }
     }
 
     private function findById(int $orderId, ?int $userId): ?array

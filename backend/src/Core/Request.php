@@ -70,4 +70,9 @@ final class Request
     {
         return $this->attributes[$key] ?? $default;
     }
+
+    public function getParsedBody(): array
+    {
+        return $this->body;
+    }
 }

@@ -122,6 +122,10 @@ final class OrderController
         $paypalOrder = $this->paypal->createOrder($checkout);
         $paypalOrderId = (string) ($paypalOrder['id'] ?? '');
 
+        $pendingOrder = null;
+        $pendingEmailSent = false;
+        $pendingEmailError = null;
+
         if ($paypalOrderId !== '') {
             $pendingPayload = [
                 ...$payload,
@@ -131,27 +135,36 @@ final class OrderController
 
             try {
                 if ($isGuest) {
-                    $order = $this->orders->createFromGuestCart($pendingPayload, $payload['items'] ?? []);
+                    $pendingOrder = $this->orders->createFromGuestCart($pendingPayload, $payload['items'] ?? []);
                 } else {
-                    $order = $this->orders->createFromCart($userId, $pendingPayload);
+                    $pendingOrder = $this->orders->createFromCart($userId, $pendingPayload);
                 }
 
-                $this->email->sendPaymentPendingEmail(
-                    $order['customerEmail'],
-                    $order['customerName'],
-                    array_merge($order, [
-                        'paymentMethod' => $payload['payment_method'] ?? 'paypal',
-                        'paymentMethodLabel' => $payload['payment_method_label'] ?: 'PayPal',
-                    ])
-                );
+                try {
+                    $this->email->sendPaymentPendingEmail(
+                        $pendingOrder['customerEmail'],
+                        $pendingOrder['customerName'],
+                        array_merge($pendingOrder, [
+                            'paymentMethod' => $payload['payment_method'] ?? 'paypal',
+                            'paymentMethodLabel' => $payload['payment_method_label'] ?: 'PayPal',
+                        ])
+                    );
+                    $pendingEmailSent = true;
+                } catch (\Throwable $e) {
+                    $pendingEmailError = $e->getMessage();
+                    error_log('Pending-order email failed for PayPal order ' . $paypalOrderId . ': ' . $e->getMessage());
+                }
             } catch (\Throwable $e) {
-                error_log('Pending-order email failed for PayPal order ' . $paypalOrderId . ': ' . $e->getMessage());
+                error_log('Pending-order creation failed for PayPal order ' . $paypalOrderId . ': ' . $e->getMessage());
             }
         }
 
         return [
             ...$paypalOrder,
             'currencyCode' => $this->paypal->currency(),
+            'pendingOrder' => $pendingOrder,
+            'pendingEmailSent' => $pendingEmailSent,
+            'pendingEmailError' => $pendingEmailError,
         ];
     }
 
@@ -170,22 +183,27 @@ final class OrderController
         $payload = $this->checkoutPayload($request);
 
         $existingOrder = $this->orders->findByPayPalOrderId($paypalOrderId);
-        if ($existingOrder && ($existingOrder['status'] ?? '') === 'paid') {
+        $wasAlreadyPaid = ($existingOrder['status'] ?? '') === 'paid';
+
+        if ($wasAlreadyPaid) {
             $resolvedStatus = 'paid';
         }
 
         if ($isGuest) {
-            $order = $existingOrder
-                ? $this->orders->createFromGuestCart([
-                    ...$payload,
-                    'status' => $resolvedStatus,
-                    'paypal_order_id' => $paypalOrderId,
-                ], $payload['items'] ?? [])
-                : $this->orders->createFromGuestCart([
+            if ($existingOrder) {
+                // Reuse the pending order created in create() — do NOT insert
+                // a duplicate guest order on capture.
+                if (($existingOrder['status'] ?? '') !== $resolvedStatus) {
+                    $this->orders->updateStatus((int) $existingOrder['id'], $resolvedStatus);
+                }
+                $order = $this->orders->findByPayPalOrderId($paypalOrderId) ?? $existingOrder;
+            } else {
+                $order = $this->orders->createFromGuestCart([
                     ...$payload,
                     'status' => $resolvedStatus,
                     'paypal_order_id' => $paypalOrderId,
                 ], $payload['items'] ?? []);
+            }
         } else {
             if ($existingOrder) {
                 $this->orders->updateStatus((int) $existingOrder['id'], $resolvedStatus);
@@ -288,6 +306,18 @@ final class OrderController
             // Only update if status changed
             if ($newStatus !== $currentStatus) {
                 $this->orders->updateStatus((int) $order['id'], $newStatus);
+
+                if ($currentStatus !== 'paid' && $newStatus === 'paid') {
+                    try {
+                        $this->email->sendPaymentConfirmedEmail(
+                            $order['customerEmail'],
+                            $order['customerName'],
+                            array_merge($order, ['status' => $newStatus])
+                        );
+                    } catch (\Throwable $e) {
+                        error_log('Webhook confirmation email failed for ' . ($order['orderNumber'] ?? '') . ': ' . $e->getMessage());
+                    }
+                }
             }
 
             return ['received' => true, 'processed' => true, 'status' => $newStatus];

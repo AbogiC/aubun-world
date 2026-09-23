@@ -8,33 +8,33 @@ use RuntimeException;
 
 final class EmailService
 {
-    private $smtpHost;
-    private $smtpPort;
-    private $smtpUsername;
-    private $smtpPassword;
-    private $smtpEncryption;
-    private $fromEmail;
-    private $fromName;
-    private $baseUrl;
+    private string $senderEmail;
+    private string $fromName;
+    private string $baseUrl;
+    private string $clientId;
+    private string $tenantId;
+    private string $clientSecret;
+    private ?string $cachedToken = null;
+    private int $cachedTokenExpiresAt = 0;
 
     public function __construct(
-        string $fromEmail = 'noreply@aubunworld.com',
+        string $senderEmail = 'no-reply@aubunworld.com',
         string $fromName = 'AUBUN WORLD',
         string $baseUrl = 'http://localhost:5173',
-        string $smtpHost = 'smtpout.secureserver.net',
-        int $smtpPort = 587,
-        string $smtpUsername = '',
-        string $smtpPassword = '',
-        string $smtpEncryption = 'tls'
+        string $clientId = '',
+        string $tenantId = '',
+        string $clientSecret = ''
     ) {
-        $this->fromEmail = $fromEmail;
+        $this->senderEmail = trim($senderEmail) !== '' ? trim($senderEmail) : 'no-reply@aubunworld.com';
         $this->fromName = $fromName;
         $this->baseUrl = $baseUrl;
-        $this->smtpHost = $smtpHost;
-        $this->smtpPort = $smtpPort;
-        $this->smtpUsername = $smtpUsername ?: $fromEmail;
-        $this->smtpPassword = $smtpPassword;
-        $this->smtpEncryption = $smtpEncryption;
+        $this->clientId = trim($clientId) !== '' ? trim($clientId) : trim((string) getenv('MICROSOFT_CLIENT_ID'));
+        $this->tenantId = trim($tenantId) !== '' ? trim($tenantId) : trim((string) getenv('MICROSOFT_TENANT_ID'));
+        $this->clientSecret = $clientSecret !== '' ? $clientSecret : (string) getenv('MICROSOFT_CLIENT_SECRET');
+
+        if (trim($this->senderEmail) === '' && getenv('MICROSOFT_SENDER_EMAIL')) {
+            $this->senderEmail = trim((string) getenv('MICROSOFT_SENDER_EMAIL'));
+        }
     }
 
     public function sendVerificationEmail(string $toEmail, string $toName, string $verificationToken): void
@@ -48,7 +48,7 @@ final class EmailService
         $subject = 'Verify your AUBUN WORLD email address';
         $body = $this->buildVerificationEmailBody($toName, $verifyUrl);
 
-        $this->send($toEmail, $subject, $body);
+        $this->send($toEmail, $subject, $body, $toName);
     }
 
     public function sendNewsletterSubscriptionEmail(string $toEmail): void
@@ -59,11 +59,11 @@ final class EmailService
         $this->send($toEmail, $subject, $body);
     }
 
-    public function sendTestEmail(string $toEmail, string $message, string $subject = 'GoDaddy SMTP Test'): void
+    public function sendTestEmail(string $toEmail, string $message, string $subject = 'AUBUN WORLD - Microsoft Graph Test'): void
     {
         $body = $this->wrapEmail(
-            'SMTP Test',
-            '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 20px;">This is a GoDaddy SMTP test email.</p>' .
+            'Microsoft Graph Test',
+            '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 20px;">This is a Microsoft Graph test email.</p>' .
             '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 20px;"><strong>Message:</strong></p>' .
             '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 0;">' . nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8')) . '</p>'
         );
@@ -76,7 +76,7 @@ final class EmailService
         $subject = 'Your AUBUN WORLD Order Confirmation';
         $body = $this->buildOrderConfirmationBody($toName, $order);
 
-        $this->send($toEmail, $subject, $body);
+        $this->send($toEmail, $subject, $body, $toName);
     }
 
     public function sendPaymentPendingEmail(string $toEmail, string $toName, array $order): void
@@ -84,7 +84,7 @@ final class EmailService
         $subject = 'AUBUN WORLD - Order Received: Awaiting Payment';
         $body = $this->buildPaymentPendingBody($toName, $order);
 
-        $this->send($toEmail, $subject, $body);
+        $this->send($toEmail, $subject, $body, $toName);
     }
 
     public function sendPaymentConfirmedEmail(string $toEmail, string $toName, array $order): void
@@ -92,7 +92,7 @@ final class EmailService
         $subject = 'AUBUN WORLD - Payment Confirmed: Your Order is Being Processed';
         $body = $this->buildPaymentConfirmedBody($toName, $order);
 
-        $this->send($toEmail, $subject, $body);
+        $this->send($toEmail, $subject, $body, $toName);
     }
 
     public function sendShippingUpdateEmail(string $toEmail, string $toName, array $order): void
@@ -100,7 +100,7 @@ final class EmailService
         $subject = 'AUBUN WORLD - Shipping Update: ' . ucfirst($order['status']);
         $body = $this->buildShippingUpdateBody($toName, $order);
 
-        $this->send($toEmail, $subject, $body);
+        $this->send($toEmail, $subject, $body, $toName);
     }
 
     public function sendOrderCancelledEmail(string $toEmail, string $toName, array $order): void
@@ -108,185 +108,133 @@ final class EmailService
         $subject = 'AUBUN WORLD - Order Cancelled: Payment Timeout';
         $body = $this->buildOrderCancelledBody($toName, $order);
 
-        $this->send($toEmail, $subject, $body);
+        $this->send($toEmail, $subject, $body, $toName);
     }
 
-    private function send(string $toEmail, string $subject, string $body): void
+    private function send(string $toEmail, string $subject, string $body, string $toName = ''): void
     {
-        $headers = [
-            'MIME-Version: 1.0',
-            'Content-Type: text/html; charset=UTF-8',
-            'From: ' . $this->fromName . ' <' . $this->fromEmail . '>',
-            'Reply-To: ' . $this->fromEmail,
+        if ($this->clientId === '' || $this->tenantId === '' || $this->clientSecret === '' || $this->senderEmail === '') {
+            throw new RuntimeException(
+                'Microsoft Graph email is not configured. Missing MICROSOFT_CLIENT_ID, MICROSOFT_TENANT_ID, MICROSOFT_CLIENT_SECRET, or MICROSOFT_SENDER_EMAIL.',
+                500
+            );
+        }
+
+        $accessToken = $this->getAccessToken();
+
+        $email = [
+            'message' => [
+                'subject' => $subject,
+                'body' => [
+                    'contentType' => 'HTML',
+                    'content' => $body,
+                ],
+                'toRecipients' => [
+                    [
+                        'emailAddress' => array_filter([
+                            'address' => $toEmail,
+                            'name' => $toName !== '' ? $toName : null,
+                        ]),
+                    ],
+                ],
+            ],
+            'saveToSentItems' => true,
         ];
 
-        $sent = false;
+        $sendUrl = 'https://graph.microsoft.com/v1.0/users/'
+            . rawurlencode($this->senderEmail)
+            . '/sendMail';
 
-        if ($this->smtpPassword) {
-            $sent = $this->sendViaSmtp($toEmail, $subject, $body, $headers);
+        $ch = curl_init($sendUrl);
+
+        if ($ch === false) {
+            throw new RuntimeException('Failed to initialize cURL for Microsoft Graph sendMail request.', 500);
         }
 
-        if (!$sent) {
-            $sent = mail($toEmail, $subject, $body, implode("\r\n", $headers));
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($email),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $accessToken,
+                'Content-Type: application/json',
+            ],
+        ]);
+
+        $sendResponse = curl_exec($ch);
+
+        if ($sendResponse === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new RuntimeException('Microsoft Graph send request failed: ' . $error, 500);
         }
 
-        if (!$sent) {
-            throw new RuntimeException('Failed to send email to ' . $toEmail, 500);
+        $sendHttpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($sendHttpCode !== 202) {
+            throw new RuntimeException(
+                'Failed to send email via Microsoft Graph (HTTP ' . $sendHttpCode . '): ' . (string) $sendResponse,
+                500
+            );
         }
     }
 
-    private function sendViaSmtp(string $toEmail, string $subject, string $body, array $headers): bool
+    private function getAccessToken(): string
     {
-        $host = trim((string) $this->smtpHost);
-        $encryption = strtolower(trim((string) $this->smtpEncryption));
-
-        if ($host === '') {
-            return false;
+        if ($this->cachedToken !== null && time() < $this->cachedTokenExpiresAt) {
+            return $this->cachedToken;
         }
 
-        if (str_starts_with(strtolower($host), 'ssl://')) {
-            $host = substr($host, 6);
+        $tokenUrl = 'https://login.microsoftonline.com/' . $this->tenantId . '/oauth2/v2.0/token';
+
+        $tokenData = http_build_query([
+            'client_id' => $this->clientId,
+            'client_secret' => $this->clientSecret,
+            'scope' => 'https://graph.microsoft.com/.default',
+            'grant_type' => 'client_credentials',
+        ]);
+
+        $ch = curl_init($tokenUrl);
+
+        if ($ch === false) {
+            throw new RuntimeException('Failed to initialize cURL for Microsoft token request.', 500);
         }
 
-        if ($encryption === 'ssl' || $encryption === 'smtps') {
-            $host = 'ssl://' . ltrim($host, '/');
-        } elseif ($encryption === 'tls' || $encryption === 'starttls') {
-            $host = preg_replace('#^ssl://#i', '', $host) ?? $host;
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $tokenData,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/x-www-form-urlencoded',
+            ],
+        ]);
+
+        $tokenResponse = curl_exec($ch);
+
+        if ($tokenResponse === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new RuntimeException('Microsoft token request failed: ' . $error, 500);
         }
 
-        $socket = @fsockopen(
-            $host,
-            $this->smtpPort,
-            $errno,
-            $errstr,
-            30
-        );
+        $tokenHttpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
 
-        if (!$socket) {
-            error_log("SMTP connection failed: $errstr ($errno)");
-            return false;
+        $token = json_decode((string) $tokenResponse, true);
+
+        if ($tokenHttpCode !== 200 || empty($token['access_token'])) {
+            throw new RuntimeException(
+                'Failed to get Microsoft access token (HTTP ' . $tokenHttpCode . '): ' . (string) $tokenResponse,
+                500
+            );
         }
 
-        stream_set_timeout($socket, 30);
+        $this->cachedToken = (string) $token['access_token'];
+        $expiresIn = isset($token['expires_in']) ? (int) $token['expires_in'] : 3600;
+        $this->cachedTokenExpiresAt = time() + max($expiresIn - 60, 60);
 
-        $response = $this->smtpReadResponse($socket);
-        if (!str_starts_with($response, '220')) {
-            fclose($socket);
-            error_log("SMTP greeting failed: $response");
-            return false;
-        }
-
-        if (!$this->smtpCommand($socket, 'EHLO ' . gethostname())) {
-            fclose($socket);
-            return false;
-        }
-
-        if ($encryption === 'tls' || $encryption === 'starttls') {
-            if (!$this->smtpCommand($socket, 'STARTTLS')) {
-                fclose($socket);
-                return false;
-            }
-
-            $cryptoMethod = STREAM_CRYPTO_METHOD_TLS_CLIENT;
-            if (!stream_socket_enable_crypto($socket, true, $cryptoMethod)) {
-                fclose($socket);
-                error_log("SMTP TLS handshake failed");
-                return false;
-            }
-
-            if (!$this->smtpCommand($socket, 'EHLO ' . gethostname())) {
-                fclose($socket);
-                return false;
-            }
-        }
-
-        if (!$this->smtpCommand($socket, 'AUTH LOGIN')) {
-            fclose($socket);
-            return false;
-        }
-
-        if (!$this->smtpCommand($socket, base64_encode($this->smtpUsername), 'AUTH username')) {
-            fclose($socket);
-            return false;
-        }
-
-        if (!$this->smtpCommand($socket, base64_encode($this->smtpPassword), 'AUTH password')) {
-            fclose($socket);
-            return false;
-        }
-
-        if (!$this->smtpCommand($socket, 'MAIL FROM:<' . $this->fromEmail . '>')) {
-            fclose($socket);
-            return false;
-        }
-
-        if (!$this->smtpCommand($socket, 'RCPT TO:<' . $toEmail . '>')) {
-            fclose($socket);
-            return false;
-        }
-
-        if (!$this->smtpCommand($socket, 'DATA')) {
-            fclose($socket);
-            return false;
-        }
-
-        $headers[] = 'Subject: ' . $subject;
-        $headers[] = 'Date: ' . date(DATE_RFC2822);
-
-        $message = implode("\r\n", $headers) . "\r\n" .
-                   "\r\n" .
-                   $this->escapeSmtpBody($body) . "\r\n" .
-                   '.';
-
-        fwrite($socket, $message . "\r\n");
-        $response = $this->smtpReadResponse($socket);
-        if (!str_starts_with($response, '250')) {
-            fclose($socket);
-            error_log("SMTP DATA failed: $response");
-            return false;
-        }
-
-        $this->smtpCommand($socket, 'QUIT');
-        fclose($socket);
-
-        return true;
-    }
-
-    private function smtpCommand($socket, string $command, ?string $logCommand = null): bool
-    {
-        fwrite($socket, $command . "\r\n");
-        $response = $this->smtpReadResponse($socket);
-
-        // Check for successful response codes
-        if (str_starts_with($response, '2') || str_starts_with($response, '3')) {
-            return true;
-        }
-
-        error_log('SMTP command failed: ' . ($logCommand ?? $command) . " -> $response");
-        return false;
-    }
-
-    private function smtpReadResponse($socket): string
-    {
-        $response = '';
-
-        while (($line = fgets($socket, 512)) !== false) {
-            $response .= $line;
-
-            if (preg_match('/^\d{3}\s/', $line) === 1) {
-                break;
-            }
-        }
-
-        return $response;
-    }
-
-    private function escapeSmtpBody(string $body): string
-    {
-        $body = str_replace(["\r\n", "\r"], "\n", $body);
-        $body = preg_replace('/^\./m', '..', $body) ?? $body;
-
-        return str_replace("\n", "\r\n", $body);
+        return $this->cachedToken;
     }
 
     private function buildOrderItemsRows(array $order): string

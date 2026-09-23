@@ -194,6 +194,12 @@
             {{ paymentErrorMessage }}
           </div>
 
+          <div v-if="pendingInvoiceEmail" class="alert mb-3" :class="pendingInvoiceSent ? 'alert-success' : 'alert-info'">
+            <i class="bi bi-envelope-check"></i>
+            Order invoice {{ pendingInvoiceSent ? 'sent' : 'being sent' }} to <strong>{{ pendingInvoiceEmail }}</strong>.
+            Complete your PayPal payment below to confirm the order.
+          </div>
+
           <div>
             <div v-if="paypalLoading" class="text-muted small text-center">Loading PayPal...</div>
             <div v-if="paypalErrorMessage" class="alert alert-danger mt-3 mb-0">
@@ -269,6 +275,10 @@ const showPaymentModal = ref(false);
 const selectedPaymentMethod = ref("paypal");
 const processingPayment = ref(false);
 const paymentErrorMessage = ref("");
+const pendingPayPalOrderId = ref(null);
+const pendingPayPalTotal = ref(null);
+const pendingInvoiceEmail = ref("");
+const pendingInvoiceSent = ref(false);
 const orderSuccessMessage = ref("");
 const orderInvoiceEmail = ref("");
 const shippingOptions = ref([]);
@@ -478,16 +488,42 @@ const closePaymentModal = () => {
 const processPayment = async () => {
   if (!validateCheckoutBeforePayment()) return;
 
-  // Single-order flow: do NOT create the DB order here.
-  // The order is created exactly once in capturePayPalOrder() after
-  // PayPal approves the payment, which then triggers the invoice email
-  // to form.email with order details + PayPal as payment method.
+  // Create the pending order + send the "awaiting payment" invoice email
+  // NOW (on Process Payment click), then open the PayPal modal.
+  // The PayPal Buttons reuse this pre-created order instead of creating
+  // a second one, so there are no duplicate DB orders.
+  processingPayment.value = true;
   paymentErrorMessage.value = "";
-  selectedPaymentMethod.value = "paypal";
   paypalErrorMessage.value = "";
   paypalResultMessage.value = "";
-  destroyPayPalButtons();
-  showPaymentModal.value = true;
+
+  try {
+    const currentTotal = totalWithShipping.value;
+    const needsNewOrder =
+      !pendingPayPalOrderId.value ||
+      pendingPayPalTotal.value !== currentTotal ||
+      pendingInvoiceEmail.value !== form.email;
+
+    if (needsNewOrder) {
+      const orderData = await cartStore.createPayPalOrder(checkoutPayload.value);
+      if (!orderData?.id) {
+        throw new Error("Could not initiate PayPal checkout. Please try again.");
+      }
+      pendingPayPalOrderId.value = orderData.id;
+      pendingPayPalTotal.value = currentTotal;
+      pendingInvoiceEmail.value = form.email;
+      pendingInvoiceSent.value = Boolean(orderData.pendingEmailSent);
+    }
+
+    selectedPaymentMethod.value = "paypal";
+    destroyPayPalButtons();
+    showPaymentModal.value = true;
+  } catch (error) {
+    paymentErrorMessage.value = "";
+    errorMessage.value = error.message || "Could not process payment. Please try again.";
+  } finally {
+    processingPayment.value = false;
+  }
 };
 
 const loadPayPalSdk = (clientId, currencyCode) =>
@@ -534,8 +570,20 @@ const renderPayPalButtons = async () => {
         submitting.value = true;
         paypalErrorMessage.value = "";
         try {
+          // Reuse the pending PayPal order created by Process Payment
+          // (invoice email already sent). Only create a fresh one when
+          // resuming via email link or when the total changed.
+          if (pendingPayPalOrderId.value && pendingPayPalTotal.value === totalWithShipping.value) {
+            return pendingPayPalOrderId.value;
+          }
           const orderData = await cartStore.createPayPalOrder(checkoutPayload.value);
-          if (orderData.id) return orderData.id;
+          if (orderData.id) {
+            pendingPayPalOrderId.value = orderData.id;
+            pendingPayPalTotal.value = totalWithShipping.value;
+            pendingInvoiceEmail.value = form.email;
+            pendingInvoiceSent.value = Boolean(orderData.pendingEmailSent);
+            return orderData.id;
+          }
           const errorDetail = orderData?.details?.[0];
           throw new Error(errorDetail ? `${errorDetail.issue} ${errorDetail.description} (${orderData.debug_id})` : JSON.stringify(orderData));
         } catch (error) {
@@ -565,6 +613,11 @@ const renderPayPalButtons = async () => {
           // Business flow: invoice + order details emailed to the address
           // the customer filled in before clicking Process Payment.
           orderInvoiceEmail.value = order.customerEmail || form.email;
+          // Pending order is now paid — clear it so the next checkout
+          // creates a fresh PayPal order instead of reusing this one.
+          pendingPayPalOrderId.value = null;
+          pendingPayPalTotal.value = null;
+          pendingInvoiceSent.value = false;
           if (!getAuthToken()) {
             // Backend has no server cart for guests, so clear localStorage cart here.
             cartStore.clearCart();
