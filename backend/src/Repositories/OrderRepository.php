@@ -110,6 +110,26 @@ final class OrderRepository
         return $order ? $this->mapOrder($order) : null;
     }
 
+    public function findByOrderNumber(string $orderNumber): ?array
+    {
+        $statement = $this->pdo->prepare('SELECT * FROM orders WHERE order_number = :order_number LIMIT 1');
+        $statement->execute(['order_number' => trim($orderNumber)]);
+        $order = $statement->fetch();
+
+        return $order ? $this->mapOrder($order) : null;
+    }
+
+    public function updatePaypalOrderId(int $orderId, string $paypalOrderId): void
+    {
+        $statement = $this->pdo->prepare(
+            'UPDATE orders SET paypal_order_id = :paypal_order_id, updated_at = NOW() WHERE id = :id'
+        );
+        $statement->execute([
+            'id' => $orderId,
+            'paypal_order_id' => $paypalOrderId,
+        ]);
+    }
+
     private function createOrder(string $customerName, string $email, array $checkout, ?int $userId, array $cart): array
     {
         $status = trim((string) ($checkout['status'] ?? 'pending')) ?: 'pending';

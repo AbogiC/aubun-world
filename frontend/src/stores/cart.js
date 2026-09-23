@@ -209,6 +209,10 @@ export const useCartStore = defineStore("cart", {
       return api.post("/orders", payload);
     },
 
+    async createPayPalOrderForExisting(orderNumber) {
+      return api.post(`/orders/${encodeURIComponent(orderNumber)}/paypal`, {});
+    },
+
     async capturePayPalOrder(orderId, payload) {
       payload = this.buildOrderPayload(payload);
       const { order, cart, paypalOrder } = await api.post(`/orders/${orderId}/capture`, payload);

@@ -192,8 +192,10 @@ $router->post('/api/cart/apply-discount', [$cartController, 'applyDiscount'], [$
 $router->delete('/api/cart', [$cartController, 'clear'], [$authMiddleware]);
 $router->get('/api/orders', [$orderController, 'index'], [$authMiddleware]);
 $router->get('/api/orders/paypal-config', [$orderController, 'paypalConfig']);
+$router->get('/api/orders/resume', [$orderController, 'resume']);
 $router->post('/api/orders/webhook', [$orderController, 'paypalWebhook']);
 $router->post('/api/orders', [$orderController, 'create']);
+$router->post('/api/orders/{orderNumber}/paypal', [$orderController, 'createPaypalForExisting']);
 $router->post('/api/orders/{orderID}/capture', [$orderController, 'capture']);
 $router->post('/api/orders/checkout', [$orderController, 'checkout']);
 $router->post('/api/test-email', [$testEmailController, 'send']);

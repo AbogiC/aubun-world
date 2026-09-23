@@ -110,6 +110,10 @@
                 </div>
               </div>
 
+              <div v-if="resumeLoading" class="alert alert-info mt-4 mb-0">
+                Loading your pending order… please wait.
+              </div>
+
               <div v-if="errorMessage" class="alert alert-danger mt-4 mb-0">
                 {{ errorMessage }}
               </div>
@@ -232,6 +236,8 @@ const paypalCurrencyCode = ref("USD");
 const paypalErrorMessage = ref("");
 const paypalResultMessage = ref("");
 const paypalButtonsRendered = ref(false);
+const paypalRenderSeq = ref(0);
+const resumeLoading = ref(false);
 const showOrderSuccessModal = ref(false);
 const showPaymentModal = ref(false);
 const selectedPaymentMethod = ref("paypal");
@@ -430,6 +436,10 @@ const closeOrderSuccessModal = () => {
 };
 
 const destroyPayPalButtons = () => {
+  // Invalidate any in-flight PayPal render so a stale async render can
+  // never wipe the container out from under the current one (this was the
+  // "Detected container element removed from DOM" error).
+  paypalRenderSeq.value += 1;
   const container = document.querySelector("#checkout-paypal-button-container");
   if (!container) return;
 
@@ -527,10 +537,19 @@ const loadPayPalSdk = (clientId, currencyCode) =>
 
 const renderPayPalButtons = async () => {
   const containerSelector = "#checkout-paypal-button-container";
+  const mySeq = paypalRenderSeq.value + 1;
+  paypalRenderSeq.value = mySeq;
+
+  await nextTick();
+  if (mySeq !== paypalRenderSeq.value) return;
+
   const container = document.querySelector(containerSelector);
 
   if (container) {
     container.innerHTML = "";
+  } else {
+    // Modal not in DOM (e.g. closed mid-flight) — abort quietly.
+    return;
   }
 
   if (!paypalEnabled.value || !paypalClientId.value) return;
@@ -538,7 +557,9 @@ const renderPayPalButtons = async () => {
 
   try {
     await loadPayPalSdk(paypalClientId.value, paypalCurrencyCode.value);
+    if (mySeq !== paypalRenderSeq.value) return;
     if (!window.paypal?.Buttons) throw new Error("PayPal SDK is unavailable.");
+    if (!document.querySelector(containerSelector)) return;
 
     await window.paypal.Buttons({
       style: { shape: "rect", layout: "vertical", color: "gold", label: "paypal" },
@@ -613,10 +634,14 @@ const renderPayPalButtons = async () => {
       },
     }).render(containerSelector);
 
+    if (mySeq !== paypalRenderSeq.value) return;
     paypalButtonsRendered.value = true;
   } catch (error) {
+    if (mySeq !== paypalRenderSeq.value) return;
     paypalErrorMessage.value = error.message || "Unable to initialize PayPal checkout.";
-  } finally { paypalLoading.value = false; }
+  } finally {
+    if (mySeq === paypalRenderSeq.value) paypalLoading.value = false;
+  }
 };
 
 const initPayPalCheckout = async () => {
@@ -632,6 +657,105 @@ const initPayPalCheckout = async () => {
     paypalEnabled.value = false;
     paypalErrorMessage.value = error.message || "Unable to load PayPal checkout settings.";
   } finally { paypalLoading.value = false; }
+};
+
+/**
+ * Resume a pending order from the email "Pay with PayPal / Card" link:
+ * /checkout?resumePayment=1&order=AUB-...
+ * Fetches the order, prefills the form + shipping, primes the PayPal
+ * snapshot, then opens the payment modal. Works logged in or not.
+ */
+const resumePendingOrder = async (orderNumber) => {
+  resumeLoading.value = true;
+  errorMessage.value = "";
+  try {
+    const { order, canPay } = await api.get(`/orders/resume?order=${encodeURIComponent(orderNumber)}`);
+
+    if (!order) throw new Error("Order not found or expired.");
+
+    if (!canPay || (order.status ?? "") !== "pending") {
+      errorMessage.value =
+        (order.status ?? "") === "paid"
+          ? `Order ${order.orderNumber} has already been paid. Thank you!`
+          : `Order ${order.orderNumber} can no longer be paid (status: ${order.status}). Please place a new order.`;
+      return;
+    }
+
+    // Prefill contact + shipping form from the order.
+    const nameParts = String(order.customerName || "").trim().split(/\s+/).filter(Boolean);
+    form.firstName = nameParts[0] || "";
+    form.lastName = nameParts.slice(1).join(" ") || "";
+    form.email = order.customerEmail || "";
+    form.address = order.shippingAddress || "";
+    form.city = order.shippingCity || "";
+    form.country = order.shippingCountry || "";
+    form.postalCode = order.shippingPostalCode || "";
+    shippingQuote.shopCountryName = order.shippingShopCountry || "";
+
+    // Reload shipping options for the order country, then re-select the
+    // same tier the customer originally chose.
+    await fetchShippingOptions(form.country);
+    const match = shippingOptions.value.find((o) => o.tierName === order.shippingTierName);
+    if (match) selectedShippingRateId.value = match.id;
+
+    // Prime the PayPal snapshot from the saved order lines.
+    const snapshotItems = (order.items || []).map((item) => ({
+      product_id: item.productId,
+      name: item.name,
+      image: item.image,
+      quantity: item.quantity,
+      size: item.size,
+      color: item.color,
+      unit_price: item.price,
+      line_total: item.lineTotal,
+    }));
+
+    // Orders created before a PayPal id existed need one attached now.
+    let paypalOrderId = order.paypalOrderId || "";
+    if (!paypalOrderId) {
+      const created = await cartStore.createPayPalOrderForExisting(order.orderNumber);
+      paypalOrderId = created?.id || "";
+      if (!paypalOrderId) throw new Error("Could not initiate PayPal checkout for this order.");
+    }
+
+    pendingPayPalOrderId.value = paypalOrderId;
+    pendingPayPalTotal.value = Number(order.total) || 0;
+    pendingInvoiceEmail.value = order.customerEmail || "";
+    pendingInvoiceSent.value = true;
+    pendingItemCount.value = snapshotItems.reduce((n, i) => n + (Number(i.quantity) || 0), 0);
+    pendingPayloadSnapshot.value = {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      email: form.email,
+      address: form.address,
+      city: form.city,
+      country: form.country,
+      postalCode: form.postalCode,
+      paymentMethod: "paypal",
+      paymentMethodLabel: "PayPal",
+      shippingRateId: selectedShippingRateId.value,
+      shippingCost: Number(order.shipping) || 0,
+      shippingTierName: order.shippingTierName || "",
+      shopCountryName: order.shippingShopCountry || "",
+      items: snapshotItems,
+      subtotal: Number(order.subtotal) || 0,
+      discount: Number(order.discount) || 0,
+      shipping_cost: Number(order.shipping) || 0,
+      total: Number(order.total) || 0,
+    };
+
+    if (selectedShippingRateId.value === null && shippingOptions.value.length > 0) {
+      errorMessage.value = "Please choose an available shipping option before paying.";
+      return;
+    }
+
+    selectedPaymentMethod.value = "paypal";
+    showPaymentModal.value = true;
+  } catch (error) {
+    errorMessage.value = error.message || "Could not load your order. Please try again or place a new order.";
+  } finally {
+    resumeLoading.value = false;
+  }
 };
 
 watch(showPaymentModal, async (isOpen) => {
@@ -666,7 +790,7 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
   }
 });
 
-onMounted(() => {
+onMounted(async () => {
   fetchShippingOptions(form.country);
 
   const shouldResumePayment = [
@@ -675,9 +799,20 @@ onMounted(() => {
   ].some((value) => value === "1" || value === "true" || value === "yes");
 
   if (shouldResumePayment) {
-    showPaymentModal.value = true;
     selectedPaymentMethod.value = "paypal";
     paymentErrorMessage.value = "";
+
+    const resumeOrderNumber = String(route.query.order || "").trim();
+    if (resumeOrderNumber) {
+      // Email pay-link flow: load the order first; the watcher opens +
+      // renders PayPal once showPaymentModal flips (no direct init here,
+      // otherwise two concurrent renders fight over the container).
+      await resumePendingOrder(resumeOrderNumber);
+      return;
+    }
+
+    showPaymentModal.value = true;
+    return;
   }
 
   initPayPalCheckout();

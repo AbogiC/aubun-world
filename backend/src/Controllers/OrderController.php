@@ -256,6 +256,94 @@ final class OrderController
         ];
     }
 
+    /**
+     * Public resume lookup for the "Pay with PayPal / Card" link in the
+     * pending-payment email: GET /api/orders/resume?order=AUB-...
+     * The order number is unguessable, so no auth is required (works
+     * logged in or not, on any device).
+     */
+    public function resume(Request $request): array
+    {
+        $orderNumber = trim((string) $request->queryParam('order', ''));
+
+        if ($orderNumber === '') {
+            throw new RuntimeException('Order number is required.', 400);
+        }
+
+        $order = $this->orders->findByOrderNumber($orderNumber);
+
+        if (!$order) {
+            throw new RuntimeException('Order not found or expired.', 404);
+        }
+
+        return [
+            'order' => $order,
+            'canPay' => ($order['status'] ?? '') === 'pending',
+        ];
+    }
+
+    /**
+     * Attach a fresh PayPal order to an existing pending DB order that has
+     * no PayPal id yet (e.g. created via direct checkout): POST
+     * /api/orders/{orderNumber}/paypal — public, same reasoning as resume().
+     */
+    public function createPaypalForExisting(Request $request): array
+    {
+        $this->ensurePaypalConfigured();
+
+        $orderNumber = trim((string) $request->attribute('orderNumber'));
+
+        if ($orderNumber === '') {
+            throw new RuntimeException('Order number is required.', 400);
+        }
+
+        $order = $this->orders->findByOrderNumber($orderNumber);
+
+        if (!$order) {
+            throw new RuntimeException('Order not found or expired.', 404);
+        }
+
+        if (($order['status'] ?? '') !== 'pending') {
+            throw new RuntimeException('This order can no longer be paid (status: ' . ($order['status'] ?? 'unknown') . ').', 409);
+        }
+
+        if (!empty($order['paypalOrderId'])) {
+            $paypalOrder = $this->paypal->getOrder((string) $order['paypalOrderId']);
+
+            return [
+                ...$paypalOrder,
+                'currencyCode' => $this->paypal->currency(),
+                'pendingOrder' => $order,
+                'pendingEmailSent' => false,
+            ];
+        }
+
+        $checkout = [
+            'customer_name' => (string) ($order['customerName'] ?? ''),
+            'subtotal' => (float) ($order['subtotal'] ?? 0),
+            'discount' => (float) ($order['discount'] ?? 0),
+            'shipping' => (float) ($order['shipping'] ?? 0),
+            'total' => (float) ($order['total'] ?? 0),
+        ];
+
+        $paypalOrder = $this->paypal->createOrder($checkout);
+        $paypalOrderId = (string) ($paypalOrder['id'] ?? '');
+
+        if ($paypalOrderId === '') {
+            throw new RuntimeException('Could not initiate PayPal checkout for this order.', 502);
+        }
+
+        $this->orders->updatePaypalOrderId((int) $order['id'], $paypalOrderId);
+        $order = $this->orders->findByOrderNumber($orderNumber) ?? $order;
+
+        return [
+            ...$paypalOrder,
+            'currencyCode' => $this->paypal->currency(),
+            'pendingOrder' => $order,
+            'pendingEmailSent' => false,
+        ];
+    }
+
     public function paypalWebhook(Request $request): array
     {
         $payload = $request->getParsedBody();
