@@ -178,7 +178,10 @@ final class OrderRepository
             $this->reserveStock($cart['items']);
 
             if ($userId !== null) {
-                $this->clearCart($userId);
+                // $cart comes from cartWithItems() and carries the carts.id —
+                // never pass the user id here or the wrong cart rows are cleared.
+                $cartId = isset($cart['id']) ? (int) $cart['id'] : $userId;
+                $this->clearCart($cartId);
             }
 
             $this->pdo->commit();

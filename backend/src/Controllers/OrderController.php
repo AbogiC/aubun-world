@@ -78,15 +78,20 @@ final class OrderController
             ]);
         }
 
-        // Send "awaiting payment" email for pending orders
+        // Send "awaiting payment" email for pending orders.
+        // Do not fail checkout if SMTP is unavailable — order is already created.
         if (($order['status'] ?? 'pending') === 'pending') {
             $order['paymentMethod'] = $payload['payment_method'] ?: 'paypal';
             $order['paymentMethodLabel'] = $payload['payment_method_label'] ?: 'PayPal';
-            $this->email->sendPaymentPendingEmail(
-                $order['customerEmail'],
-                $order['customerName'],
-                $order
-            );
+            try {
+                $this->email->sendPaymentPendingEmail(
+                    $order['customerEmail'],
+                    $order['customerName'],
+                    $order
+                );
+            } catch (\Throwable $e) {
+                error_log('Pending-payment email failed for ' . ($order['orderNumber'] ?? '') . ': ' . $e->getMessage());
+            }
         }
 
         $result = [
@@ -152,19 +157,26 @@ final class OrderController
             ]);
         }
 
-        // Send appropriate email based on payment status
-        if ($resolvedStatus === 'paid') {
-            $this->email->sendPaymentConfirmedEmail(
-                $order['customerEmail'],
-                $order['customerName'],
-                $order
-            );
-        } else {
-            $this->email->sendPaymentPendingEmail(
-                $order['customerEmail'],
-                $order['customerName'],
-                $order
-            );
+        // Send appropriate email based on payment status.
+        // Email must not block order creation — order already exists at this point.
+        $order['paymentMethod'] = $payload['payment_method'] ?? 'paypal';
+        $order['paymentMethodLabel'] = $payload['payment_method_label'] ?: 'PayPal';
+        try {
+            if ($resolvedStatus === 'paid') {
+                $this->email->sendPaymentConfirmedEmail(
+                    $order['customerEmail'],
+                    $order['customerName'],
+                    $order
+                );
+            } else {
+                $this->email->sendPaymentPendingEmail(
+                    $order['customerEmail'],
+                    $order['customerName'],
+                    $order
+                );
+            }
+        } catch (\Throwable $e) {
+            error_log('Order confirmation email failed for ' . ($order['orderNumber'] ?? '') . ': ' . $e->getMessage());
         }
 
         $result = [

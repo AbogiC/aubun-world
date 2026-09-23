@@ -224,6 +224,10 @@
           <p class="section-kicker mb-2">Payment Successful</p>
           <h2 class="modal-title">Your order has been placed</h2>
           <p class="modal-message">{{ orderSuccessMessage }}</p>
+          <div v-if="orderInvoiceEmail" class="order-invoice-notice mt-3">
+            <i class="bi bi-envelope-check"></i>
+            <span>Invoice and order details sent to <strong>{{ orderInvoiceEmail }}</strong> via <strong>PayPal</strong>.</span>
+          </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-luxury" @click="closeOrderSuccessModal">
               Continue
@@ -266,7 +270,7 @@ const selectedPaymentMethod = ref("paypal");
 const processingPayment = ref(false);
 const paymentErrorMessage = ref("");
 const orderSuccessMessage = ref("");
-const checkoutPrepared = ref(false);
+const orderInvoiceEmail = ref("");
 const shippingOptions = ref([]);
 const selectedShippingRateId = ref(null);
 const latestShippingLookup = ref(0);
@@ -451,6 +455,7 @@ const validateCheckoutBeforePayment = () => {
 
 const closeOrderSuccessModal = () => {
   showOrderSuccessModal.value = false;
+  orderInvoiceEmail.value = "";
   router.push("/");
 };
 
@@ -473,25 +478,16 @@ const closePaymentModal = () => {
 const processPayment = async () => {
   if (!validateCheckoutBeforePayment()) return;
 
-  processingPayment.value = true;
+  // Single-order flow: do NOT create the DB order here.
+  // The order is created exactly once in capturePayPalOrder() after
+  // PayPal approves the payment, which then triggers the invoice email
+  // to form.email with order details + PayPal as payment method.
   paymentErrorMessage.value = "";
-
-  try {
-    if (!checkoutPrepared.value) {
-      await cartStore.checkout(checkoutPayload.value);
-      checkoutPrepared.value = true;
-    }
-
-    selectedPaymentMethod.value = "paypal";
-    paypalErrorMessage.value = "";
-    paypalResultMessage.value = "";
-    destroyPayPalButtons();
-    showPaymentModal.value = true;
-  } catch (error) {
-    errorMessage.value = error.message || "Unable to process payment for this order.";
-  } finally {
-    processingPayment.value = false;
-  }
+  selectedPaymentMethod.value = "paypal";
+  paypalErrorMessage.value = "";
+  paypalResultMessage.value = "";
+  destroyPayPalButtons();
+  showPaymentModal.value = true;
 };
 
 const loadPayPalSdk = (clientId, currencyCode) =>
@@ -565,7 +561,14 @@ const renderPayPalButtons = async () => {
           paypalResultMessage.value = transaction
             ? `Transaction ${transaction.status}: ${transaction.id}`
             : `Order ${order.orderNumber} placed successfully.`;
-          orderSuccessMessage.value = `Order ${order.orderNumber} placed successfully.`;
+          orderSuccessMessage.value = `Order ${order.orderNumber} placed successfully and paid with PayPal.`;
+          // Business flow: invoice + order details emailed to the address
+          // the customer filled in before clicking Process Payment.
+          orderInvoiceEmail.value = order.customerEmail || form.email;
+          if (!getAuthToken()) {
+            // Backend has no server cart for guests, so clear localStorage cart here.
+            cartStore.clearCart();
+          }
           closePaymentModal();
           showOrderSuccessModal.value = true;
         } catch (error) {
@@ -788,6 +791,26 @@ onMounted(() => {
   margin-top: 1.75rem;
   display: flex;
   justify-content: center;
+}
+
+.order-invoice-notice {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  text-align: left;
+  background: #e8f5e9;
+  border: 1px solid rgba(40, 167, 69, 0.3);
+  border-radius: var(--radius-md);
+  padding: 0.8rem 1rem;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.order-invoice-notice i {
+  color: var(--success);
+  font-size: 1.1rem;
+  margin-top: 0.1rem;
 }
 
 @media (max-width: 575.98px) {
