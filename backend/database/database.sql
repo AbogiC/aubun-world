@@ -322,6 +322,13 @@ CREATE TABLE home_view_settings (
     custom_font_family VARCHAR(120) NULL,
     custom_font_url VARCHAR(500) NULL,
     custom_font_filename VARCHAR(255) NULL,
+    theme_primary VARCHAR(9) NULL,
+    theme_secondary VARCHAR(9) NULL,
+    theme_gold VARCHAR(9) NULL,
+    theme_gold_light VARCHAR(9) NULL,
+    theme_gold_dark VARCHAR(9) NULL,
+    theme_cream VARCHAR(9) NULL,
+    theme_ink_muted VARCHAR(9) NULL,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

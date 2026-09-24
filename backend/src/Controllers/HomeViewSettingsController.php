@@ -174,6 +174,7 @@ final class HomeViewSettingsController
         }
 
         // Clear persisted custom font so frontend falls back to default fonts.
+        // Preserve theme colors so font removal never wipes the theme.
         if ($settings) {
             $this->homeViewSettings->update([
                 'heroBackgroundImage' => $settings['heroBackgroundImage'] ?? null,
@@ -189,6 +190,13 @@ final class HomeViewSettingsController
                 'customFontFamily' => null,
                 'customFontUrl' => null,
                 'customFontFilename' => null,
+                'themePrimary' => $settings['themePrimary'] ?? null,
+                'themeSecondary' => $settings['themeSecondary'] ?? null,
+                'themeGold' => $settings['themeGold'] ?? null,
+                'themeGoldLight' => $settings['themeGoldLight'] ?? null,
+                'themeGoldDark' => $settings['themeGoldDark'] ?? null,
+                'themeCream' => $settings['themeCream'] ?? null,
+                'themeInkMuted' => $settings['themeInkMuted'] ?? null,
                 'featuredItems' => $settings['featuredItems'] ?? [],
             ]);
         }
@@ -213,6 +221,13 @@ final class HomeViewSettingsController
         $customFontFamily = trim((string) ($request->input('customFontFamily') ?? ''));
         $customFontUrl = trim((string) ($request->input('customFontUrl') ?? ''));
         $customFontFilename = basename(trim((string) ($request->input('customFontFilename') ?? '')));
+        $themePrimary = $this->normalizedHex($request->input('themePrimary'));
+        $themeSecondary = $this->normalizedHex($request->input('themeSecondary'));
+        $themeGold = $this->normalizedHex($request->input('themeGold'));
+        $themeGoldLight = $this->normalizedHex($request->input('themeGoldLight'));
+        $themeGoldDark = $this->normalizedHex($request->input('themeGoldDark'));
+        $themeCream = $this->normalizedHex($request->input('themeCream'));
+        $themeInkMuted = $this->normalizedHex($request->input('themeInkMuted'));
         $featuredItems = $request->input('featuredItems') ?? [];
 
         if (!is_array($featuredItems)) {
@@ -249,6 +264,13 @@ final class HomeViewSettingsController
             'customFontFamily' => $customFontFamily !== '' ? mb_substr($customFontFamily, 0, 120) : null,
             'customFontUrl' => $customFontUrl !== '' ? mb_substr($customFontUrl, 0, 500) : null,
             'customFontFilename' => $customFontFilename !== '' && $customFontFilename !== '.' ? mb_substr($customFontFilename, 0, 255) : null,
+            'themePrimary' => $themePrimary,
+            'themeSecondary' => $themeSecondary,
+            'themeGold' => $themeGold,
+            'themeGoldLight' => $themeGoldLight,
+            'themeGoldDark' => $themeGoldDark,
+            'themeCream' => $themeCream,
+            'themeInkMuted' => $themeInkMuted,
             'featuredItems' => $validatedFeaturedItems,
         ];
     }
@@ -260,6 +282,31 @@ final class HomeViewSettingsController
         if (!in_array($role, self::MANAGER_ROLES, true)) {
             throw new RuntimeException('You are not allowed to manage home view settings.', 403);
         }
+    }
+
+    private function normalizedHex(mixed $value): ?string
+    {
+        $raw = trim((string) ($value ?? ''));
+
+        if ($raw === '') {
+            return null;
+        }
+
+        if (!str_starts_with($raw, '#')) {
+            $raw = '#' . $raw;
+        }
+
+        $hex = strtolower($raw);
+
+        if (preg_match('/^#[0-9a-f]{3}$/', $hex)) {
+            $hex = '#' . $hex[1] . $hex[1] . $hex[2] . $hex[2] . $hex[3] . $hex[3];
+        }
+
+        if (!preg_match('/^#[0-9a-f]{6}$/', $hex)) {
+            throw new RuntimeException('Theme colors must be valid hex values (e.g. #4d1018).', 422);
+        }
+
+        return $hex;
     }
 
     private function looksLikeTrueType(string $tmpPath): bool

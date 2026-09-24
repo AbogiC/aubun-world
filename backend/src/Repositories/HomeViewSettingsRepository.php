@@ -15,14 +15,16 @@ final class HomeViewSettingsRepository
 
     public function getSettings(): ?array
     {
-        $this->ensureCustomFontColumns();
+        $this->ensureExtendedColumns();
 
         $statement = $this->pdo->query(
             'SELECT id, hero_background_image, hero_kicker, hero_title, hero_copy,
                     hero_primary_button_text, hero_primary_button_link,
                     hero_secondary_button_text, hero_secondary_button_link,
                     featured_title, featured_subtitle,
-                    custom_font_family, custom_font_url, custom_font_filename
+                    custom_font_family, custom_font_url, custom_font_filename,
+                    theme_primary, theme_secondary, theme_gold, theme_gold_light,
+                    theme_gold_dark, theme_cream, theme_ink_muted
              FROM home_view_settings
              ORDER BY id DESC
              LIMIT 1'
@@ -54,7 +56,7 @@ final class HomeViewSettingsRepository
 
     public function create(array $payload): array
     {
-        $this->ensureCustomFontColumns();
+        $this->ensureExtendedColumns();
         $this->pdo->beginTransaction();
 
         try {
@@ -65,6 +67,8 @@ final class HomeViewSettingsRepository
                     hero_secondary_button_text, hero_secondary_button_link,
                     featured_title, featured_subtitle,
                     custom_font_family, custom_font_url, custom_font_filename,
+                    theme_primary, theme_secondary, theme_gold, theme_gold_light,
+                    theme_gold_dark, theme_cream, theme_ink_muted,
                     created_at, updated_at
                  ) VALUES (
                     :hero_background_image, :hero_kicker, :hero_title, :hero_copy,
@@ -72,6 +76,8 @@ final class HomeViewSettingsRepository
                     :hero_secondary_button_text, :hero_secondary_button_link,
                     :featured_title, :featured_subtitle,
                     :custom_font_family, :custom_font_url, :custom_font_filename,
+                    :theme_primary, :theme_secondary, :theme_gold, :theme_gold_light,
+                    :theme_gold_dark, :theme_cream, :theme_ink_muted,
                     NOW(), NOW()
                  )'
             );
@@ -122,6 +128,13 @@ final class HomeViewSettingsRepository
                     custom_font_family = :custom_font_family,
                     custom_font_url = :custom_font_url,
                     custom_font_filename = :custom_font_filename,
+                    theme_primary = :theme_primary,
+                    theme_secondary = :theme_secondary,
+                    theme_gold = :theme_gold,
+                    theme_gold_light = :theme_gold_light,
+                    theme_gold_dark = :theme_gold_dark,
+                    theme_cream = :theme_cream,
+                    theme_ink_muted = :theme_ink_muted,
                     updated_at = NOW()
                  WHERE id = :id'
             );
@@ -191,6 +204,13 @@ final class HomeViewSettingsRepository
             'custom_font_family' => $payload['customFontFamily'] ?? null,
             'custom_font_url' => $payload['customFontUrl'] ?? null,
             'custom_font_filename' => $payload['customFontFilename'] ?? null,
+            'theme_primary' => $payload['themePrimary'] ?? null,
+            'theme_secondary' => $payload['themeSecondary'] ?? null,
+            'theme_gold' => $payload['themeGold'] ?? null,
+            'theme_gold_light' => $payload['themeGoldLight'] ?? null,
+            'theme_gold_dark' => $payload['themeGoldDark'] ?? null,
+            'theme_cream' => $payload['themeCream'] ?? null,
+            'theme_ink_muted' => $payload['themeInkMuted'] ?? null,
         ];
     }
 
@@ -211,10 +231,17 @@ final class HomeViewSettingsRepository
             'customFontFamily' => $row['custom_font_family'] ?? null,
             'customFontUrl' => $row['custom_font_url'] ?? null,
             'customFontFilename' => $row['custom_font_filename'] ?? null,
+            'themePrimary' => $row['theme_primary'] ?? null,
+            'themeSecondary' => $row['theme_secondary'] ?? null,
+            'themeGold' => $row['theme_gold'] ?? null,
+            'themeGoldLight' => $row['theme_gold_light'] ?? null,
+            'themeGoldDark' => $row['theme_gold_dark'] ?? null,
+            'themeCream' => $row['theme_cream'] ?? null,
+            'themeInkMuted' => $row['theme_ink_muted'] ?? null,
         ];
     }
 
-    private function ensureCustomFontColumns(): void
+    private function ensureExtendedColumns(): void
     {
         try {
             $columns = [];
@@ -233,13 +260,33 @@ final class HomeViewSettingsRepository
             if (!in_array('custom_font_filename', $columns, true)) {
                 $adds[] = 'ADD COLUMN custom_font_filename VARCHAR(255) NULL AFTER custom_font_url';
             }
+            $themeColumns = [
+                'theme_primary' => 'ADD COLUMN theme_primary VARCHAR(9) NULL AFTER custom_font_filename',
+                'theme_secondary' => 'ADD COLUMN theme_secondary VARCHAR(9) NULL AFTER theme_primary',
+                'theme_gold' => 'ADD COLUMN theme_gold VARCHAR(9) NULL AFTER theme_secondary',
+                'theme_gold_light' => 'ADD COLUMN theme_gold_light VARCHAR(9) NULL AFTER theme_gold',
+                'theme_gold_dark' => 'ADD COLUMN theme_gold_dark VARCHAR(9) NULL AFTER theme_gold_light',
+                'theme_cream' => 'ADD COLUMN theme_cream VARCHAR(9) NULL AFTER theme_gold_dark',
+                'theme_ink_muted' => 'ADD COLUMN theme_ink_muted VARCHAR(9) NULL AFTER theme_cream',
+            ];
+            foreach ($themeColumns as $name => $ddl) {
+                if (!in_array($name, $columns, true)) {
+                    $adds[] = $ddl;
+                }
+            }
 
             if ($adds !== []) {
                 $this->pdo->exec('ALTER TABLE home_view_settings ' . implode(', ', $adds));
             }
         } catch (\Throwable) {
-            // Ignore migration errors — older schemas still work, font fields will be null.
+            // Ignore migration errors — older schemas still work, extended fields will be null.
         }
+    }
+
+    /** @deprecated Use ensureExtendedColumns(). Kept for backward compatibility. */
+    private function ensureCustomFontColumns(): void
+    {
+        $this->ensureExtendedColumns();
     }
 
     private function mapFeaturedItem(array $row): array

@@ -346,6 +346,103 @@
           </div>
         </div>
       </div>
+
+      <!-- Theme Colors -->
+      <div class="col-12">
+        <div class="card surface">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h2 class="h5 mb-0">Theme Colors</h2>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="badge text-bg-light border">Live storefront palette</span>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                @click="resetThemeToDefaults"
+              >
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to defaults
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-3">
+              Pick the primary, secondary and universal accent colors for the whole storefront.
+              Leave a field empty to use the default. Save settings to publish live.
+            </p>
+
+            <div class="row g-3 align-items-stretch">
+              <div class="col-lg-7">
+                <div class="theme-grid">
+                  <div
+                    v-for="field in themeFields"
+                    :key="field.key"
+                    class="theme-field"
+                  >
+                    <label class="theme-swatch" :style="{ background: form[field.key] || field.default }" :title="field.label">
+                      <input
+                        type="color"
+                        :value="form[field.key] || field.default"
+                        @input="form[field.key] = ($event.target.value || '').toLowerCase()"
+                        :aria-label="field.label"
+                      />
+                      <span class="theme-swatch-ring" aria-hidden="true"></span>
+                    </label>
+                    <div class="theme-field-body">
+                      <label class="form-label mb-1">{{ field.label }}</label>
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text">#</span>
+                        <input
+                          type="text"
+                          class="form-control font-monospace"
+                          :value="(form[field.key] || '').replace(/^#/, '')"
+                          @input="onThemeHexInput(field.key, $event)"
+                          maxlength="6"
+                          spellcheck="false"
+                          :placeholder="field.default.replace('#', '')"
+                        />
+                      </div>
+                      <small class="text-muted">{{ field.hint }}</small>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link text-muted theme-default-btn"
+                      @click="form[field.key] = ''"
+                      title="Use default color"
+                    >
+                      Default
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="themeError" class="alert alert-danger mt-3 mb-0 py-2 px-3">
+                  <i class="bi bi-exclamation-triangle me-2"></i>{{ themeError }}
+                </div>
+              </div>
+
+              <div class="col-lg-5">
+                <div class="theme-preview" :style="themePreviewVars">
+                  <p class="theme-preview-kicker">Aubun World · Live Preview</p>
+                  <h3 class="theme-preview-title">Luxury, recolored live</h3>
+                  <p class="theme-preview-copy">
+                    Buttons, badges and surfaces below reflect your palette instantly.
+                  </p>
+                  <div class="theme-preview-gradient">
+                    <span>Primary → Secondary</span>
+                  </div>
+                  <div class="theme-preview-actions">
+                    <span class="theme-preview-btn-primary">Shop Collection</span>
+                    <span class="theme-preview-btn-gold">Try Mix &amp; Match</span>
+                  </div>
+                  <div class="theme-preview-badges">
+                    <span class="theme-preview-badge-light">Gold Light</span>
+                    <span class="theme-preview-badge-cream">Cream Surface</span>
+                    <span class="theme-preview-badge-dark">Gold Accent</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Save Button -->
@@ -465,6 +562,28 @@ const onStatusClose = () => {
   statusModal.value.pendingAction = null;
 };
 
+const DEFAULT_THEME = Object.freeze({
+  themePrimary: "#4d1018",
+  themeSecondary: "#6c1823",
+  themeGold: "#feb511",
+  themeGoldLight: "#fff1b8",
+  themeGoldDark: "#c48d0c",
+  themeCream: "#fef8e4",
+  themeInkMuted: "#8c5a14",
+});
+
+const themeFields = Object.freeze([
+  { key: "themePrimary", label: "Primary", default: DEFAULT_THEME.themePrimary, hint: "Buttons, header, footer" },
+  { key: "themeSecondary", label: "Secondary", default: DEFAULT_THEME.themeSecondary, hint: "Gradients, hovers" },
+  { key: "themeGold", label: "Gold accent", default: DEFAULT_THEME.themeGold, hint: "Badges, CTAs, highlights" },
+  { key: "themeGoldLight", label: "Gold light", default: DEFAULT_THEME.themeGoldLight, hint: "Light surfaces, glow" },
+  { key: "themeGoldDark", label: "Gold dark", default: DEFAULT_THEME.themeGoldDark, hint: "Borders, deep accents" },
+  { key: "themeCream", label: "Cream surface", default: DEFAULT_THEME.themeCream, hint: "Cards, backgrounds" },
+  { key: "themeInkMuted", label: "Muted ink", default: DEFAULT_THEME.themeInkMuted, hint: "Kickers, subtle text" },
+]);
+
+const themeError = ref("");
+
 const form = ref({
   heroBackgroundImage: "",
   heroKicker: "",
@@ -480,7 +599,45 @@ const form = ref({
   customFontFamily: "",
   customFontUrl: "",
   customFontFilename: "",
+  themePrimary: "",
+  themeSecondary: "",
+  themeGold: "",
+  themeGoldLight: "",
+  themeGoldDark: "",
+  themeCream: "",
+  themeInkMuted: "",
 });
+
+const themeValueOrDefault = (key) => form.value[key] || DEFAULT_THEME[key];
+
+const themePreviewVars = computed(() => ({
+  "--pv-primary": themeValueOrDefault("themePrimary"),
+  "--pv-secondary": themeValueOrDefault("themeSecondary"),
+  "--pv-gold": themeValueOrDefault("themeGold"),
+  "--pv-gold-light": themeValueOrDefault("themeGoldLight"),
+  "--pv-gold-dark": themeValueOrDefault("themeGoldDark"),
+  "--pv-cream": themeValueOrDefault("themeCream"),
+  "--pv-ink-muted": themeValueOrDefault("themeInkMuted"),
+}));
+
+const isValidHexField = (value) => {
+  if (!value) return true;
+  return /^#[0-9a-f]{6}$/i.test(value);
+};
+
+const onThemeHexInput = (key, event) => {
+  themeError.value = "";
+  const raw = (event.target.value || "").replace(/[^0-9a-fA-F]/g, "").slice(0, 6);
+  event.target.value = raw;
+  form.value[key] = raw ? `#${raw.toLowerCase()}` : "";
+};
+
+const resetThemeToDefaults = () => {
+  themeError.value = "";
+  for (const field of themeFields) {
+    form.value[field.key] = field.default;
+  }
+};
 
 const fontPreviewStyle = computed(() => {
   if (form.value.customFontFamily && form.value.customFontUrl) {
@@ -524,6 +681,14 @@ const fetchInitialData = async () => {
       form.value.customFontFamily = s.customFontFamily || "";
       form.value.customFontUrl = s.customFontUrl || "";
       form.value.customFontFilename = s.customFontFilename || "";
+      form.value.themePrimary = s.themePrimary || "";
+      form.value.themeSecondary = s.themeSecondary || "";
+      form.value.themeGold = s.themeGold || "";
+      form.value.themeGoldLight = s.themeGoldLight || "";
+      form.value.themeGoldDark = s.themeGoldDark || "";
+      form.value.themeCream = s.themeCream || "";
+      form.value.themeInkMuted = s.themeInkMuted || "";
+      themeError.value = "";
       form.value.featuredItems = (settingsRes.featuredItems || []).map((item, idx) => ({
         ...item,
         id: item.id,
@@ -704,6 +869,14 @@ const removeCustomFont = () => {
 };
 
 const doSaveSettings = async () => {
+  const badField = themeFields.find((f) => !isValidHexField(form.value[f.key]));
+  if (badField) {
+    themeError.value = `${badField.label} must be a valid hex color (e.g. ${badField.default}). Leave it empty to use the default.`;
+    showError("Invalid theme color", themeError.value);
+    return;
+  }
+  themeError.value = "";
+
   saving.value = true;
   try {
     const payload = {
@@ -720,6 +893,13 @@ const doSaveSettings = async () => {
       customFontFamily: form.value.customFontFamily,
       customFontUrl: form.value.customFontUrl,
       customFontFilename: form.value.customFontFilename,
+      themePrimary: form.value.themePrimary,
+      themeSecondary: form.value.themeSecondary,
+      themeGold: form.value.themeGold,
+      themeGoldLight: form.value.themeGoldLight,
+      themeGoldDark: form.value.themeGoldDark,
+      themeCream: form.value.themeCream,
+      themeInkMuted: form.value.themeInkMuted,
       featuredItems: form.value.featuredItems.map(item => ({
         label: item.label,
         routeCategory: item.routeCategory,
@@ -734,7 +914,7 @@ const doSaveSettings = async () => {
 
     await api.patch("/home-view", payload);
     await fetchInitialData();
-    showSuccess("Settings saved", "Your homepage customization has been published successfully.");
+    showSuccess("Settings saved", "Your homepage customization (content, font and theme) has been published successfully.");
   } catch (error) {
     console.error("Failed to save settings:", error);
     showError("Save failed", error.message || "Failed to save settings. Please try again.");
@@ -746,7 +926,7 @@ const doSaveSettings = async () => {
 const saveSettings = () => {
   askConfirm(
     "Save settings?",
-    "This will publish your homepage changes (hero, featured, typography) to the live storefront.",
+    "This will publish your homepage changes (hero, featured, typography and theme) to the live storefront.",
     {
       confirmText: "Save settings",
       onConfirm: doSaveSettings,
@@ -859,6 +1039,211 @@ onMounted(() => {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(77, 16, 24, 0.6);
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.theme-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(77, 16, 24, 0.1);
+  border-radius: var(--radius-md);
+  background: rgba(255, 248, 228, 0.55);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-field:hover {
+  border-color: rgba(77, 16, 24, 0.24);
+  box-shadow: 0 4px 12px rgba(77, 16, 24, 0.08);
+}
+
+.theme-swatch {
+  position: relative;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.9rem;
+  flex-shrink: 0;
+  cursor: pointer;
+  overflow: hidden;
+  border: 1px solid rgba(77, 16, 24, 0.2);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+  margin-bottom: 0;
+}
+
+.theme-swatch input[type="color"] {
+  position: absolute;
+  inset: -0.5rem;
+  width: calc(100% + 1rem);
+  height: calc(100% + 1rem);
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.theme-swatch-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+.theme-field-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.theme-field-body .form-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.theme-default-btn {
+  padding: 0.1rem 0.25rem;
+  font-size: 0.72rem;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.theme-default-btn:hover {
+  color: var(--primary-black) !important;
+}
+
+.font-monospace {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-transform: lowercase;
+}
+
+.theme-preview {
+  height: 100%;
+  min-height: 22rem;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--pv-cream);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.14), transparent 55%),
+    linear-gradient(160deg, var(--pv-primary), var(--pv-secondary));
+  border: 1px solid color-mix(in srgb, var(--pv-gold) 45%, transparent);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.7rem;
+  overflow: hidden;
+}
+
+.theme-preview-kicker {
+  font-size: 0.68rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--pv-gold);
+  margin-bottom: 0;
+  font-weight: 600;
+}
+
+.theme-preview-title {
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  color: var(--pv-gold-light);
+  margin-bottom: 0;
+  text-wrap: balance;
+}
+
+.theme-preview-copy {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: color-mix(in srgb, var(--pv-cream) 82%, transparent);
+  margin-bottom: 0;
+}
+
+.theme-preview-gradient {
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--pv-gold-light) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pv-gold) 45%, transparent);
+  color: var(--pv-gold-light);
+}
+
+.theme-preview-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.theme-preview-btn-primary,
+.theme-preview-btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.2rem;
+  border-radius: 0.75rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.theme-preview-btn-primary {
+  background: var(--pv-gold);
+  color: var(--pv-primary);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+}
+
+.theme-preview-btn-gold {
+  background: transparent;
+  color: var(--pv-gold-light);
+  border: 1px solid var(--pv-gold);
+}
+
+.theme-preview-badges {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.theme-preview-badge-light,
+.theme-preview-badge-cream,
+.theme-preview-badge-dark {
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.theme-preview-badge-light {
+  background: var(--pv-gold-light);
+  color: var(--pv-gold-dark);
+}
+
+.theme-preview-badge-cream {
+  background: var(--pv-cream);
+  color: var(--pv-primary);
+}
+
+.theme-preview-badge-dark {
+  background: var(--pv-primary);
+  color: var(--pv-gold);
+  border: 1px solid var(--pv-gold-dark);
+}
+
+@media (max-width: 991.98px) {
+  .theme-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 767.98px) {
