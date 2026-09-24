@@ -139,6 +139,7 @@ CREATE TABLE orders (
     shipping_tier_name VARCHAR(120) NULL,
     subtotal_amount DECIMAL(10,2) NOT NULL,
     discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    discount_code VARCHAR(120) NULL DEFAULT NULL,
     shipping_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
     total_amount DECIMAL(10,2) NOT NULL,
     courier VARCHAR(120) NULL DEFAULT NULL,
