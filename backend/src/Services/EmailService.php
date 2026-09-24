@@ -37,7 +37,7 @@ final class EmailService
         }
     }
 
-    public function sendVerificationEmail(string $toEmail, string $toName, string $verificationToken): void
+    public function sendVerificationEmail(string $toEmail, string $toName, string $verificationToken, ?array $welcomeVoucher = null): void
     {
         $verifyUrl = sprintf(
             '%s/verify-email?token=%s',
@@ -46,7 +46,7 @@ final class EmailService
         );
 
         $subject = 'Verify your AUBUN WORLD email address';
-        $body = $this->buildVerificationEmailBody($toName, $verifyUrl);
+        $body = $this->buildVerificationEmailBody($toName, $verifyUrl, $welcomeVoucher);
 
         $this->send($toEmail, $subject, $body, $toName);
     }
@@ -330,16 +330,46 @@ final class EmailService
         return $this->wrapEmail('Order Confirmed', $content);
     }
 
-    private function buildVerificationEmailBody(string $name, string $verifyUrl): string
+    private function buildVerificationEmailBody(string $name, string $verifyUrl, ?array $welcomeVoucher = null): string
     {
+        $giftHtml = '';
+
+        if (is_array($welcomeVoucher) && isset($welcomeVoucher['code'])) {
+            $code = (string) $welcomeVoucher['code'];
+            $percent = (float) ($welcomeVoucher['discountPercent'] ?? 0);
+            $expires = (string) ($welcomeVoucher['expiresAt'] ?? '');
+            $expiryText = '';
+
+            if ($expires !== '') {
+                $timestamp = strtotime($expires);
+                $expiryText = $timestamp !== false
+                    ? date('M j, Y', $timestamp)
+                    : htmlspecialchars($expires, ENT_QUOTES);
+            }
+
+            $giftHtml =
+                '<div style="background: #fff9e6; border: 1px dashed #b36b00; border-radius: 12px; padding: 20px 22px; margin: 0 0 28px;">' .
+                '<p style="margin: 0 0 6px; font-size: 1rem; color: #0b0b0c;"><strong>Your welcome gift: ' .
+                htmlspecialchars(rtrim(rtrim(number_format($percent, 2), '0'), '.'), ENT_QUOTES) .
+                '% off your first order</strong></p>' .
+                '<p style="margin: 0 0 10px; color: #6f6f74; font-size: 0.95rem;">Use this personal voucher code in your shopping bag (one-time use' .
+                ($expiryText !== '' ? ', valid until ' . $expiryText : '') . '):</p>' .
+                '<p style="margin: 0; text-align: center; font-size: 1.35rem; letter-spacing: 0.12em;"><strong>' .
+                htmlspecialchars($code, ENT_QUOTES) .
+                '</strong></p>' .
+                '</div>';
+        }
+
         $content = sprintf(
             '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Dear %s,</p>' .
             '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Thank you for creating your account. Please verify your email address by clicking the button below:</p>' .
+            '%s' .
             '<div style="text-align: center; margin: 40px 0;">' .
             '<a href="%s" style="background: #0b0b0c; color: white; padding: 16px 48px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.78rem; border-radius: 999px; display: inline-block; box-shadow: 0 12px 32px rgba(0,0,0,0.18);">Verify Email</a>' .
             '</div>' .
             '<p style="color: #6f6f74; font-size: 0.9rem; line-height: 1.6; margin-top: 32px;">If you did not create an account, you can safely ignore this email.</p>',
             htmlspecialchars($name, ENT_QUOTES),
+            $giftHtml,
             htmlspecialchars($verifyUrl, ENT_QUOTES)
         );
 

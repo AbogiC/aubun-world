@@ -38,6 +38,65 @@
       </div>
     </section>
 
+    <section class="container mb-4">
+      <div class="surface p-4 p-lg-5 welcome-settings">
+        <div class="row align-items-center g-4">
+          <div class="col-lg-7">
+            <p class="section-kicker mb-2">First-Time Account Gift</p>
+            <h2 class="h3 mb-2">New Account Free Voucher</h2>
+            <p class="text-muted mb-0">
+              Every customer who registers a new account automatically gets 1 free voucher.
+              Adjust its value here — it applies to all future registrations.
+            </p>
+          </div>
+          <div class="col-lg-5">
+            <form class="welcome-form" @submit.prevent="saveWelcomeSettings">
+              <div class="form-check form-switch mb-3">
+                <input id="welcome-enabled" v-model="welcomeSettings.isEnabled" class="form-check-input" type="checkbox" />
+                <label for="welcome-enabled" class="form-check-label">Gift voucher enabled</label>
+              </div>
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label">Discount Value (%)</label>
+                  <div class="input-group">
+                    <input
+                      v-model.number="welcomeSettings.discountPercent"
+                      type="number"
+                      min="0.01"
+                      max="100"
+                      step="0.01"
+                      class="form-control"
+                      required
+                    />
+                    <span class="input-group-text">% off</span>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Valid For (days)</label>
+                  <input
+                    v-model.number="welcomeSettings.validityDays"
+                    type="number"
+                    min="1"
+                    max="3650"
+                    step="1"
+                    class="form-control"
+                    required
+                  />
+                </div>
+              </div>
+              <div v-if="welcomeFeedback.message" :class="['alert mt-3 mb-0', welcomeFeedback.type === 'error' ? 'alert-danger' : 'alert-success']">
+                {{ welcomeFeedback.message }}
+              </div>
+              <button type="submit" class="btn btn-luxury w-100 mt-3" :disabled="savingWelcome">
+                {{ savingWelcome ? "Saving..." : "Save Gift Settings" }}
+              </button>
+              <div class="form-text mt-2">Example: 10% off, valid 30 days — new accounts receive a personal code like WELCOME-AB12CD.</div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="container">
       <div class="row g-4">
         <div class="col-xl-5">
@@ -268,6 +327,58 @@ const createInitialForm = () => ({
 
 const form = reactive(createInitialForm());
 
+const welcomeSettings = reactive({
+  discountPercent: 10,
+  validityDays: 30,
+  isEnabled: true,
+});
+const savingWelcome = ref(false);
+const welcomeFeedback = reactive({
+  type: "success",
+  message: "",
+});
+
+const fetchWelcomeSettings = async () => {
+  try {
+    const { settings } = await api.get("/welcome-voucher-settings");
+    if (settings) {
+      welcomeSettings.discountPercent = Number(settings.discountPercent ?? 10);
+      welcomeSettings.validityDays = Number(settings.validityDays ?? 30);
+      welcomeSettings.isEnabled = Boolean(settings.isEnabled);
+    }
+  } catch (error) {
+    welcomeFeedback.type = "error";
+    welcomeFeedback.message = error.message;
+  }
+};
+
+const saveWelcomeSettings = async () => {
+  savingWelcome.value = true;
+  welcomeFeedback.message = "";
+
+  try {
+    const { settings } = await api.patch("/welcome-voucher-settings", {
+      discountPercent: Number(welcomeSettings.discountPercent),
+      validityDays: Number(welcomeSettings.validityDays),
+      isEnabled: Boolean(welcomeSettings.isEnabled),
+    });
+
+    if (settings) {
+      welcomeSettings.discountPercent = Number(settings.discountPercent);
+      welcomeSettings.validityDays = Number(settings.validityDays);
+      welcomeSettings.isEnabled = Boolean(settings.isEnabled);
+    }
+
+    welcomeFeedback.type = "success";
+    welcomeFeedback.message = "Gift voucher value saved. New accounts will receive this discount.";
+  } catch (error) {
+    welcomeFeedback.type = "error";
+    welcomeFeedback.message = error.message;
+  } finally {
+    savingWelcome.value = false;
+  }
+};
+
 const products = computed(() => productsStore.products);
 const limitedCategories = computed(() => productsStore.categories.filter((category) => category !== "All"));
 const activeVoucherCount = computed(() => vouchers.value.filter((voucher) => voucher.isActive && !isExpired(voucher.expiresAt)).length);
@@ -478,7 +589,7 @@ const voucherDate = (value) => new Date(String(value).replace(" ", "T"));
 
 onMounted(async () => {
   resetForm();
-  await fetchVouchers();
+  await Promise.all([fetchVouchers(), fetchWelcomeSettings()]);
 });
 </script>
 
@@ -487,6 +598,13 @@ onMounted(async () => {
   background:
     radial-gradient(circle at top right, rgba(77, 16, 24, 0.16), transparent 32%),
     linear-gradient(145deg, rgba(255, 241, 184, 0.94), rgba(254, 181, 17, 0.42));
+}
+
+.welcome-settings {
+  border: 1px solid rgba(77, 16, 24, 0.12);
+  background:
+    radial-gradient(circle at top left, rgba(77, 16, 24, 0.08), transparent 30%),
+    linear-gradient(145deg, rgba(255, 248, 228, 0.98), rgba(255, 241, 184, 0.7));
 }
 
 .voucher-metrics {

@@ -12,7 +12,8 @@ final class CartRepository
     public function __construct(
         private readonly PDO $pdo,
         private readonly ProductRepository $products,
-        private readonly VoucherRepository $vouchers
+        private readonly VoucherRepository $vouchers,
+        private readonly ?WelcomeVoucherRepository $welcomeVouchers = null
     ) {
     }
 
@@ -133,6 +134,8 @@ final class CartRepository
             throw new RuntimeException('Invalid promo code.', 422);
         }
 
+        $this->assertWelcomeVoucherUsable((int) $voucher['id'], $userId);
+
         $items = $this->items((int) $cart['id']);
         $expiresAt = strtotime((string) $voucher['expiresAt']);
 
@@ -188,6 +191,12 @@ final class CartRepository
         $items = $this->items((int) $cart['id']);
 
         if (!$voucher || !$voucher['isActive']) {
+            return $this->resetDiscount($cart);
+        }
+
+        try {
+            $this->assertWelcomeVoucherUsable((int) $voucher['id'], (int) ($cart['user_id'] ?? 0) ?: $this->userIdForCart((int) $cart['id']));
+        } catch (\Throwable) {
             return $this->resetDiscount($cart);
         }
 
@@ -288,5 +297,38 @@ final class CartRepository
             'products' => in_array((int) $item['productId'], $voucher['productIds'], true),
             default => true,
         };
+    }
+
+    /**
+     * Personal welcome vouchers belong to one account and are single-use.
+     */
+    private function assertWelcomeVoucherUsable(int $voucherId, int $userId): void
+    {
+        if ($this->welcomeVouchers === null || $userId <= 0) {
+            return;
+        }
+
+        $owner = $this->welcomeVouchers->findOwnerByVoucherId($voucherId);
+
+        if ($owner === null) {
+            return;
+        }
+
+        if ((int) $owner['user_id'] !== $userId) {
+            throw new RuntimeException('This voucher belongs to another account.', 422);
+        }
+
+        if ($owner['used_at'] !== null) {
+            throw new RuntimeException('This welcome voucher has already been used.', 422);
+        }
+    }
+
+    private function userIdForCart(int $cartId): int
+    {
+        $statement = $this->pdo->prepare('SELECT user_id FROM carts WHERE id = :id LIMIT 1');
+        $statement->execute(['id' => $cartId]);
+        $userId = $statement->fetchColumn();
+
+        return $userId === false ? 0 : (int) $userId;
     }
 }

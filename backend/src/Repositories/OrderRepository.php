@@ -14,7 +14,9 @@ final class OrderRepository
         private readonly PDO $pdo,
         private readonly ShippingRepository $shipping,
         private readonly ProductRepository $products,
-        private readonly \App\Services\EmailService $email
+        private readonly \App\Services\EmailService $email,
+        private readonly ?VoucherRepository $vouchers = null,
+        private readonly ?WelcomeVoucherRepository $welcomeVouchers = null
     )
     {
     }
@@ -209,6 +211,8 @@ final class OrderRepository
             $this->reserveStock($cart['items']);
 
             if ($userId !== null) {
+                $this->consumeWelcomeVoucher($userId, $cart, (float) $discount);
+
                 // $cart comes from cartWithItems() and carries the carts.id —
                 // never pass the user id here or the wrong cart rows are cleared.
                 if (isset($cart['id']) && (int) $cart['id'] > 0) {
@@ -680,6 +684,41 @@ final class OrderRepository
             'UPDATE carts SET discount_code = NULL, discount_amount = 0, updated_at = NOW() WHERE id = :id'
         );
         $resetCart->execute(['id' => $cartId]);
+    }
+
+    /**
+     * Welcome vouchers are single-use: once an order consumes the discount,
+     * mark it used so it cannot be applied again.
+     */
+    private function consumeWelcomeVoucher(int $userId, array $cart, float $discount): void
+    {
+        if ($discount <= 0 || $this->vouchers === null || $this->welcomeVouchers === null) {
+            return;
+        }
+
+        $code = strtoupper(trim((string) ($cart['discount_code'] ?? '')));
+
+        if ($code === '') {
+            return;
+        }
+
+        try {
+            $voucher = $this->vouchers->findByCode($code);
+
+            if (!$voucher) {
+                return;
+            }
+
+            $owner = $this->welcomeVouchers->findOwnerByVoucherId((int) $voucher['id']);
+
+            if ($owner === null || (int) $owner['user_id'] !== $userId) {
+                return;
+            }
+
+            $this->welcomeVouchers->markUsed($userId, (int) $voucher['id']);
+        } catch (\Throwable) {
+            // Never block checkout on voucher bookkeeping.
+        }
     }
 
     private function generateOrderNumber(): string

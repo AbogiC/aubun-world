@@ -14,6 +14,20 @@
               {{ emailNotice }}
             </div>
 
+            <div v-if="welcomeVoucher" class="alert alert-warning mb-4 welcome-gift">
+              <div class="d-flex align-items-start gap-2">
+                <i class="bi bi-ticket-perforated-fill fs-5"></i>
+                <div>
+                  <strong>Welcome gift: {{ welcomeVoucher.discountPercent }}% off!</strong>
+                  <div class="small mt-1">
+                    Your free voucher code:
+                    <code class="voucher-code">{{ welcomeVoucher.code }}</code>
+                  </div>
+                  <div class="small text-muted">Apply it in your bag at checkout. Valid until {{ formatExpiry(welcomeVoucher.expiresAt) }}.</div>
+                </div>
+              </div>
+            </div>
+
             <form @submit.prevent="submit">
               <div class="mb-3">
                 <label class="form-label">Full Name</label>
@@ -74,6 +88,7 @@ const route = useRoute();
 const router = useRouter();
 const errorMessage = ref("");
 const emailNotice = ref("");
+const welcomeVoucher = ref(null);
 const form = reactive({
   name: "",
   email: "",
@@ -90,6 +105,7 @@ const loginLink = computed(() => ({
 const submit = async () => {
   errorMessage.value = "";
   emailNotice.value = "";
+  welcomeVoucher.value = null;
 
   try {
     const response = await authStore.register(form);
@@ -99,10 +115,25 @@ const submit = async () => {
     } else {
       emailNotice.value = "Account created successfully. Please verify your email before continuing.";
     }
+    if (response?.welcomeVoucher) {
+      welcomeVoucher.value = response.welcomeVoucher;
+      // Let the customer see their free voucher code before leaving.
+      setTimeout(() => router.push(redirectTarget.value), 4000);
+      return;
+    }
     router.push(redirectTarget.value);
   } catch (error) {
     errorMessage.value = error.message;
   }
+};
+
+const formatExpiry = (value) => {
+  if (!value) return "-";
+  return new Date(String(value).replace(" ", "T")).toLocaleDateString([], {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 };
 </script>
 
@@ -115,5 +146,19 @@ const submit = async () => {
   color: var(--primary-black);
   text-decoration: none;
   font-weight: 600;
+}
+
+.welcome-gift {
+  border-color: rgba(180, 120, 10, 0.35);
+  background: rgba(255, 243, 205, 0.9);
+  color: #664d03;
+}
+
+.voucher-code {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.1rem 0.45rem;
+  border-radius: 0.35rem;
 }
 </style>

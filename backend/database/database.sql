@@ -352,3 +352,25 @@ CREATE TABLE home_view_featured_items (
 
 ALTER TABLE users ADD INDEX idx_verification_token (verification_token);
 ALTER TABLE orders ADD INDEX idx_orders_paypal_order_id (paypal_order_id);
+
+CREATE TABLE IF NOT EXISTS welcome_voucher_settings (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    discount_percent DECIMAL(5,2) NOT NULL DEFAULT 10.00,
+    validity_days INT UNSIGNED NOT NULL DEFAULT 30,
+    is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT IGNORE INTO welcome_voucher_settings (id, discount_percent, validity_days, is_enabled, created_at, updated_at)
+VALUES (1, 10.00, 30, 1, NOW(), NOW());
+
+CREATE TABLE IF NOT EXISTS user_vouchers (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL UNIQUE,
+    voucher_id INT UNSIGNED NOT NULL UNIQUE,
+    used_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_user_vouchers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_vouchers_voucher FOREIGN KEY (voucher_id) REFERENCES vouchers(id) ON DELETE CASCADE
+);

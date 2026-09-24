@@ -20,6 +20,7 @@ use App\Controllers\StockistController;
 use App\Controllers\GuidelineController;
 use App\Controllers\NewsController;
 use App\Controllers\VoucherController;
+use App\Controllers\WelcomeVoucherController;
 use App\Controllers\HomeViewSettingsController;
 use App\Controllers\TestEmailController;
 use App\Controllers\UserController;
@@ -42,6 +43,7 @@ use App\Repositories\ShippingRepository;
 use App\Repositories\StockistRepository;
 use App\Repositories\UserRepository;
 use App\Repositories\VoucherRepository;
+use App\Repositories\WelcomeVoucherRepository;
 use App\Services\AuthService;
 use App\Services\EmailService;
 use App\Services\MixMatchService;
@@ -97,11 +99,13 @@ $productRepository = new ProductRepository($pdo);
 $guidelineRepository = new GuidelineRepository($pdo);
 $newsRepository = new NewsRepository($pdo);
 $voucherRepository = new VoucherRepository($pdo);
+$welcomeVoucherRepository = new WelcomeVoucherRepository($pdo);
+$welcomeVoucherRepository->ensureSchema();
 $productImageDirectory = dirname(__DIR__) . '/store/products/image';
-$cartRepository = new CartRepository($pdo, $productRepository, $voucherRepository);
+$cartRepository = new CartRepository($pdo, $productRepository, $voucherRepository, $welcomeVoucherRepository);
 $shippingRepository = new ShippingRepository($pdo);
 $stockistRepository = new StockistRepository($pdo);
-$orderRepository = new OrderRepository($pdo, $shippingRepository, $productRepository, $emailService);
+$orderRepository = new OrderRepository($pdo, $shippingRepository, $productRepository, $emailService, $voucherRepository, $welcomeVoucherRepository);
 $notificationRepository = new NotificationRepository($pdo);
 $fontDirectory = dirname(__DIR__) . '/store/fonts';
 $homeViewSettingsRepository = new HomeViewSettingsRepository($pdo);
@@ -112,7 +116,7 @@ $paypalService = new PayPalOrderService(
     $config['paypal']['currency']
 );
 
-$authController = new AuthController($userRepository, $authService, $emailService);
+$authController = new AuthController($userRepository, $authService, $emailService, $voucherRepository, $welcomeVoucherRepository);
 $productController = new ProductController($productRepository, $productImageDirectory, $notificationRepository, $config['app']['api_base_url']);
 $categoryController = new CategoryController($productRepository);
 $cartController = new CartController($cartRepository);
@@ -123,6 +127,7 @@ $stockistController = new StockistController($stockistRepository);
 $guidelineController = new GuidelineController($guidelineRepository, $notificationRepository);
 $newsController = new NewsController($newsRepository, $notificationRepository);
 $voucherController = new VoucherController($voucherRepository, $productRepository);
+$welcomeVoucherController = new WelcomeVoucherController($welcomeVoucherRepository);
 $notificationController = new NotificationController($notificationRepository);
 $homeViewSettingsController = new HomeViewSettingsController($homeViewSettingsRepository, $fontDirectory, $config['app']['api_base_url']);
 $testEmailController = new TestEmailController(
@@ -187,6 +192,9 @@ $router->get('/api/vouchers', [$voucherController, 'index'], [$authMiddleware, $
 $router->post('/api/vouchers', [$voucherController, 'store'], [$authMiddleware, $managerRoleMiddleware]);
 $router->patch('/api/vouchers/{id}', [$voucherController, 'update'], [$authMiddleware, $managerRoleMiddleware]);
 $router->delete('/api/vouchers/{id}', [$voucherController, 'destroy'], [$authMiddleware, $managerRoleMiddleware]);
+$router->get('/api/welcome-voucher-settings', [$welcomeVoucherController, 'getSettings'], [$authMiddleware, $managerRoleMiddleware]);
+$router->patch('/api/welcome-voucher-settings', [$welcomeVoucherController, 'updateSettings'], [$authMiddleware, $managerRoleMiddleware]);
+$router->get('/api/my-vouchers', [$welcomeVoucherController, 'myVouchers'], [$authMiddleware]);
 
 $router->get('/api/cart', [$cartController, 'show'], [$authMiddleware]);
 $router->post('/api/cart/items', [$cartController, 'storeItem'], [$authMiddleware]);

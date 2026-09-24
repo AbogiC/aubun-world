@@ -117,6 +117,20 @@
                 <button @click="applyPromo" class="btn btn-dark">Apply</button>
               </div>
               <small class="text-muted">Enter an active voucher code from the store manager.</small>
+              <div v-if="myVouchers.length" class="my-vouchers mt-2">
+                <small class="text-muted d-block mb-1">Your vouchers:</small>
+                <button
+                  v-for="voucher in myVouchers"
+                  :key="voucher.voucherId"
+                  type="button"
+                  class="btn btn-outline-dark btn-sm me-2 mb-1"
+                  :disabled="!voucher.isValid"
+                  :title="voucher.isValid ? `Apply ${voucher.code}` : voucher.isUsed ? 'Already used' : 'Expired'"
+                  @click="applyVoucherCode(voucher.code)"
+                >
+                  <i class="bi bi-ticket-perforated"></i> {{ voucher.code }} ({{ voucher.discountPercent }}%)
+                </button>
+              </div>
             </div>
 
             <button
@@ -204,6 +218,7 @@
 <script setup>
 import { reactive, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { api } from "../lib/api";
 import { useAuthStore } from "../stores/auth";
 import { useCartStore } from "../stores/cart";
 
@@ -211,6 +226,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const cartStore = useCartStore();
 const promoCode = ref("");
+const myVouchers = ref([]);
 const showVerificationModal = ref(false);
 const promoModal = reactive({
   open: false,
@@ -264,6 +280,11 @@ const applyPromo = async () => {
 
 const closeVerificationModal = () => { showVerificationModal.value = false; };
 const closePromoModal = () => { promoModal.open = false; };
+
+const applyVoucherCode = async (code) => {
+  promoCode.value = code;
+  await applyPromo();
+};
 const goToProfileForVerification = () => {
   closeVerificationModal();
   router.push("/profile");
@@ -281,6 +302,12 @@ const proceedToCheckout = async () => {
 onMounted(async () => {
   if (authStore.isAuthenticated) {
     await cartStore.refreshFromApi();
+    try {
+      const payload = await api.get("/my-vouchers");
+      myVouchers.value = Array.isArray(payload.vouchers) ? payload.vouchers : [];
+    } catch {
+      myVouchers.value = [];
+    }
   }
 });
 </script>

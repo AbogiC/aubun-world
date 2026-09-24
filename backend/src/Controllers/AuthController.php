@@ -6,6 +6,8 @@ namespace App\Controllers;
 
 use App\Core\Request;
 use App\Repositories\UserRepository;
+use App\Repositories\VoucherRepository;
+use App\Repositories\WelcomeVoucherRepository;
 use App\Services\AuthService;
 use App\Services\EmailService;
 use RuntimeException;
@@ -15,7 +17,9 @@ final class AuthController
     public function __construct(
         private readonly UserRepository $users,
         private readonly AuthService $auth,
-        private readonly EmailService $email
+        private readonly EmailService $email,
+        private readonly ?VoucherRepository $vouchers = null,
+        private readonly ?WelcomeVoucherRepository $welcomeVouchers = null
     ) {
     }
 
@@ -41,13 +45,15 @@ final class AuthController
         $user = $this->users->create($name, $email, password_hash($password, PASSWORD_DEFAULT), $role);
         $token = $this->auth->issueToken((int) $user['id'], $user['email']);
 
+        $welcomeVoucher = $this->grantWelcomeVoucher((int) $user['id'], $role);
+
         $verificationToken = $this->auth->generateVerificationToken();
         $this->users->setVerificationToken((int) $user['id'], $verificationToken);
 
         $emailDeliveryFailed = false;
 
         try {
-            $this->email->sendVerificationEmail($user['email'], $user['name'], $verificationToken);
+            $this->email->sendVerificationEmail($user['email'], $user['name'], $verificationToken, $welcomeVoucher);
         } catch (\Throwable $exception) {
             $emailDeliveryFailed = true;
             error_log(sprintf(
@@ -63,6 +69,10 @@ final class AuthController
             'token' => $token,
             'user' => $this->users->sanitize($user),
         ];
+
+        if ($welcomeVoucher !== null) {
+            $response['welcomeVoucher'] = $welcomeVoucher;
+        }
 
         if ($emailDeliveryFailed) {
             $response['emailNotice'] = 'Account created, but the verification email could not be sent from this server.';
@@ -138,7 +148,9 @@ final class AuthController
 
         $verificationToken = $this->auth->generateVerificationToken();
         $this->users->setVerificationToken($userId, $verificationToken);
-        $this->email->sendVerificationEmail($user['email'], $user['name'], $verificationToken);
+
+        $welcomeVoucher = $this->welcomeVouchers?->findByUserId($userId);
+        $this->email->sendVerificationEmail($user['email'], $user['name'], $verificationToken, $welcomeVoucher);
 
         return [
             'message' => 'Verification email sent.',
@@ -272,4 +284,71 @@ final class AuthController
     }
 
     private const ALLOWED_ROLES = ['customer', 'manager', 'admin'];
+
+    /**
+     * New customers get 1 free voucher on first registration.
+     * Value (discount %) + validity comes from admin welcome settings.
+     */
+    private function grantWelcomeVoucher(int $userId, string $role): ?array
+    {
+        if ($role !== 'customer') {
+            return null;
+        }
+
+        if ($this->vouchers === null || $this->welcomeVouchers === null) {
+            return null;
+        }
+
+        try {
+            $settings = $this->welcomeVouchers->getSettings();
+
+            if (!($settings['isEnabled'] ?? true)) {
+                return null;
+            }
+
+            // Safety: one voucher per account only.
+            if ($this->welcomeVouchers->findByUserId($userId)) {
+                return $this->welcomeVouchers->findByUserId($userId);
+            }
+
+            $discountPercent = max(0.01, min(100.0, (float) ($settings['discountPercent'] ?? 10)));
+            $validityDays = max(1, (int) ($settings['validityDays'] ?? 30));
+
+            $code = $this->generateWelcomeCode();
+            $expiresAt = (new \DateTimeImmutable(sprintf('+%d days', $validityDays)))->format('Y-m-d H:i:s');
+
+            $voucher = $this->vouchers->create([
+                'code' => $code,
+                'discountPercent' => round($discountPercent, 2),
+                'scopeType' => 'all',
+                'categoryName' => null,
+                'productIds' => [],
+                'expiresAt' => $expiresAt,
+                'isActive' => true,
+            ]);
+
+            return $this->welcomeVouchers->assignWelcomeVoucher($userId, $voucher);
+        } catch (\Throwable $exception) {
+            error_log(sprintf(
+                'Welcome voucher grant failed for user %d: %s',
+                $userId,
+                $exception->getMessage()
+            ));
+
+            return null;
+        }
+    }
+
+    private function generateWelcomeCode(): string
+    {
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $code = 'WELCOME-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+
+            if ($this->vouchers !== null && !$this->vouchers->codeExists($code)) {
+                return $code;
+            }
+        }
+
+        return 'WELCOME-' . strtoupper(substr(bin2hex(random_bytes(6)), 0, 8)) . time() % 1000;
+    }
 }

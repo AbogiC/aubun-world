@@ -242,6 +242,50 @@
               </form>
             </section>
 
+            <!-- My Vouchers Section -->
+            <section class="profile-section mt-5">
+              <h2 class="h4 mb-3 pb-2 border-bottom">My Vouchers</h2>
+              <div v-if="vouchersLoading" class="text-muted">Loading vouchers...</div>
+              <div v-else-if="myVouchers.length === 0" class="text-muted small">
+                No vouchers yet. New accounts automatically receive 1 free welcome voucher.
+              </div>
+              <div v-else class="voucher-list">
+                <div v-for="voucher in myVouchers" :key="voucher.voucherId" class="voucher-card">
+                  <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                      <div class="voucher-code-large">{{ voucher.code }}</div>
+                      <div class="fw-semibold mt-1">{{ voucher.discountPercent }}% off your order</div>
+                      <div class="text-muted small">
+                        <span v-if="voucher.isUsed">Already used</span>
+                        <span v-else-if="voucher.isExpired">Expired on {{ formatDate(voucher.expiresAt) }}</span>
+                        <span v-else>Valid until {{ formatDate(voucher.expiresAt) }}</span>
+                      </div>
+                    </div>
+                    <span
+                      class="badge"
+                      :class="voucher.isValid ? 'text-bg-success' : 'text-bg-secondary'"
+                    >
+                      {{ voucher.isValid ? "Active" : voucher.isUsed ? "Used" : "Expired" }}
+                    </span>
+                  </div>
+                  <div class="d-flex gap-2 mt-3">
+                    <button
+                      type="button"
+                      class="btn btn-outline-dark btn-sm"
+                      :disabled="!voucher.isValid"
+                      @click="copyVoucher(voucher.code)"
+                    >
+                      <i class="bi bi-clipboard"></i> {{ copiedCode === voucher.code ? "Copied!" : "Copy Code" }}
+                    </button>
+                    <router-link to="/cart" class="btn btn-dark btn-sm" :class="{ disabled: !voucher.isValid }">
+                      Use in Bag
+                    </router-link>
+                  </div>
+                  <div class="text-muted small mt-2">Enter this code in your Shopping Bag to apply the discount (one-time use).</div>
+                </div>
+              </div>
+            </section>
+
             <!-- My Orders Section -->
             <section class="profile-section mt-5" v-if="authStore.isAuthenticated">
               <h2 class="h4 mb-3 pb-2 border-bottom">My Orders</h2>
@@ -364,6 +408,38 @@ const verificationSuccess = ref(false);
 const orders = ref([]);
 const ordersLoading = ref(false);
 const ordersError = ref("");
+
+// My vouchers (free welcome gift for new accounts)
+const myVouchers = ref([]);
+const vouchersLoading = ref(false);
+const copiedCode = ref("");
+
+const fetchMyVouchers = async () => {
+  vouchersLoading.value = true;
+  try {
+    const payload = await api.get("/my-vouchers");
+    myVouchers.value = Array.isArray(payload.vouchers) ? payload.vouchers : [];
+  } catch {
+    myVouchers.value = [];
+  } finally {
+    vouchersLoading.value = false;
+  }
+};
+
+const copyVoucher = async (code) => {
+  try {
+    await navigator.clipboard.writeText(code);
+  } catch {
+    const input = document.createElement("input");
+    input.value = code;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand("copy");
+    document.body.removeChild(input);
+  }
+  copiedCode.value = code;
+  setTimeout(() => { copiedCode.value = ""; }, 2000);
+};
 
 const fetchOrders = async () => {
   ordersLoading.value = true;
@@ -544,7 +620,7 @@ onMounted(async () => {
   initializeForms();
   // Each loader is independent: a notification failure must never
   // prevent the order history from loading (and vice versa).
-  await Promise.allSettled([loadNotificationPrefs(), fetchOrders()]);
+  await Promise.allSettled([loadNotificationPrefs(), fetchOrders(), fetchMyVouchers()]);
 });
 </script>
 
@@ -647,6 +723,24 @@ onMounted(async () => {
   border: 1px solid rgba(77, 16, 24, 0.1);
   border-radius: var(--radius-md);
   background: rgba(255, 248, 228, 0.5);
+}
+
+.voucher-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.voucher-card {
+  padding: 1.1rem 1.2rem;
+  border: 1px dashed rgba(77, 16, 24, 0.3);
+  border-radius: var(--radius-md);
+  background: linear-gradient(145deg, rgba(255, 248, 228, 0.95), rgba(255, 241, 184, 0.6));
+}
+
+.voucher-code-large {
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  font-size: 1.1rem;
 }
 
 .order-status-line {
