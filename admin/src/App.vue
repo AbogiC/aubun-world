@@ -35,6 +35,15 @@
               <div class="nav-tooltip" v-if="sidebarCollapsed">Homepage Settings</div>
             </router-link>
             <router-link
+              to="/about-customization"
+              class="nav-link-item"
+              :class="{ 'router-link-active': isActiveRoute('/about-customization') }"
+            >
+              <i class="bi bi-info-circle"></i>
+              <span class="nav-link-text">About Customization</span>
+              <div class="nav-tooltip" v-if="sidebarCollapsed">About Page Settings</div>
+            </router-link>
+            <router-link
               to="/products"
               class="nav-link-item"
               :class="{ 'router-link-active': isActiveRoute('/products') }"
@@ -199,6 +208,7 @@ const pageTitle = computed(() => {
     "/news": "News Articles",
     "/guidelines": "Guidelines",
     "/home-customization": "Home Customization",
+    "/about-customization": "About Customization",
     "/profile": "Profile",
   };
   return titles[route.path] || "Dashboard";

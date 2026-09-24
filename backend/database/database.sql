@@ -351,6 +351,50 @@ CREATE TABLE home_view_featured_items (
     CONSTRAINT fk_hvfi_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
 );
 
+CREATE TABLE about_settings (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    hero_kicker VARCHAR(120) NULL,
+    hero_title VARCHAR(190) NULL,
+    hero_subtitle TEXT NULL,
+    mission_kicker VARCHAR(120) NULL,
+    mission_title VARCHAR(190) NULL,
+    mission_lead TEXT NULL,
+    mission_body1 TEXT NULL,
+    mission_body2 TEXT NULL,
+    mission_image_url VARCHAR(500) NULL,
+    values_title VARCHAR(190) NULL,
+    values_subtitle TEXT NULL,
+    team_title VARCHAR(190) NULL,
+    team_subtitle TEXT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE about_values (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    about_setting_id INT UNSIGNED NOT NULL,
+    icon VARCHAR(120) NULL,
+    title VARCHAR(190) NOT NULL,
+    description TEXT NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_about_values_setting FOREIGN KEY (about_setting_id) REFERENCES about_settings(id) ON DELETE CASCADE
+);
+
+CREATE TABLE about_team_members (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    about_setting_id INT UNSIGNED NOT NULL,
+    name VARCHAR(190) NOT NULL,
+    role VARCHAR(190) NULL,
+    sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_about_team_setting FOREIGN KEY (about_setting_id) REFERENCES about_settings(id) ON DELETE CASCADE
+);
+
 ALTER TABLE users ADD INDEX idx_verification_token (verification_token);
 ALTER TABLE orders ADD INDEX idx_orders_paypal_order_id (paypal_order_id);
 

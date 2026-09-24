@@ -21,6 +21,7 @@ use App\Controllers\GuidelineController;
 use App\Controllers\NewsController;
 use App\Controllers\VoucherController;
 use App\Controllers\WelcomeVoucherController;
+use App\Controllers\AboutSettingsController;
 use App\Controllers\HomeViewSettingsController;
 use App\Controllers\TestEmailController;
 use App\Controllers\UserController;
@@ -33,6 +34,7 @@ use App\Middleware\OptionalAuthMiddleware;
 use App\Middleware\RoleMiddleware;
 use App\Repositories\CartRepository;
 use App\Repositories\GuidelineRepository;
+use App\Repositories\AboutSettingsRepository;
 use App\Repositories\HomeViewSettingsRepository;
 use App\Repositories\MixMatchConfigRepository;
 use App\Repositories\MixMatchRepository;
@@ -110,6 +112,8 @@ $orderRepository = new OrderRepository($pdo, $shippingRepository, $productReposi
 $notificationRepository = new NotificationRepository($pdo);
 $fontDirectory = dirname(__DIR__) . '/store/fonts';
 $homeViewSettingsRepository = new HomeViewSettingsRepository($pdo);
+$aboutSettingsRepository = new AboutSettingsRepository($pdo);
+$aboutSettingsRepository->ensureSchema();
 $paypalService = new PayPalOrderService(
     $config['paypal']['client_id'],
     $config['paypal']['client_secret'],
@@ -130,6 +134,7 @@ $newsController = new NewsController($newsRepository, $notificationRepository);
 $voucherController = new VoucherController($voucherRepository, $productRepository);
 $welcomeVoucherController = new WelcomeVoucherController($welcomeVoucherRepository);
 $notificationController = new NotificationController($notificationRepository);
+$aboutSettingsController = new AboutSettingsController($aboutSettingsRepository);
 $homeViewSettingsController = new HomeViewSettingsController($homeViewSettingsRepository, $fontDirectory, $config['app']['api_base_url']);
 $testEmailController = new TestEmailController(
     $config['microsoft']['client_id'] ?? '',
@@ -188,6 +193,10 @@ $router->patch('/api/home-view', [$homeViewSettingsController, 'update'], [$auth
 $router->post('/api/home-view/font-upload', [$homeViewSettingsController, 'uploadFont'], [$authMiddleware, $managerRoleMiddleware]);
 $router->delete('/api/home-view/font', [$homeViewSettingsController, 'destroyFont'], [$authMiddleware, $managerRoleMiddleware]);
 $router->get('/api/fonts/{filename}', [$homeViewSettingsController, 'serveFont']);
+
+$router->get('/api/about-view', [$aboutSettingsController, 'index']);
+$router->post('/api/about-view', [$aboutSettingsController, 'store'], [$authMiddleware, $managerRoleMiddleware]);
+$router->patch('/api/about-view', [$aboutSettingsController, 'update'], [$authMiddleware, $managerRoleMiddleware]);
 
 $router->get('/api/categories', [$categoryController, 'index']);
 $router->get('/api/vouchers', [$voucherController, 'index'], [$authMiddleware, $managerRoleMiddleware]);

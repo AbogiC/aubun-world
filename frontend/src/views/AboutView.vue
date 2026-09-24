@@ -3,10 +3,10 @@
     <section class="about-hero" data-reveal-section>
       <div class="container text-center">
         <div class="hero-content">
-          <p class="section-kicker" style="color: rgba(254, 181, 17, 0.7);">Our Story</p>
+          <p class="section-kicker" style="color: rgba(254, 181, 17, 0.7);">{{ heroKicker }}</p>
           <div class="hero-divider"></div>
-          <h1 class="display-3 mb-4" style="color: var(--gold-light);">Our Story</h1>
-          <p class="lead opacity-75 mb-0" style="color: var(--white);">Crafting elegance since 2010</p>
+          <h1 class="display-3 mb-4" style="color: var(--gold-light);">{{ heroTitle }}</h1>
+          <p class="lead opacity-75 mb-0" style="color: var(--white);">{{ heroSubtitle }}</p>
           <div class="scroll-indicator">
             <span>Discover More</span>
             <i class="bi bi-chevron-down"></i>
@@ -22,7 +22,13 @@
         <div class="row align-items-center g-5">
           <div class="col-lg-6 mb-4">
             <div class="about-visual surface d-flex align-items-center justify-content-center subtle-glow">
-              <div class="visual-icon-group">
+              <img
+                v-if="missionImageUrl"
+                :src="missionImageUrl"
+                alt="Our mission"
+                class="about-mission-image"
+              />
+              <div v-else class="visual-icon-group">
                 <i class="bi bi-gem"></i>
                 <i class="bi bi-diamond-fill"></i>
                 <i class="bi bi-star-fill"></i>
@@ -31,21 +37,18 @@
           </div>
           <div class="col-lg-6">
             <div class="section-heading">
-              <p class="section-kicker">Our Purpose</p>
-              <h2 class="mb-4">Our Mission</h2>
+              <p class="section-kicker">{{ missionKicker }}</p>
+              <h2 class="mb-4">{{ missionTitle }}</h2>
             </div>
             <div class="section-content">
-              <p class="lead mb-3">
-                To create timeless pieces that transcend trends and become cherished wardrobe staples.
+              <p v-if="missionLead" class="lead mb-3">
+                {{ missionLead }}
               </p>
-              <p>
-                At Aubun World, we believe that true luxury lies in the details. Every stitch, every
-                fabric choice, and every design element is carefully considered to create garments
-                that not only look exceptional but feel extraordinary to wear.
+              <p v-if="missionBody1">
+                {{ missionBody1 }}
               </p>
-              <p>
-                Our commitment to quality craftsmanship and sustainable practices ensures that each
-                piece is not just a purchase, but an investment in enduring style.
+              <p v-if="missionBody2">
+                {{ missionBody2 }}
               </p>
             </div>
           </div>
@@ -56,11 +59,11 @@
     <section class="about-section values-section py-5" data-reveal-section>
       <div class="container">
         <div class="section-title section-heading">
-          <h2>Our Values</h2>
-          <p class="text-muted">The principles that guide every creation</p>
+          <h2>{{ valuesTitle }}</h2>
+          <p class="text-muted">{{ valuesSubtitle }}</p>
         </div>
         <div class="row g-4 section-content">
-          <div v-for="(value, index) in values" :key="value.title" class="col-md-6 col-lg-3">
+          <div v-for="(value, index) in displayValues" :key="value.title" class="col-md-6 col-lg-3">
             <div
               class="value-card surface text-center p-4 hover-lift card-stagger"
               :style="{ transitionDelay: `${120 + index * 100}ms` }"
@@ -79,12 +82,12 @@
     <section class="about-section py-5" data-reveal-section>
       <div class="container">
         <div class="section-title section-heading">
-          <h2>Our Team</h2>
-          <p class="text-muted">The people behind the brand</p>
+          <h2>{{ teamTitle }}</h2>
+          <p class="text-muted">{{ teamSubtitle }}</p>
         </div>
         <div class="row g-4 section-content">
           <div
-            v-for="(member, index) in team"
+            v-for="(member, index) in displayTeam"
             :key="member.name"
             class="col-md-4 mb-4"
           >
@@ -110,26 +113,19 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { api } from "../lib/api";
 
 const aboutRootRef = ref(null);
-const statsSectionRef = ref(null);
 
-const values = [
+const DEFAULT_VALUES = [
   { icon: "bi bi-scissors", title: "Craftsmanship", description: "Every stitch tells a story of precision and passion, honoring the art of fine garment making." },
   { icon: "bi bi-globe2", title: "Sustainability", description: "Committed to ethical sourcing and eco-conscious practices that protect our planet." },
   { icon: "bi bi-stars", title: "Innovation", description: "Blending timeless design with modern techniques to create something truly unique." },
   { icon: "bi bi-clock-history", title: "Heritage", description: "Rooted in tradition, evolving with purpose. Our legacy is woven into every piece." },
 ];
 
-const stats = [
-  { value: "14+", label: "Years of Excellence", icon: "bi bi-award-fill" },
-  { value: "50+", label: "Countries Worldwide", icon: "bi bi-globe2" },
-  { value: "100k+", label: "Happy Clients", icon: "bi bi-heart-fill" },
-  { value: "250+", label: "Exclusive Designs", icon: "bi bi-diamond-fill" },
-];
-
-const team = [
+const DEFAULT_TEAM = [
   { name: "Sophia Laurent", role: "Founder & Creative Director" },
   { name: "Marcus Chen", role: "Head of Design" },
   { name: "Isabella Rossi", role: "Marketing Director" },
@@ -138,54 +134,88 @@ const team = [
   { name: "David Thompson", role: "Customer Experience" },
 ];
 
-const displayedStats = ref(stats.map(() => "0"));
+const DEFAULTS = {
+  heroKicker: "Our Story",
+  heroTitle: "Our Story",
+  heroSubtitle: "Crafting elegance since 2010",
+  missionKicker: "Our Purpose",
+  missionTitle: "Our Mission",
+  missionLead: "To create timeless pieces that transcend trends and become cherished wardrobe staples.",
+  missionBody1:
+    "At Aubun World, we believe that true luxury lies in the details. Every stitch, every fabric choice, and every design element is carefully considered to create garments that not only look exceptional but feel extraordinary to wear.",
+  missionBody2:
+    "Our commitment to quality craftsmanship and sustainable practices ensures that each piece is not just a purchase, but an investment in enduring style.",
+  missionImageUrl: "",
+  valuesTitle: "Our Values",
+  valuesSubtitle: "The principles that guide every creation",
+  teamTitle: "Our Team",
+  teamSubtitle: "The people behind the brand",
+};
+
+const aboutSettings = ref(null);
+const valuesList = ref([]);
+const teamList = ref([]);
+
+const pick = (value, fallback) => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "string" && value.trim() === "") return fallback;
+  return value;
+};
+
+const heroKicker = computed(() => pick(aboutSettings.value?.heroKicker, DEFAULTS.heroKicker));
+const heroTitle = computed(() => pick(aboutSettings.value?.heroTitle, DEFAULTS.heroTitle));
+const heroSubtitle = computed(() => pick(aboutSettings.value?.heroSubtitle, DEFAULTS.heroSubtitle));
+const missionKicker = computed(() => pick(aboutSettings.value?.missionKicker, DEFAULTS.missionKicker));
+const missionTitle = computed(() => pick(aboutSettings.value?.missionTitle, DEFAULTS.missionTitle));
+const missionLead = computed(() => pick(aboutSettings.value?.missionLead, DEFAULTS.missionLead));
+const missionBody1 = computed(() => pick(aboutSettings.value?.missionBody1, DEFAULTS.missionBody1));
+const missionBody2 = computed(() => pick(aboutSettings.value?.missionBody2, DEFAULTS.missionBody2));
+const missionImageUrl = computed(() => (aboutSettings.value?.missionImageUrl || "").trim());
+const valuesTitle = computed(() => pick(aboutSettings.value?.valuesTitle, DEFAULTS.valuesTitle));
+const valuesSubtitle = computed(() => pick(aboutSettings.value?.valuesSubtitle, DEFAULTS.valuesSubtitle));
+const teamTitle = computed(() => pick(aboutSettings.value?.teamTitle, DEFAULTS.teamTitle));
+const teamSubtitle = computed(() => pick(aboutSettings.value?.teamSubtitle, DEFAULTS.teamSubtitle));
+
+const displayValues = computed(() => {
+  const active = (valuesList.value || []).filter((v) => v.isActive !== false && v.title);
+  return active.length ? active : DEFAULT_VALUES;
+});
+
+const displayTeam = computed(() => {
+  const active = (teamList.value || []).filter((m) => m.isActive !== false && m.name);
+  return active.length ? active : DEFAULT_TEAM;
+});
+
 let sectionObserver;
-let statsObserver;
-let animationFrameId;
-let hasAnimatedStats = false;
 
 const getInitials = (name) => {
-  return name
+  return (name || "")
     .split(" ")
+    .filter(Boolean)
     .map((n) => n[0])
-    .join("");
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 };
 
-const parseStatValue = (value) => {
-  const match = value.match(/^(\d+)([a-zA-Z]*)(\+?)$/);
-  if (!match) return { numericValue: Number.parseInt(value, 10) || 0, suffix: "", plus: "" };
-  return { numericValue: Number.parseInt(match[1], 10), suffix: match[2] || "", plus: match[3] || "" };
-};
-
-const formatAnimatedStat = (currentValue, stat) => {
-  const { suffix, plus } = parseStatValue(stat.value);
-  return `${currentValue}${suffix}${plus}`;
-};
-
-const startStatsAnimation = () => {
-  if (hasAnimatedStats) return;
-  hasAnimatedStats = true;
-  const duration = 1800;
-  const startTime = performance.now();
-
-  const tick = (currentTime) => {
-    const progress = Math.min((currentTime - startTime) / duration, 1);
-    const easedProgress = 1 - Math.pow(1 - progress, 3);
-    displayedStats.value = stats.map((stat) => {
-      const { numericValue } = parseStatValue(stat.value);
-      return formatAnimatedStat(Math.round(numericValue * easedProgress), stat);
-    });
-    if (progress < 1) {
-      animationFrameId = window.requestAnimationFrame(tick);
-      return;
+const fetchAboutSettings = async () => {
+  try {
+    const data = await api.get("/about-view");
+    if (data.settings) {
+      aboutSettings.value = data.settings;
+      valuesList.value = data.values || data.settings.values || [];
+      teamList.value = data.team || data.settings.team || [];
     }
-    displayedStats.value = stats.map((stat) => stat.value);
-  };
-
-  animationFrameId = window.requestAnimationFrame(tick);
+  } catch (error) {
+    console.error("Failed to fetch about settings:", error);
+    aboutSettings.value = null;
+  }
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await fetchAboutSettings();
+  await nextTick();
+
   const sections = aboutRootRef.value?.querySelectorAll("[data-reveal-section]");
   if (sections?.length) {
     sectionObserver = new IntersectionObserver(
@@ -200,22 +230,10 @@ onMounted(() => {
     );
     sections.forEach((section) => sectionObserver.observe(section));
   }
-
-  statsObserver = new IntersectionObserver(
-    (entries) => {
-      if (!entries.some((entry) => entry.isIntersecting)) return;
-      startStatsAnimation();
-      statsObserver?.disconnect();
-    },
-    { threshold: 0.35 },
-  );
-  if (statsSectionRef.value) statsObserver.observe(statsSectionRef.value);
 });
 
 onBeforeUnmount(() => {
   sectionObserver?.disconnect();
-  statsObserver?.disconnect();
-  if (animationFrameId) window.cancelAnimationFrame(animationFrameId);
 });
 </script>
 
@@ -389,6 +407,13 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-lg);
   position: relative;
   overflow: hidden;
+}
+
+.about-mission-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .visual-icon-group {
