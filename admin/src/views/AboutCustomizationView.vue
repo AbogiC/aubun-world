@@ -98,7 +98,7 @@
             </div>
 
             <div v-if="form.values.length === 0" class="text-center py-4 text-muted">
-              <p class="mb-0">No values yet. Click "Add Value" to create one. Empty list falls back to defaults on the storefront.</p>
+              <p class="mb-0">No values yet. Click "Add Value" to create one. An empty section shows a luxurious "Coming Soon" card on the storefront.</p>
             </div>
 
             <div v-else>
@@ -167,7 +167,7 @@
             </div>
 
             <div v-if="form.team.length === 0" class="text-center py-4 text-muted">
-              <p class="mb-0">No team members yet. Click "Add Member" to create one. Empty list falls back to defaults on the storefront.</p>
+              <p class="mb-0">No team members yet. Click "Add Member" to create one. An empty section shows a luxurious "Coming Soon" card on the storefront.</p>
             </div>
 
             <div v-else>
