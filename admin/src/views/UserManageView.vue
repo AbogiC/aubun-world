@@ -114,6 +114,20 @@
                       <div>
                         <div class="fw-semibold">{{ user.name || "Unnamed User" }}</div>
                         <div class="small text-muted">ID: #{{ user.id }}</div>
+                        <span
+                          v-if="user.authProvider === 'google' || user.auth_provider === 'google' || user.loginByGoogle || user.login_by_google"
+                          class="badge rounded-pill mt-1"
+                          style="background: rgba(66, 133, 244, 0.12); color: #1a56db; font-size: 0.68rem;"
+                        >
+                          <i class="bi bi-google me-1"></i>Google
+                        </span>
+                        <span
+                          v-else-if="user.authProvider === 'both' || user.auth_provider === 'both'"
+                          class="badge rounded-pill mt-1"
+                          style="background: rgba(108, 117, 125, 0.12); color: #495057; font-size: 0.68rem;"
+                        >
+                          <i class="bi bi-google me-1"></i>Email + Google
+                        </span>
                       </div>
                     </div>
                   </td>

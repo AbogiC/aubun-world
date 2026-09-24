@@ -42,6 +42,11 @@
               </button>
             </form>
 
+            <div class="auth-divider"><span>or</span></div>
+
+            <GoogleSignInButton text="signin_with" @credential="submitGoogle" />
+            <div v-if="googleError" class="alert alert-danger mt-3">{{ googleError }}</div>
+
             <div class="text-center mt-4">
               <span class="text-muted">New to Aubun World?</span>
               <router-link :to="registerLink" class="auth-link ms-2">Create account</router-link>
@@ -57,11 +62,13 @@
 import { computed, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
+import GoogleSignInButton from "../components/GoogleSignInButton.vue";
 
 const authStore = useAuthStore();
 const route = useRoute();
 const router = useRouter();
 const errorMessage = ref("");
+const googleError = ref("");
 const form = reactive({
   email: "",
   password: "",
@@ -83,6 +90,18 @@ const submit = async () => {
     errorMessage.value = error.message;
   }
 };
+
+const submitGoogle = async (credential) => {
+  googleError.value = "";
+  errorMessage.value = "";
+
+  try {
+    await authStore.loginWithGoogle(credential);
+    router.push(redirectTarget.value);
+  } catch (error) {
+    googleError.value = error.message;
+  }
+};
 </script>
 
 <style scoped>
@@ -102,5 +121,22 @@ const submit = async () => {
   color: var(--primary-black);
   text-decoration: none;
   font-weight: 600;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(11, 11, 12, 0.12);
 }
 </style>

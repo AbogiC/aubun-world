@@ -67,6 +67,11 @@
               </button>
             </form>
 
+            <div class="auth-divider"><span>or</span></div>
+
+            <GoogleSignInButton text="signup_with" @credential="submitGoogle" />
+            <div v-if="googleError" class="alert alert-danger mt-3">{{ googleError }}</div>
+
             <div class="text-center mt-4">
               <span class="text-muted">Already have an account?</span>
               <router-link :to="loginLink" class="auth-link ms-2">Sign in</router-link>
@@ -82,11 +87,13 @@
 import { computed, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
+import GoogleSignInButton from "../components/GoogleSignInButton.vue";
 
 const authStore = useAuthStore();
 const route = useRoute();
 const router = useRouter();
 const errorMessage = ref("");
+const googleError = ref("");
 const emailNotice = ref("");
 const welcomeVoucher = ref(null);
 const form = reactive({
@@ -127,6 +134,26 @@ const submit = async () => {
   }
 };
 
+const submitGoogle = async (credential) => {
+  errorMessage.value = "";
+  googleError.value = "";
+  emailNotice.value = "";
+  welcomeVoucher.value = null;
+
+  try {
+    const response = await authStore.loginWithGoogle(credential);
+    if (response?.welcomeVoucher) {
+      welcomeVoucher.value = response.welcomeVoucher;
+      emailNotice.value = "Account created with Google. Your email is already verified.";
+      setTimeout(() => router.push(redirectTarget.value), 4000);
+      return;
+    }
+    router.push(redirectTarget.value);
+  } catch (error) {
+    googleError.value = error.message;
+  }
+};
+
 const formatExpiry = (value) => {
   if (!value) return "-";
   return new Date(String(value).replace(" ", "T")).toLocaleDateString([], {
@@ -160,5 +187,22 @@ const formatExpiry = (value) => {
   background: rgba(0, 0, 0, 0.06);
   padding: 0.1rem 0.45rem;
   border-radius: 0.35rem;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(11, 11, 12, 0.12);
 }
 </style>

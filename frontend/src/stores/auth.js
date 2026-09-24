@@ -106,6 +106,47 @@ export const useAuthStore = defineStore("auth", {
       }
     },
 
+    async loginWithGoogle(credential) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const response = await api.post("/auth/google", { credential });
+        const { token, user } = response;
+        setAuthToken(token);
+        this.user = user;
+
+        // Migrate localStorage cart to database for logged-in user
+        const cartStore = useCartStore();
+        const hadLocalItems = cartStore.items.length > 0;
+
+        if (hadLocalItems) {
+          try {
+            for (const item of cartStore.items) {
+              await api.post("/cart/items", {
+                product_id: item.id,
+                quantity: item.quantity,
+                size: item.size,
+                color: item.color,
+              });
+            }
+          } catch (migrationError) {
+            console.warn("Cart migration failed:", migrationError);
+          }
+        }
+
+        await cartStore.refreshFromApi();
+
+        return response;
+      } catch (error) {
+        this.error = error.message;
+        throw error;
+      } finally {
+        this.loading = false;
+        this.ready = true;
+      }
+    },
+
     async register(payload) {
       this.loading = true;
       this.error = null;

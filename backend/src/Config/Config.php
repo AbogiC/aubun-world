@@ -31,6 +31,7 @@ final class Config
             'MICROSOFT_TENANT_ID' => '',
             'MICROSOFT_CLIENT_SECRET' => '',
             'MICROSOFT_SENDER_EMAIL' => 'no-reply@aubunworld.com',
+            'GOOGLE_CLIENT_ID' => '',
             'CRON_SECRET' => '',
         ];
 
@@ -84,6 +85,9 @@ final class Config
                 'tenant_id' => $env['MICROSOFT_TENANT_ID'] ?? '',
                 'client_secret' => $env['MICROSOFT_CLIENT_SECRET'] ?? '',
                 'sender_email' => $env['MICROSOFT_SENDER_EMAIL'] ?? 'no-reply@aubunworld.com',
+            ],
+            'google' => [
+                'client_id' => $env['GOOGLE_CLIENT_ID'] ?? '',
             ],
             'cron' => [
                 'secret' => $env['CRON_SECRET'] ?? '',

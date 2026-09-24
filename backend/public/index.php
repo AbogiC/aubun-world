@@ -121,7 +121,8 @@ $paypalService = new PayPalOrderService(
     $config['paypal']['currency']
 );
 
-$authController = new AuthController($userRepository, $authService, $emailService, $voucherRepository, $welcomeVoucherRepository);
+$userRepository->ensureGoogleAuthColumns();
+$authController = new AuthController($userRepository, $authService, $emailService, $voucherRepository, $welcomeVoucherRepository, $config['google']['client_id'] ?? '');
 $productController = new ProductController($productRepository, $productImageDirectory, $notificationRepository, $config['app']['api_base_url']);
 $categoryController = new CategoryController($productRepository);
 $cartController = new CartController($cartRepository);
@@ -155,6 +156,7 @@ $router = new Router();
 
 $router->post('/api/auth/register', [$authController, 'register']);
 $router->post('/api/auth/login', [$authController, 'login']);
+$router->post('/api/auth/google', [$authController, 'googleLogin']);
 $router->get('/api/auth/me', [$authController, 'me'], [$authMiddleware]);
 $router->get('/api/auth/verify-email', [$authController, 'verifyEmail']);
 $router->post('/api/auth/resend-verification', [$authController, 'resendVerification'], [$authMiddleware]);

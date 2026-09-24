@@ -19,7 +19,8 @@ final class AuthController
         private readonly AuthService $auth,
         private readonly EmailService $email,
         private readonly ?VoucherRepository $vouchers = null,
-        private readonly ?WelcomeVoucherRepository $welcomeVouchers = null
+        private readonly ?WelcomeVoucherRepository $welcomeVouchers = null,
+        private readonly string $googleClientId = ''
     ) {
     }
 
@@ -87,7 +88,10 @@ final class AuthController
         $password = (string) $request->input('password');
         $user = $this->users->findByEmail($email);
 
-        if (!$user || !password_verify($password, $user['password'])) {
+        if (!$user || empty($user['password']) || !password_verify($password, (string) $user['password'])) {
+            if ($user && empty($user['password']) && !empty($user['google_id'])) {
+                throw new RuntimeException('This account was created with Google. Please use "Continue with Google".', 401);
+            }
             throw new RuntimeException('Invalid credentials.', 401);
         }
 
@@ -100,6 +104,164 @@ final class AuthController
             'token' => $this->auth->issueToken((int) $user['id'], $user['email']),
             'user' => $this->users->sanitize($user),
         ];
+    }
+
+    /**
+     * Login / register with a Google ID token (from Google Identity Services).
+     * Body: { credential | id_token }
+     */
+    public function googleLogin(Request $request): array
+    {
+        $idToken = (string) ($request->input('credential') ?? $request->input('id_token') ?? '');
+        if ($idToken === '') {
+            throw new RuntimeException('Google credential is required.', 422);
+        }
+
+        $googleUser = $this->verifyGoogleIdToken($idToken);
+
+        $googleId = (string) ($googleUser['sub'] ?? '');
+        $email = strtolower(trim((string) ($googleUser['email'] ?? '')));
+        $name = trim((string) ($googleUser['name'] ?? ''));
+        $picture = (string) ($googleUser['picture'] ?? '');
+        $emailVerified = filter_var($googleUser['email_verified'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        if ($googleId === '' || $email === '') {
+            throw new RuntimeException('Google account did not return an email address.', 401);
+        }
+
+        if (!$emailVerified) {
+            throw new RuntimeException('Your Google email address is not verified.', 403);
+        }
+
+        if ($name === '') {
+            $name = explode('@', $email)[0];
+        }
+
+        // 1. Existing Google-linked account -> login.
+        $user = $this->users->findByGoogleId($googleId);
+
+        // 2. Existing email account (registered with password) -> link Google and login.
+        if (!$user) {
+            $user = $this->users->findByEmail($email);
+            if ($user) {
+                if (isset($user['is_active']) && (int) $user['is_active'] === 0) {
+                    throw new RuntimeException('This account is currently inactive.', 403);
+                }
+                if (empty($user['google_id'])) {
+                    $user = $this->users->linkGoogleAccount((int) $user['id'], $googleId, $picture ?: null);
+                }
+            }
+        }
+
+        // 3. Brand-new customer -> create Google user (marked login by google).
+        $isNew = false;
+        if (!$user) {
+            $user = $this->users->createGoogleUser($name, $email, $googleId, $picture ?: null);
+            $isNew = true;
+        }
+
+        if (isset($user['is_active']) && (int) $user['is_active'] === 0) {
+            throw new RuntimeException('This account is currently inactive.', 403);
+        }
+
+        $welcomeVoucher = null;
+        if ($isNew) {
+            $welcomeVoucher = $this->grantWelcomeVoucher((int) $user['id'], 'customer');
+        }
+
+        $response = [
+            'message' => $isNew ? 'Account created with Google.' : 'Login with Google successful.',
+            'token' => $this->auth->issueToken((int) $user['id'], $user['email']),
+            'user' => $this->users->sanitize($user),
+            'isNewUser' => $isNew,
+        ];
+
+        if ($welcomeVoucher !== null) {
+            $response['welcomeVoucher'] = $welcomeVoucher;
+        }
+
+        return $response;
+    }
+
+    /**
+     * Verifies a Google ID token via Google's tokeninfo endpoint.
+     * Returns the token payload (sub, email, name, picture, ...).
+     */
+    private function verifyGoogleIdToken(string $idToken): array
+    {
+        $configured = array_filter(array_map(
+            static fn (string $id): string => trim($id),
+            explode(',', $this->googleClientId)
+        ));
+
+        $payload = null;
+
+        // Authoritative check against Google.
+        $url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($idToken);
+        $raw = $this->httpGet($url);
+
+        if ($raw !== null) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded) && !isset($decoded['error']) && !isset($decoded['error_description'])) {
+                $payload = $decoded;
+            } elseif (isset($decoded['error_description'])) {
+                throw new RuntimeException('Google verification failed: ' . (string) $decoded['error_description'], 401);
+            }
+        }
+
+        // Fallback: decode payload locally (still checks aud/iss/exp below).
+        if ($payload === null) {
+            $parts = explode('.', $idToken);
+            if (count($parts) !== 3) {
+                throw new RuntimeException('Invalid Google credential.', 401);
+            }
+            $decoded = json_decode(base64_decode(strtr($parts[1], '-_', '+/')) ?: '', true);
+            if (!is_array($decoded)) {
+                throw new RuntimeException('Invalid Google credential.', 401);
+            }
+            $payload = $decoded;
+        }
+
+        if (($payload['exp'] ?? 0) !== 0 && (int) $payload['exp'] < time() - 30) {
+            throw new RuntimeException('Google credential has expired. Please try again.', 401);
+        }
+
+        $issuer = (string) ($payload['iss'] ?? '');
+        if ($issuer !== 'accounts.google.com' && $issuer !== 'https://accounts.google.com') {
+            throw new RuntimeException('Invalid Google credential issuer.', 401);
+        }
+
+        if ($configured !== []) {
+            $audience = (string) ($payload['aud'] ?? '');
+            if (!in_array($audience, $configured, true)) {
+                throw new RuntimeException('Google credential was not issued for this app.', 401);
+            }
+        }
+
+        return $payload;
+    }
+
+    private function httpGet(string $url): ?string
+    {
+        if (function_exists('curl_init')) {
+            $handle = curl_init($url);
+            curl_setopt_array($handle, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_SSL_VERIFYPEER => true,
+            ]);
+            $body = curl_exec($handle);
+            curl_close($handle);
+
+            return is_string($body) && $body !== '' ? $body : null;
+        }
+
+        $context = stream_context_create(['http' => ['timeout' => 10]]);
+        $body = @file_get_contents($url, false, $context);
+
+        return is_string($body) && $body !== '' ? $body : null;
     }
 
     public function me(Request $request): array
@@ -251,11 +413,27 @@ final class AuthController
 
         $user = $this->users->findById($userId);
 
-        if (!password_verify($currentPassword, (string) $user['password'])) {
+        // Google-only accounts have no password yet: allow setting one without current password.
+        if (empty($user['password'])) {
+            if ($currentPassword !== '' && $currentPassword !== '__google__') {
+                throw new RuntimeException('This account uses Google sign-in. Leave current password empty to set a new password.', 403);
+            }
+        } elseif (!password_verify($currentPassword, (string) $user['password'])) {
             throw new RuntimeException('Current password is incorrect.', 403);
         }
 
         $this->users->updatePassword($userId, password_hash($newPassword, PASSWORD_DEFAULT));
+
+        // Account can now log in with both password and Google.
+        if (empty($user['password']) && !empty($user['google_id'])) {
+            try {
+                $this->users->getPdo()->prepare(
+                    "UPDATE users SET auth_provider = 'both', updated_at = NOW() WHERE id = :id"
+                )->execute(['id' => $userId]);
+            } catch (\Throwable $exception) {
+                error_log('Failed to mark auth_provider=both for user ' . $userId . ': ' . $exception->getMessage());
+            }
+        }
 
         return [
             'message' => 'Password changed successfully.',

@@ -30,6 +30,7 @@ php -S localhost:8000 -t public
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/google` — login/register with a Google ID token. Body: `{ "credential": "<google_id_token>" }`
 - `GET /api/auth/me`
 - `GET /api/products`
 - `GET /api/products/{id}`
