@@ -266,6 +266,109 @@ final class OrderController
     }
 
     /**
+     * Admin fulfillment update: PATCH /api/orders/{id} (manager/admin only).
+     *
+     * Flow: paid -> processing (confirm products) -> packed ->
+     * shipped (out for delivery, requires courier + tracking number) -> delivered.
+     */
+    public function update(Request $request): array
+    {
+        $orderId = (int) ($request->attribute('id') ?? $request->attribute('orderId') ?? 0);
+
+        if ($orderId <= 0) {
+            throw new RuntimeException('Order id is required.', 400);
+        }
+
+        $order = $this->orders->findByIdAny($orderId);
+
+        if (!$order) {
+            throw new RuntimeException('Order not found.', 404);
+        }
+
+        $currentStatus = (string) ($order['status'] ?? '');
+        $requestedStatus = strtolower(trim((string) ($request->input('status') ?? $currentStatus)));
+
+        $courierInput = $request->input('courier');
+        $trackingInput = $request->input('trackingNumber') ?? $request->input('tracking_number');
+
+        // Keep existing fulfillment info when the admin does not send new values.
+        $courier = $courierInput !== null ? trim((string) $courierInput) : trim((string) ($order['courier'] ?? ''));
+        $trackingNumber = $trackingInput !== null ? trim((string) $trackingInput) : trim((string) ($order['trackingNumber'] ?? ''));
+
+        $allowedStatuses = ['processing', 'packed', 'shipped', 'delivered', 'cancelled'];
+
+        if (!in_array($requestedStatus, $allowedStatuses, true)) {
+            throw new RuntimeException('Invalid status. Allowed: ' . implode(', ', $allowedStatuses) . '.', 422);
+        }
+
+        $transitions = [
+            'paid' => ['processing', 'cancelled'],
+            'processing' => ['packed', 'cancelled'],
+            'packed' => ['shipped', 'cancelled'],
+            'shipped' => ['delivered'],
+            'delivered' => [],
+            'cancelled' => [],
+            'pending' => [],
+        ];
+
+        // Allow re-saving courier/tracking on an already-shipped order.
+        $isMetadataOnlyUpdate = $requestedStatus === $currentStatus;
+
+        if (!$isMetadataOnlyUpdate && !in_array($requestedStatus, $transitions[$currentStatus] ?? [], true)) {
+            throw new RuntimeException(
+                'Cannot change status from "' . $currentStatus . '" to "' . $requestedStatus . '".',
+                422
+            );
+        }
+
+        if ($requestedStatus === 'shipped' && ($courier === '' || $trackingNumber === '')) {
+            throw new RuntimeException('Courier and tracking number are required to ship an order.', 422);
+        }
+
+        $updated = $this->orders->updateFulfillment(
+            $orderId,
+            $requestedStatus,
+            $courier === '' ? null : $courier,
+            $trackingNumber === '' ? null : $trackingNumber
+        );
+
+        // Notify the customer (best effort — never fail the admin action on SMTP errors).
+        // Shipped -> email with courier + tracking ID so the customer can track
+        // the parcel. Delivered -> email confirming the package has arrived.
+        try {
+            $mailOrder = array_merge($updated, [
+                'tracking_number' => $updated['trackingNumber'] ?? null,
+                'tracking_carrier' => $updated['courier'] ?? null,
+                'tracking_url' => '',
+            ]);
+
+            if ($requestedStatus === 'shipped') {
+                $this->email->sendOrderShippedEmail(
+                    $updated['customerEmail'],
+                    $updated['customerName'],
+                    $mailOrder
+                );
+            } elseif ($requestedStatus === 'delivered') {
+                $this->email->sendOrderDeliveredEmail(
+                    $updated['customerEmail'],
+                    $updated['customerName'],
+                    $mailOrder
+                );
+            } else {
+                $this->email->sendShippingUpdateEmail(
+                    $updated['customerEmail'],
+                    $updated['customerName'],
+                    $mailOrder
+                );
+            }
+        } catch (\Throwable $e) {
+            error_log('Fulfillment email failed for ' . ($updated['orderNumber'] ?? '') . ': ' . $e->getMessage());
+        }
+
+        return ['order' => $updated];
+    }
+
+    /**
      * Public resume lookup for the "Pay with PayPal / Card" link in the
      * pending-payment email: GET /api/orders/resume?order=AUB-...
      * The order number is unguessable, so no auth is required (works

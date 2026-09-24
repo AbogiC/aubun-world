@@ -484,6 +484,87 @@ final class OrderRepository
         ]);
     }
 
+    public function findByIdAny(int $orderId): ?array
+    {
+        $statement = $this->pdo->prepare('SELECT * FROM orders WHERE id = :id LIMIT 1');
+        $statement->execute(['id' => $orderId]);
+        $order = $statement->fetch();
+
+        return $order ? $this->mapOrder($order) : null;
+    }
+
+    /**
+     * Admin fulfillment update: status transition + courier/tracking info.
+     * Handles missing fulfillment columns gracefully on older databases.
+     */
+    public function updateFulfillment(
+        int $orderId,
+        string $status,
+        ?string $courier = null,
+        ?string $trackingNumber = null
+    ): array {
+        $courier = $courier !== null ? trim($courier) : null;
+        $trackingNumber = $trackingNumber !== null ? trim($trackingNumber) : null;
+
+        if ($courier === '') {
+            $courier = null;
+        }
+
+        if ($trackingNumber === '') {
+            $trackingNumber = null;
+        }
+
+        $hasFulfillmentColumns = $this->hasFulfillmentColumns();
+
+        if ($hasFulfillmentColumns) {
+            $statement = $this->pdo->prepare(
+                'UPDATE orders
+                 SET status = :status,
+                     courier = :courier,
+                     tracking_number = :tracking_number,
+                     shipped_at = CASE WHEN :status_shipped = \'shipped\' THEN COALESCE(shipped_at, NOW()) ELSE shipped_at END,
+                     updated_at = NOW()
+                 WHERE id = :id'
+            );
+            $statement->execute([
+                'id' => $orderId,
+                'status' => $status,
+                'status_shipped' => $status,
+                'courier' => $courier,
+                'tracking_number' => $trackingNumber,
+            ]);
+        } else {
+            $this->updateStatus($orderId, $status);
+        }
+
+        $order = $this->findByIdAny($orderId);
+
+        if ($order === null) {
+            throw new RuntimeException('Order not found.', 404);
+        }
+
+        return $order;
+    }
+
+    private function hasFulfillmentColumns(): bool
+    {
+        try {
+            $statement = $this->pdo->query('SHOW COLUMNS FROM orders LIKE \'courier\'');
+            $row = $statement ? $statement->fetch() : false;
+
+            if (!$row) {
+                return false;
+            }
+
+            $tracking = $this->pdo->query('SHOW COLUMNS FROM orders LIKE \'tracking_number\'');
+            $trackingRow = $tracking ? $tracking->fetch() : false;
+
+            return (bool) $trackingRow;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
     private function findById(int $orderId, ?int $userId): ?array
     {
         if ($userId !== null) {
@@ -521,6 +602,9 @@ final class OrderRepository
             'discount' => (float) $order['discount_amount'],
             'shipping' => (float) $order['shipping_amount'],
             'total' => (float) $order['total_amount'],
+            'courier' => $order['courier'] ?? null,
+            'trackingNumber' => $order['tracking_number'] ?? null,
+            'shippedAt' => $order['shipped_at'] ?? null,
             'createdAt' => $order['created_at'],
             'items' => $this->items((int) $order['id']),
         ];

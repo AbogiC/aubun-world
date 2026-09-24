@@ -246,22 +246,36 @@
             <section class="profile-section mt-5" v-if="authStore.isAuthenticated">
               <h2 class="h4 mb-3 pb-2 border-bottom">My Orders</h2>
               <div v-if="ordersLoading" class="text-muted">Loading orders...</div>
-              <div v-else-if="ordersError" class="alert alert-danger">{{ ordersError }}</div>
+              <div v-else-if="ordersError" class="alert alert-danger">
+                {{ ordersError }}
+                <button type="button" class="btn btn-outline-dark btn-sm ms-2" @click="fetchOrders">
+                  Retry
+                </button>
+              </div>
               <div v-else-if="orders.length === 0" class="text-muted">No orders found.</div>
               <div v-else class="order-list">
                 <div v-for="order in orders" :key="order.id" class="order-card surface-elevated p-3 mb-3">
                   <div class="d-flex justify-content-between align-items-start mb-2">
                     <div>
-                      <span class="fw-semibold">{{ order.orderNumber }}</span>
+                      <span class="fw-semibold">{{ order.orderNumber || `#${order.id}` }}</span>
                       <span class="text-muted small ms-2">{{ formatDate(order.createdAt) }}</span>
                     </div>
-                    <span class="fw-semibold">${{ order.total.toLocaleString() }}</span>
+                    <span class="fw-semibold">${{ formatCurrency(order.total) }}</span>
                   </div>
                   <div class="d-flex justify-content-between">
-                    <span class="text-muted small">{{ order.customerName }}</span>
-                    <span class="text-muted small">{{ order.shippingCity }}, {{ order.shippingCountry }}</span>
+                    <span class="text-muted small">{{ order.customerName || "-" }}</span>
+                    <span class="text-muted small">{{ order.shippingCity || "-" }}, {{ order.shippingCountry || "-" }}</span>
                   </div>
-                  <div class="small text-muted mt-1">{{ order.items.length }} item(s)</div>
+                  <div class="small text-muted mt-1">{{ (order.items || []).length }} item(s)</div>
+                  <div class="order-status-line mt-2">
+                    <span class="badge text-bg-dark">{{ formatOrderStatus(order.status) }}</span>
+                    <span class="text-muted small ms-2">{{ orderStatusMeaning(order.status) }}</span>
+                  </div>
+                  <div v-if="order.courier || order.trackingNumber" class="order-tracking-line mt-2">
+                    <span class="small"><strong>Courier:</strong> {{ order.courier || "-" }}</span>
+                    <span class="small ms-3"><strong>Tracking ID:</strong> {{ order.trackingNumber || "-" }}</span>
+                    <div class="text-muted small mt-1">Use the tracking ID on the courier website to track your parcel.</div>
+                  </div>
                 </div>
               </div>
             </section>
@@ -356,13 +370,22 @@ const fetchOrders = async () => {
   ordersError.value = "";
   try {
     const payload = await api.get("/orders");
-    orders.value = payload.orders || [];
+    const rawOrders = payload.orders || payload.data || [];
+    // Normalize so one malformed order can never blank the whole list.
+    orders.value = (Array.isArray(rawOrders) ? rawOrders : []).map((order) => ({
+      ...order,
+      items: Array.isArray(order.items) ? order.items : [],
+      total: Number(order.total ?? 0),
+    }));
   } catch (error) {
+    orders.value = [];
     ordersError.value = error.message || "Unable to load orders.";
   } finally {
     ordersLoading.value = false;
   }
 };
+
+const formatCurrency = (value) => Number(value || 0).toLocaleString();
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -372,6 +395,29 @@ const formatDate = (value) => {
     day: "numeric",
   });
 };
+
+// Customer-facing order meanings:
+// paid = customer already paid the bill · processing = admin confirmed the products ·
+// packed = admin already packed the product · shipped = product already in courier ·
+// delivered = parcel already arrived to customer.
+const ORDER_STATUS_MEANINGS = {
+  pending: "Awaiting payment.",
+  paid: "You already paid the bill — waiting for admin confirmation.",
+  processing: "Admin confirmed the products — preparing your parcel.",
+  packed: "Admin already packed your product.",
+  shipped: "Out for delivery — your product is already in the courier.",
+  delivered: "Delivered — your parcel already arrived.",
+  cancelled: "This order was cancelled.",
+};
+
+const formatOrderStatus = (status) => {
+  const key = String(status || "").toLowerCase();
+  if (key === "shipped") return "Out for delivery";
+  if (!key) return "Unknown";
+  return key.charAt(0).toUpperCase() + key.slice(1);
+};
+
+const orderStatusMeaning = (status) => ORDER_STATUS_MEANINGS[String(status || "").toLowerCase()] || "";
 
 // Initialize form values from user data
 const initializeForms = () => {
@@ -490,10 +536,15 @@ const startCooldown = () => {
 };
 
 onMounted(async () => {
-  await authStore.refreshUser();
+  try {
+    await authStore.refreshUser();
+  } catch {
+    // Auth refresh failure must never block the rest of the page.
+  }
   initializeForms();
-  await loadNotificationPrefs();
-  await fetchOrders();
+  // Each loader is independent: a notification failure must never
+  // prevent the order history from loading (and vice versa).
+  await Promise.allSettled([loadNotificationPrefs(), fetchOrders()]);
 });
 </script>
 
@@ -596,5 +647,19 @@ onMounted(async () => {
   border: 1px solid rgba(77, 16, 24, 0.1);
   border-radius: var(--radius-md);
   background: rgba(255, 248, 228, 0.5);
+}
+
+.order-status-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.order-tracking-line {
+  padding: 0.65rem 0.8rem;
+  border: 1px dashed rgba(77, 16, 24, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.6);
 }
 </style>

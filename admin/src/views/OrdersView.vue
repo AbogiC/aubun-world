@@ -154,6 +154,172 @@
                   <span>${{ formatCurrency(order.total) }}</span>
                 </div>
               </div>
+
+              <div class="order-fulfillment">
+                <p class="order-fulfillment__meaning">
+                  <i class="bi bi-info-circle me-1"></i>{{ statusMeaning(order.status) }}
+                </p>
+
+                <div v-if="order.courier || order.trackingNumber" class="order-tracking">
+                  <div class="order-meta-item">
+                    <span class="order-meta-label">Courier</span>
+                    <span>{{ order.courier || "-" }}</span>
+                  </div>
+                  <div class="order-meta-item">
+                    <span class="order-meta-label">Tracking / Shipping ID</span>
+                    <span class="order-tracking__number">{{ order.trackingNumber || "-" }}</span>
+                  </div>
+                </div>
+
+                <div v-if="actionFeedback[order.id]" class="alert py-2 px-3 mb-3" :class="actionFeedback[order.id].type === 'error' ? 'alert-danger' : 'alert-success'">
+                  {{ actionFeedback[order.id].message }}
+                </div>
+
+                <div class="order-actions">
+                  <button
+                    v-if="order.status === 'paid'"
+                    type="button"
+                    class="btn btn-dark"
+                    :disabled="updatingOrderId === order.id"
+                    @click="confirmOrder(order)"
+                  >
+                    <i class="bi bi-check-circle me-1"></i>
+                    {{ updatingOrderId === order.id ? "Confirming..." : "Confirm Products" }}
+                  </button>
+
+                  <button
+                    v-if="order.status === 'processing'"
+                    type="button"
+                    class="btn btn-dark"
+                    :disabled="updatingOrderId === order.id"
+                    @click="markPacked(order)"
+                  >
+                    <i class="bi bi-box-seam me-1"></i>
+                    {{ updatingOrderId === order.id ? "Saving..." : "Mark as Packed" }}
+                  </button>
+
+                  <template v-if="order.status === 'packed'">
+                    <button
+                      v-if="!shipForms[order.id]?.open"
+                      type="button"
+                      class="btn btn-outline-dark"
+                      @click="openShipForm(order)"
+                    >
+                      <i class="bi bi-truck me-1"></i> Add Shipping Info
+                    </button>
+                    <form v-else class="ship-form" @submit.prevent="shipOrder(order)">
+                      <div class="row g-2">
+                        <div class="col-md-6">
+                          <label class="form-label small">Courier</label>
+                          <input
+                            v-model="shipForms[order.id].courier"
+                            type="text"
+                            class="form-control"
+                            placeholder="e.g. DHL, JNE, FedEx"
+                            required
+                            :disabled="updatingOrderId === order.id"
+                          />
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label small">Tracking / Shipping ID</label>
+                          <input
+                            v-model="shipForms[order.id].trackingNumber"
+                            type="text"
+                            class="form-control"
+                            placeholder="e.g. AWB123456789"
+                            required
+                            :disabled="updatingOrderId === order.id"
+                          />
+                        </div>
+                      </div>
+                      <div class="d-flex flex-wrap gap-2 mt-2">
+                        <button
+                          type="submit"
+                          class="btn btn-dark"
+                          :disabled="updatingOrderId === order.id"
+                        >
+                          <i class="bi bi-send me-1"></i>
+                          {{ updatingOrderId === order.id ? "Shipping..." : "Ship — Out for Delivery" }}
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-link btn-sm text-decoration-none"
+                          :disabled="updatingOrderId === order.id"
+                          @click="shipForms[order.id].open = false"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <p class="text-muted small mb-0 mt-2">
+                        After saving, the status changes to Out for Delivery and an email with the
+                        courier and tracking ID is sent to the customer.
+                      </p>
+                    </form>
+                  </template>
+
+                  <template v-if="order.status === 'shipped'">
+                    <button
+                      v-if="!shipForms[order.id]?.open"
+                      type="button"
+                      class="btn btn-outline-dark btn-sm"
+                      @click="openShipForm(order)"
+                    >
+                      <i class="bi bi-pencil me-1"></i> Edit Shipping Info
+                    </button>
+                    <form v-else class="ship-form" @submit.prevent="saveTracking(order)">
+                      <div class="row g-2">
+                        <div class="col-md-6">
+                          <label class="form-label small">Courier</label>
+                          <input
+                            v-model="shipForms[order.id].courier"
+                            type="text"
+                            class="form-control"
+                            required
+                            :disabled="updatingOrderId === order.id"
+                          />
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label small">Tracking / Shipping ID</label>
+                          <input
+                            v-model="shipForms[order.id].trackingNumber"
+                            type="text"
+                            class="form-control"
+                            required
+                            :disabled="updatingOrderId === order.id"
+                          />
+                        </div>
+                      </div>
+                      <div class="d-flex flex-wrap gap-2 mt-2">
+                        <button
+                          type="submit"
+                          class="btn btn-outline-dark btn-sm"
+                          :disabled="updatingOrderId === order.id"
+                        >
+                          {{ updatingOrderId === order.id ? "Saving..." : "Save Shipping Info" }}
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-link btn-sm text-decoration-none"
+                          :disabled="updatingOrderId === order.id"
+                          @click="shipForms[order.id].open = false"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                    <button
+                      type="button"
+                      class="btn btn-dark"
+                      :disabled="updatingOrderId === order.id"
+                      title="An email will be sent to the customer confirming delivery."
+                      @click="markDelivered(order)"
+                    >
+                      <i class="bi bi-house-check me-1"></i>
+                      {{ updatingOrderId === order.id ? "Saving..." : "Mark as Delivered" }}
+                    </button>
+                  </template>
+                </div>
+              </div>
             </article>
 
             <nav v-if="totalPages > 1" class="pagination-shell" aria-label="Orders pagination">
@@ -200,6 +366,22 @@ import { useAuthStore } from "../stores/auth";
 
 const PAGE_SIZE = 6;
 
+// Customer-facing meanings shared with the storefront:
+// paid = customer already paid · processing = admin confirmed the products ·
+// packed = admin packed the parcel · shipped = out for delivery with courier ·
+// delivered = parcel arrived.
+const STATUS_MEANINGS = {
+  pending: "Awaiting payment from the customer.",
+  paid: "Customer already paid — ready for admin confirmation.",
+  processing: "Admin confirmed the products — preparing the parcel.",
+  packed: "Admin already packed the product — ready to hand over to the courier.",
+  shipped: "Out for delivery — parcel is with the courier, customer can track it.",
+  delivered: "Parcel already arrived to the customer.",
+  cancelled: "Order was cancelled.",
+};
+
+const FULFILLMENT_STATUSES = ["paid", "processing", "packed", "shipped", "delivered"];
+
 const authStore = useAuthStore();
 const orders = ref([]);
 const loading = ref(false);
@@ -208,12 +390,14 @@ const searchTerm = ref("");
 const selectedStatus = ref("all");
 const selectedCountry = ref("all");
 const currentPage = ref(1);
+const updatingOrderId = ref(null);
+const actionFeedback = ref({});
+const shipForms = ref({});
 
-const statusOptions = computed(() =>
-  [...new Set(orders.value.map((order) => order.status).filter(Boolean))].sort((left, right) =>
-    left.localeCompare(right),
-  ),
-);
+const statusOptions = computed(() => {
+  const fromOrders = orders.value.map((order) => order.status).filter(Boolean);
+  return [...new Set([...FULFILLMENT_STATUSES, ...fromOrders])];
+});
 const countryOptions = computed(() =>
   [...new Set(orders.value.map((order) => order.shippingCountry).filter(Boolean))].sort((left, right) =>
     left.localeCompare(right),
@@ -239,6 +423,8 @@ const filteredOrders = computed(() => {
         order.shippingShopCountry,
         order.shippingTierName,
         ...order.items.map((item) => `${item.name} ${item.size} ${item.color}`),
+        order.courier,
+        order.trackingNumber,
       ].some((value) => String(value || "").toLowerCase().includes(keyword));
 
     return matchesStatus && matchesCountry && matchesSearch;
@@ -297,6 +483,12 @@ const formatDate = (value) => {
 };
 
 const formatStatus = (status) => {
+  const key = String(status || "").toLowerCase();
+
+  if (key === "shipped") {
+    return "Out for delivery";
+  }
+
   const normalized = String(status || "").replace(/[_-]/g, " ").trim();
 
   if (!normalized) {
@@ -305,6 +497,99 @@ const formatStatus = (status) => {
 
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
+
+const statusMeaning = (status) => STATUS_MEANINGS[String(status || "").toLowerCase()] || "";
+
+const setFeedback = (orderId, type, message) => {
+  actionFeedback.value = {
+    ...actionFeedback.value,
+    [orderId]: { type, message },
+  };
+};
+
+const applyUpdatedOrder = (updated) => {
+  if (!updated) {
+    return;
+  }
+
+  orders.value = orders.value.map((order) => (order.id === updated.id ? { ...order, ...updated } : order));
+};
+
+const openShipForm = (order) => {
+  shipForms.value = {
+    ...shipForms.value,
+    [order.id]: {
+      open: true,
+      courier: order.courier || "",
+      trackingNumber: order.trackingNumber || "",
+    },
+  };
+};
+
+const updateOrderStatus = async (order, payload, successMessage) => {
+  updatingOrderId.value = order.id;
+
+  try {
+    const response = await api.patch(`/orders/${order.id}`, payload);
+    applyUpdatedOrder(response.order);
+
+    if (shipForms.value[order.id]) {
+      shipForms.value = {
+        ...shipForms.value,
+        [order.id]: { ...shipForms.value[order.id], open: false },
+      };
+    }
+
+    setFeedback(order.id, "success", successMessage);
+  } catch (error) {
+    setFeedback(order.id, "error", error.message || "Unable to update the order.");
+  } finally {
+    updatingOrderId.value = null;
+  }
+};
+
+// paid -> processing: admin confirms the products, next step is packing + shipping info.
+const confirmOrder = (order) =>
+  updateOrderStatus(order, { status: "processing" }, "Order confirmed — now pack the products.");
+
+// processing -> packed: admin finished packing, next step is courier + tracking info.
+const markPacked = (order) =>
+  updateOrderStatus(order, { status: "packed" }, "Order marked as packed — add the shipping info next.");
+
+// packed -> shipped (out for delivery): requires courier + tracking number for customer tracking.
+const shipOrder = (order) => {
+  const form = shipForms.value[order.id] || {};
+  const courier = String(form.courier || "").trim();
+  const trackingNumber = String(form.trackingNumber || "").trim();
+
+  if (!courier || !trackingNumber) {
+    setFeedback(order.id, "error", "Courier and tracking number are required to ship an order.");
+    return;
+  }
+
+  return updateOrderStatus(
+    order,
+    { status: "shipped", courier, trackingNumber },
+    "Shipping info saved — order is now out for delivery.",
+  );
+};
+
+const saveTracking = (order) => {
+  const form = shipForms.value[order.id] || {};
+  const courier = String(form.courier || "").trim();
+  const trackingNumber = String(form.trackingNumber || "").trim();
+
+  if (!courier || !trackingNumber) {
+    setFeedback(order.id, "error", "Courier and tracking number are required.");
+    return;
+  }
+
+  return updateOrderStatus(order, { status: "shipped", courier, trackingNumber }, "Shipping info updated.");
+};
+
+// shipped -> delivered: parcel arrived to the customer.
+const markDelivered = (order) =>
+  updateOrderStatus(order, { status: "delivered" }, "Order marked as delivered.");
 
 watch([searchTerm, selectedStatus, selectedCountry], () => {
   currentPage.value = 1;
@@ -472,6 +757,50 @@ onMounted(async () => {
   padding-top: 0.75rem;
   border-top: 1px solid rgba(77, 16, 24, 0.08);
   font-weight: 700;
+}
+
+.order-fulfillment {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed rgba(77, 16, 24, 0.18);
+  display: grid;
+  gap: 0.9rem;
+}
+
+.order-fulfillment__meaning {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+}
+
+.order-tracking {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(77, 16, 24, 0.1);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.order-tracking__number {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.ship-form {
+  flex: 1 1 100%;
+  padding: 1rem;
+  border: 1px solid rgba(77, 16, 24, 0.1);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .pagination-shell {

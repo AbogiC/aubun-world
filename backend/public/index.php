@@ -191,6 +191,7 @@ $router->delete('/api/cart/items/{id}', [$cartController, 'deleteItem'], [$authM
 $router->post('/api/cart/apply-discount', [$cartController, 'applyDiscount'], [$authMiddleware]);
 $router->delete('/api/cart', [$cartController, 'clear'], [$authMiddleware]);
 $router->get('/api/orders', [$orderController, 'index'], [$authMiddleware]);
+$router->patch('/api/orders/{id}', [$orderController, 'update'], [$authMiddleware, $managerRoleMiddleware]);
 $router->get('/api/orders/paypal-config', [$orderController, 'paypalConfig']);
 $router->get('/api/orders/resume', [$orderController, 'resume']);
 $router->post('/api/orders/webhook', [$orderController, 'paypalWebhook']);

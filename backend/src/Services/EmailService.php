@@ -103,6 +103,22 @@ final class EmailService
         $this->send($toEmail, $subject, $body, $toName);
     }
 
+    public function sendOrderShippedEmail(string $toEmail, string $toName, array $order): void
+    {
+        $subject = 'AUBUN WORLD - Your Order ' . ($order['orderNumber'] ?? '') . ' Is On Its Way';
+        $body = $this->buildOrderShippedBody($toName, $order);
+
+        $this->send($toEmail, $subject, $body, $toName);
+    }
+
+    public function sendOrderDeliveredEmail(string $toEmail, string $toName, array $order): void
+    {
+        $subject = 'AUBUN WORLD - Your Order ' . ($order['orderNumber'] ?? '') . ' Has Been Delivered';
+        $body = $this->buildOrderDeliveredBody($toName, $order);
+
+        $this->send($toEmail, $subject, $body, $toName);
+    }
+
     public function sendOrderCancelledEmail(string $toEmail, string $toName, array $order): void
     {
         $subject = 'AUBUN WORLD - Order Cancelled: Payment Timeout';
@@ -395,7 +411,8 @@ final class EmailService
             'pending' => 'Pending',
             'processing' => 'Processing',
             'paid' => 'Paid',
-            'shipped' => 'Shipped',
+            'packed' => 'Packed',
+            'shipped' => 'Out for delivery',
             'delivered' => 'Delivered',
             'cancelled' => 'Cancelled',
             'refunded' => 'Refunded',
@@ -404,6 +421,7 @@ final class EmailService
             'pending' => '#f5a623',
             'processing' => '#007bff',
             'paid' => '#28a745',
+            'packed' => '#b36b00',
             'shipped' => '#6f42c1',
             'delivered' => '#28a745',
             'cancelled' => '#dc3545',
@@ -444,6 +462,49 @@ final class EmailService
         );
 
         return $this->wrapEmail('Order Status Update: ' . $statusLabel, $content, $statusColor);
+    }
+
+    private function buildOrderShippedBody(string $name, array $order): string
+    {
+        $courier = (string) ($order['courier'] ?? $order['tracking_carrier'] ?? '');
+        $trackingNumber = (string) ($order['trackingNumber'] ?? $order['tracking_number'] ?? '');
+
+        $content = sprintf(
+            '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Dear %s,</p>' .
+            '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Good news! Your order <strong>%s</strong> is now <strong>out for delivery</strong> and on its way to you.</p>' .
+            '<div style="background: #eef4ff; border: 1px solid #6f42c1; border-radius: 8px; padding: 16px; margin-bottom: 24px;">' .
+            '<p style="margin: 4px 0; color: #3f2d7a;"><strong>Courier:</strong> %s</p>' .
+            '<p style="margin: 4px 0; color: #3f2d7a;"><strong>Tracking ID:</strong> %s</p>' .
+            '<p style="margin: 8px 0 0; color: #3f2d7a; font-size: 0.9rem;">Use the tracking ID on the courier website to track your parcel.</p>' .
+            '</div>' .
+            '%s%s' .
+            '<p style="color: #6f6f74; font-size: 0.9rem; line-height: 1.6; margin-top: 24px;">If you have any questions about your delivery, please contact us.</p>',
+            htmlspecialchars($name, ENT_QUOTES),
+            htmlspecialchars((string) ($order['orderNumber'] ?? ''), ENT_QUOTES),
+            htmlspecialchars($courier !== '' ? $courier : '-', ENT_QUOTES),
+            htmlspecialchars($trackingNumber !== '' ? $trackingNumber : '-', ENT_QUOTES),
+            $this->buildOrderTable($order),
+            $this->buildOrderSummary($order, 'Total Paid')
+        );
+
+        return $this->wrapEmail('Your Order Is On Its Way', $content, '#6f42c1');
+    }
+
+    private function buildOrderDeliveredBody(string $name, array $order): string
+    {
+        $content = sprintf(
+            '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Dear %s,</p>' .
+            '<p style="color: #6f6f74; font-size: 1rem; line-height: 1.7; margin-bottom: 28px;">Your order <strong>%s</strong> has been <strong>delivered</strong>. We hope you enjoy your purchase!</p>' .
+            '<div style="background: #e8f5e9; border: 1px solid #28a745; border-radius: 8px; padding: 16px; margin-bottom: 24px;"><p style="margin: 0; color: #1e7e34;"><strong>Status:</strong> Delivered - Parcel Arrived</p></div>' .
+            '%s%s' .
+            '<p style="color: #6f6f74; font-size: 0.9rem; line-height: 1.6; margin-top: 24px;">If anything is wrong with your delivery, please contact us right away.</p>',
+            htmlspecialchars($name, ENT_QUOTES),
+            htmlspecialchars((string) ($order['orderNumber'] ?? ''), ENT_QUOTES),
+            $this->buildOrderTable($order),
+            $this->buildOrderSummary($order, 'Total Paid')
+        );
+
+        return $this->wrapEmail('Your Order Has Been Delivered', $content, '#28a745');
     }
 
     private function buildOrderCancelledBody(string $name, array $order): string
