@@ -29,6 +29,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Router;
 use App\Middleware\AuthMiddleware;
+use App\Middleware\OptionalAuthMiddleware;
 use App\Middleware\RoleMiddleware;
 use App\Repositories\CartRepository;
 use App\Repositories\GuidelineRepository;
@@ -142,6 +143,7 @@ $mixMatchService = new MixMatchService($productRepository, $mixMatchConfigReposi
 $mixMatchRepository = new MixMatchRepository($pdo, $mixMatchService);
 $mixMatchController = new MixMatchController($mixMatchService, $mixMatchRepository, $cartRepository);
 $authMiddleware = new AuthMiddleware($authService, $userRepository);
+$optionalAuthMiddleware = new OptionalAuthMiddleware($authService, $userRepository);
 $managerRoleMiddleware = new RoleMiddleware(['manager', 'admin']);
 
 $router = new Router();
@@ -207,10 +209,10 @@ $router->patch('/api/orders/{id}', [$orderController, 'update'], [$authMiddlewar
 $router->get('/api/orders/paypal-config', [$orderController, 'paypalConfig']);
 $router->get('/api/orders/resume', [$orderController, 'resume']);
 $router->post('/api/orders/webhook', [$orderController, 'paypalWebhook']);
-$router->post('/api/orders', [$orderController, 'create']);
-$router->post('/api/orders/{orderNumber}/paypal', [$orderController, 'createPaypalForExisting']);
-$router->post('/api/orders/{orderID}/capture', [$orderController, 'capture']);
-$router->post('/api/orders/checkout', [$orderController, 'checkout']);
+$router->post('/api/orders', [$orderController, 'create'], [$optionalAuthMiddleware]);
+$router->post('/api/orders/{orderNumber}/paypal', [$orderController, 'createPaypalForExisting'], [$optionalAuthMiddleware]);
+$router->post('/api/orders/{orderID}/capture', [$orderController, 'capture'], [$optionalAuthMiddleware]);
+$router->post('/api/orders/checkout', [$orderController, 'checkout'], [$optionalAuthMiddleware]);
 $router->post('/api/test-email', [$testEmailController, 'send']);
 
 // Cron jobs

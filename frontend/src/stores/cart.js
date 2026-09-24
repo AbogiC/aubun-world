@@ -188,6 +188,10 @@ export const useCartStore = defineStore("cart", {
         items,
         subtotal: hasSnapshotItems && typeof payload.subtotal === "number" ? payload.subtotal : this.subtotal,
         discount: hasSnapshotItems && typeof payload.discount === "number" ? payload.discount : this.discount,
+        // Thread the applied voucher code through so the backend can mark
+        // single-use welcome vouchers as used even when the DB cart is out
+        // of sync (fallback checkout path).
+        discount_code: payload.discount_code || this.discountCode || null,
         shipping_cost: hasSnapshotItems && typeof payload.shipping_cost === "number" ? payload.shipping_cost : shippingCost,
         total: hasSnapshotItems && typeof payload.total === "number" ? payload.total : this.total + shippingCost,
         shipping_tier_name: payload.shippingTierName || '',

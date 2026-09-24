@@ -40,8 +40,15 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                  <span class="badge text-bg-dark">{{ formatOrderStatus(order.status) }}</span>
+                  <span class="badge" :class="order.status === 'pending' ? 'text-bg-warning' : 'text-bg-dark'">{{ formatOrderStatus(order.status) }}</span>
                   <span class="text-muted small">{{ orderStatusMeaning(order.status) }}</span>
+                </div>
+
+                <div v-if="order.status === 'pending' && order.orderNumber" class="pending-pay-box mt-2">
+                  <span class="small">Complete payment within 1 hour or the order is cancelled automatically.</span>
+                  <router-link :to="resumeLink(order)" class="btn btn-dark btn-sm ms-2">
+                    Pay Now
+                  </router-link>
                 </div>
 
                 <div class="order-items">
@@ -89,11 +96,8 @@ const loading = ref(false);
 const errorMessage = ref("");
 
 // Customer-facing order meanings:
-// paid = customer already paid the bill · processing = admin confirmed the products ·
-// packed = admin already packed the product · shipped = product already in courier ·
-// delivered = parcel already arrived to customer.
 const ORDER_STATUS_MEANINGS = {
-  pending: "Awaiting payment.",
+  pending: "Waiting payment — please complete your PayPal payment.",
   paid: "You already paid the bill — waiting for admin confirmation.",
   processing: "Admin confirmed the products — preparing your parcel.",
   packed: "Admin already packed your product.",
@@ -135,10 +139,16 @@ const formatDate = (value) => {
 
 const formatOrderStatus = (status) => {
   const key = String(status || "").toLowerCase();
+  if (key === "pending") return "Waiting Payment";
   if (key === "shipped") return "Out for delivery";
   if (!key) return "Unknown";
   return key.charAt(0).toUpperCase() + key.slice(1);
 };
+
+const resumeLink = (order) => ({
+  path: "/checkout",
+  query: { resumePayment: "1", order: order.orderNumber },
+});
 
 const orderStatusMeaning = (status) => ORDER_STATUS_MEANINGS[String(status || "").toLowerCase()] || "";
 
@@ -203,5 +213,17 @@ onMounted(async () => {
   border: 1px dashed rgba(77, 16, 24, 0.2);
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.6);
+}
+
+.pending-pay-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px dashed rgba(180, 120, 10, 0.45);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 243, 205, 0.7);
+  color: #664d03;
 }
 </style>

@@ -134,6 +134,8 @@ final class OrderRepository
 
     private function createOrder(string $customerName, string $email, array $checkout, ?int $userId, array $cart): array
     {
+        $this->ensureDiscountCodeColumn();
+
         $status = trim((string) ($checkout['status'] ?? 'pending')) ?: 'pending';
         $paypalOrderId = trim((string) ($checkout['paypal_order_id'] ?? '')) ?: null;
         $customerName = $checkout['customer_name'];
@@ -147,6 +149,13 @@ final class OrderRepository
         $shipping = $checkout['shipping'];
         $total = $checkout['total'];
         $availableRates = $checkout['available_rates'];
+        // Voucher code is threaded through checkout (normal + fallback paths),
+        // falling back to the DB cart row. Empty = no voucher used.
+        $discountCode = strtoupper(trim((string) (
+            ($checkout['discount_code'] ?? '') !== ''
+                ? $checkout['discount_code']
+                : ($cart['discount_code'] ?? '')
+        ))) ?: null;
 
         try {
             $this->pdo->beginTransaction();
@@ -157,12 +166,12 @@ final class OrderRepository
                     user_id, order_number, status, paypal_order_id, customer_name, customer_email,
                     shipping_address, shipping_city, shipping_country, shipping_postal_code,
                     shipping_shop_country, shipping_tier_name,
-                    subtotal_amount, discount_amount, shipping_amount, total_amount, created_at, updated_at
+                    subtotal_amount, discount_amount, discount_code, shipping_amount, total_amount, created_at, updated_at
                  ) VALUES (
                     :user_id, :order_number, :status, :paypal_order_id, :customer_name, :customer_email,
                     :shipping_address, :shipping_city, :shipping_country, :shipping_postal_code,
                     :shipping_shop_country, :shipping_tier_name,
-                    :subtotal_amount, :discount_amount, :shipping_amount, :total_amount, NOW(), NOW()
+                    :subtotal_amount, :discount_amount, :discount_code, :shipping_amount, :total_amount, NOW(), NOW()
                  )'
             );
             $insertOrder->execute([
@@ -180,6 +189,7 @@ final class OrderRepository
                 'shipping_tier_name' => $selectedRate['tierName'],
                 'subtotal_amount' => $subtotal,
                 'discount_amount' => $discount,
+                'discount_code' => $discountCode,
                 'shipping_amount' => $shipping,
                 'total_amount' => $total,
             ]);
@@ -211,7 +221,7 @@ final class OrderRepository
             $this->reserveStock($cart['items']);
 
             if ($userId !== null) {
-                $this->consumeWelcomeVoucher($userId, $cart, (float) $discount);
+                $this->consumeWelcomeVoucher($userId, (string) ($discountCode ?? ''), (float) $discount);
 
                 // $cart comes from cartWithItems() and carries the carts.id —
                 // never pass the user id here or the wrong cart rows are cleared.
@@ -315,13 +325,26 @@ final class OrderRepository
             // Prefer the voucher discount already stored on the DB cart when
             // the frontend did not send one.
             $dbDiscount = 0.0;
+            $dbDiscountCode = '';
 
-            if (is_array($cart) && isset($cart['discount_amount'])) {
-                $dbDiscount = (float) $cart['discount_amount'];
+            if (is_array($cart)) {
+                if (isset($cart['discount_amount'])) {
+                    $dbDiscount = (float) $cart['discount_amount'];
+                }
+
+                // The fallback cart shape drops the code — preserve it so the
+                // welcome voucher is still marked used for this order.
+                $dbDiscountCode = strtoupper(trim((string) ($cart['discount_code'] ?? '')));
             }
 
             $payloadDiscount = (float) ($payload['discount'] ?? 0);
             $discount = $payloadDiscount !== 0.0 ? $payloadDiscount : $dbDiscount;
+            $discountCode = strtoupper(trim((string) ($payload['discount_code'] ?? '')));
+
+            if ($discountCode === '' && $discount > 0) {
+                $discountCode = $dbDiscountCode;
+            }
+
             $subtotal = (float) $guestCheckout['subtotal'];
             $shipping = (float) $guestCheckout['shipping'];
             $total = max($subtotal - $discount, 0) + $shipping;
@@ -329,9 +352,11 @@ final class OrderRepository
             return [
                 ...$guestCheckout,
                 'discount' => $discount,
+                'discount_code' => $discountCode !== '' ? $discountCode : null,
                 'total' => $total,
                 'cart' => [
                     'id' => $dbCartId,
+                    'discount_code' => $discountCode !== '' ? $discountCode : null,
                     'items' => $guestCheckout['cart']['items'],
                 ],
             ];
@@ -378,6 +403,7 @@ final class OrderRepository
             'cart' => $cart,
             'subtotal' => $subtotal,
             'discount' => $discount,
+            'discount_code' => strtoupper(trim((string) ($cart['discount_code'] ?? ''))) ?: null,
             'available_rates' => $availableRates,
             'selected_rate' => $selectedRate,
             'shipping' => $shipping,
@@ -464,6 +490,41 @@ final class OrderRepository
         $orders = $statement->fetchAll();
 
         return array_map(fn (array $order): array => $this->mapOrder($order), $orders);
+    }
+
+    /**
+     * Customer order history: own user_id rows plus guest rows placed with
+     * the same email before login / before the optional-auth fix.
+     */
+    public function allByUserIncludingEmail(int $userId, string $email): array
+    {
+        $email = strtolower(trim($email));
+
+        if ($email === '') {
+            return $this->allByUser($userId);
+        }
+
+        $statement = $this->pdo->prepare(
+            'SELECT * FROM orders
+             WHERE user_id = :user_id
+                OR (user_id IS NULL AND LOWER(customer_email) = :email)
+             ORDER BY id DESC'
+        );
+        $statement->execute(['user_id' => $userId, 'email' => $email]);
+        $orders = $statement->fetchAll();
+
+        return array_map(fn (array $order): array => $this->mapOrder($order), $orders);
+    }
+
+    /**
+     * Attach a guest pending order to the logged-in customer capturing it.
+     */
+    public function claimOrderForUser(int $orderId, int $userId): void
+    {
+        $statement = $this->pdo->prepare(
+            'UPDATE orders SET user_id = :user_id, updated_at = NOW() WHERE id = :id AND user_id IS NULL'
+        );
+        $statement->execute(['user_id' => $userId, 'id' => $orderId]);
     }
 
     public function all(): array
@@ -604,6 +665,7 @@ final class OrderRepository
             'shippingTierName' => $order['shipping_tier_name'],
             'subtotal' => (float) $order['subtotal_amount'],
             'discount' => (float) $order['discount_amount'],
+            'discountCode' => $order['discount_code'] ?? null,
             'shipping' => (float) $order['shipping_amount'],
             'total' => (float) $order['total_amount'],
             'courier' => $order['courier'] ?? null,
@@ -690,13 +752,13 @@ final class OrderRepository
      * Welcome vouchers are single-use: once an order consumes the discount,
      * mark it used so it cannot be applied again.
      */
-    private function consumeWelcomeVoucher(int $userId, array $cart, float $discount): void
+    private function consumeWelcomeVoucher(int $userId, string $code, float $discount): void
     {
         if ($discount <= 0 || $this->vouchers === null || $this->welcomeVouchers === null) {
             return;
         }
 
-        $code = strtoupper(trim((string) ($cart['discount_code'] ?? '')));
+        $code = strtoupper(trim($code));
 
         if ($code === '') {
             return;
@@ -718,6 +780,111 @@ final class OrderRepository
             $this->welcomeVouchers->markUsed($userId, (int) $voucher['id']);
         } catch (\Throwable) {
             // Never block checkout on voucher bookkeeping.
+        }
+    }
+
+    /**
+     * Belt & suspenders: consume the voucher stored on an existing order
+     * (covers capture/webhook paths where the order already exists).
+     */
+    public function consumeWelcomeVoucherForOrder(int $orderId): void
+    {
+        if ($this->vouchers === null || $this->welcomeVouchers === null) {
+            return;
+        }
+
+        try {
+            $this->ensureDiscountCodeColumn();
+
+            $statement = $this->pdo->prepare('SELECT id, user_id, discount_code, discount_amount FROM orders WHERE id = :id LIMIT 1');
+            $statement->execute(['id' => $orderId]);
+            $order = $statement->fetch();
+
+            if (!$order || $order['user_id'] === null) {
+                return;
+            }
+
+            $this->consumeWelcomeVoucher(
+                (int) $order['user_id'],
+                (string) ($order['discount_code'] ?? ''),
+                (float) ($order['discount_amount'] ?? 0)
+            );
+        } catch (\Throwable) {
+            // Never block payment flows on voucher bookkeeping.
+        }
+    }
+
+    /**
+     * If an order that consumed a welcome voucher is cancelled, release the
+     * voucher so the customer does not lose their one gift to a timeout.
+     */
+    public function releaseWelcomeVoucherForOrder(int $orderId): void
+    {
+        if ($this->vouchers === null || $this->welcomeVouchers === null) {
+            return;
+        }
+
+        try {
+            $this->ensureDiscountCodeColumn();
+
+            $statement = $this->pdo->prepare('SELECT user_id, discount_code FROM orders WHERE id = :id LIMIT 1');
+            $statement->execute(['id' => $orderId]);
+            $order = $statement->fetch();
+
+            if (!$order || $order['user_id'] === null) {
+                return;
+            }
+
+            $code = strtoupper(trim((string) ($order['discount_code'] ?? '')));
+
+            if ($code === '') {
+                return;
+            }
+
+            $voucher = $this->vouchers->findByCode($code);
+
+            if (!$voucher) {
+                return;
+            }
+
+            $owner = $this->welcomeVouchers->findOwnerByVoucherId((int) $voucher['id']);
+
+            if ($owner === null || (int) $owner['user_id'] !== (int) $order['user_id']) {
+                return;
+            }
+
+            $this->welcomeVouchers->markUnused((int) $order['user_id'], (int) $voucher['id']);
+        } catch (\Throwable) {
+            // Never block cancellation on voucher bookkeeping.
+        }
+    }
+
+    /**
+     * Idempotent migration for existing databases: orders.discount_code
+     * tracks exactly which voucher an order consumed (welcome or global).
+     */
+    private function ensureDiscountCodeColumn(): void
+    {
+        static $ensured = false;
+
+        if ($ensured) {
+            return;
+        }
+
+        try {
+            $statement = $this->pdo->query('SHOW COLUMNS FROM orders LIKE \'discount_code\'');
+
+            if ($statement && $statement->fetch()) {
+                $ensured = true;
+
+                return;
+            }
+
+            $this->pdo->exec('ALTER TABLE orders ADD COLUMN discount_code VARCHAR(120) NULL DEFAULT NULL AFTER discount_amount');
+            $ensured = true;
+        } catch (\Throwable) {
+            // Older DBs without permission: ordering still works, voucher
+            // tracking degrades gracefully (consume falls back to cart code).
         }
     }
 
@@ -821,6 +988,10 @@ final class OrderRepository
             'id' => $orderId,
             'status' => 'cancelled',
         ]);
+
+        // The order never converted to a sale: release its welcome voucher
+        // (if any) so the customer keeps their one gift.
+        $this->releaseWelcomeVoucherForOrder($orderId);
 
         $mapped = $this->findById($orderId, null);
 

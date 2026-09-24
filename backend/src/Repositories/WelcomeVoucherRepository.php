@@ -164,6 +164,22 @@ final class WelcomeVoucherRepository
         ]);
     }
 
+    /**
+     * Release a voucher back to usable (e.g. order cancelled before payment).
+     */
+    public function markUnused(int $userId, int $voucherId): void
+    {
+        $this->ensureSchema();
+
+        $statement = $this->pdo->prepare(
+            'UPDATE user_vouchers SET used_at = NULL WHERE user_id = :user_id AND voucher_id = :voucher_id'
+        );
+        $statement->execute([
+            'user_id' => $userId,
+            'voucher_id' => $voucherId,
+        ]);
+    }
+
     public function isUsed(int $voucherId): bool
     {
         $this->ensureSchema();

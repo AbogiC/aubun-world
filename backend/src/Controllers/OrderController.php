@@ -28,9 +28,14 @@ final class OrderController
         $user = $request->attribute('user');
         $userId = (int) ($user['id'] ?? 0);
         $role = (string) ($user['role'] ?? '');
-        $orders = in_array($role, self::MANAGER_ROLES, true)
-            ? $this->orders->all()
-            : $this->orders->allByUser($userId);
+
+        if (in_array($role, self::MANAGER_ROLES, true)) {
+            $orders = $this->orders->all();
+        } else {
+            // Include guest rows placed with the same email so pending
+            // "waiting payment" orders created before login are visible too.
+            $orders = $this->orders->allByUserIncludingEmail($userId, (string) ($user['email'] ?? ''));
+        }
 
         return [
             'orders' => $this->refreshPendingOrders($orders),
@@ -57,6 +62,7 @@ final class OrderController
             'items' => $request->input('items') ?? [],
             'subtotal' => (float) ($request->input('subtotal') ?? 0),
             'discount' => (float) ($request->input('discount') ?? 0),
+            'discount_code' => strtoupper(trim((string) ($request->input('discount_code') ?? $request->input('discountCode') ?? ''))) ?: null,
             'shipping_cost' => (float) ($request->input('shipping_cost') ?? 0),
             'total' => (float) ($request->input('total') ?? 0),
             'shipping_tier_name' => (string) ($request->input('shipping_tier_name') ?? ''),
@@ -75,6 +81,9 @@ final class OrderController
                 'country' => $payload['country'],
                 'postal_code' => $payload['postal_code'],
                 'shipping_rate_id' => $payload['shipping_rate_id'],
+                'discount' => $payload['discount'],
+                'discount_code' => $payload['discount_code'],
+                'items' => $payload['items'],
             ]);
         }
 
@@ -205,6 +214,7 @@ final class OrderController
                 if (($existingOrder['status'] ?? '') !== $resolvedStatus) {
                     $this->orders->updateStatus((int) $existingOrder['id'], $resolvedStatus);
                 }
+                $this->orders->consumeWelcomeVoucherForOrder((int) $existingOrder['id']);
                 $order = $this->orders->findByPayPalOrderId($paypalOrderId) ?? $existingOrder;
             } else {
                 $order = $this->orders->createFromGuestCart([
@@ -215,7 +225,13 @@ final class OrderController
             }
         } else {
             if ($existingOrder) {
+                // Pending order was created as guest (or by another session):
+                // attach it to this customer so it stays in My Orders.
+                if (($existingOrder['userId'] ?? null) === null) {
+                    $this->orders->claimOrderForUser((int) $existingOrder['id'], $userId);
+                }
                 $this->orders->updateStatus((int) $existingOrder['id'], $resolvedStatus);
+                $this->orders->consumeWelcomeVoucherForOrder((int) $existingOrder['id']);
                 $order = $this->orders->findByPayPalOrderId($paypalOrderId) ?? $existingOrder;
             } else {
                 $order = $this->orders->createFromCart($userId, [
@@ -331,6 +347,12 @@ final class OrderController
             $courier === '' ? null : $courier,
             $trackingNumber === '' ? null : $trackingNumber
         );
+
+        if ($requestedStatus === 'cancelled') {
+            // Admin-cancelled: give the welcome voucher back if this order used it.
+            $this->orders->releaseWelcomeVoucherForOrder($orderId);
+            $updated = $this->orders->findByIdAny($orderId) ?? $updated;
+        }
 
         // Notify the customer (best effort — never fail the admin action on SMTP errors).
         // Shipped -> email with courier + tracking ID so the customer can track
@@ -522,6 +544,10 @@ final class OrderController
             if ($newStatus !== $currentStatus) {
                 $this->orders->updateStatus((int) $order['id'], $newStatus);
 
+                if ($newStatus === 'paid') {
+                    $this->orders->consumeWelcomeVoucherForOrder((int) $order['id']);
+                }
+
                 if ($currentStatus !== 'paid' && $newStatus === 'paid') {
                     try {
                         $this->email->sendPaymentConfirmedEmail(
@@ -557,6 +583,7 @@ final class OrderController
             'items' => $request->input('items') ?? [],
             'subtotal' => (float) ($request->input('subtotal') ?? 0),
             'discount' => (float) ($request->input('discount') ?? 0),
+            'discount_code' => strtoupper(trim((string) ($request->input('discount_code') ?? $request->input('discountCode') ?? ''))) ?: null,
             'shipping_cost' => (float) ($request->input('shipping_cost') ?? 0),
             'total' => (float) ($request->input('total') ?? 0),
             'shipping_tier_name' => (string) ($request->input('shipping_tier_name') ?? ''),
