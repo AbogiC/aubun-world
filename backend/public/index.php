@@ -103,6 +103,7 @@ $shippingRepository = new ShippingRepository($pdo);
 $stockistRepository = new StockistRepository($pdo);
 $orderRepository = new OrderRepository($pdo, $shippingRepository, $productRepository, $emailService);
 $notificationRepository = new NotificationRepository($pdo);
+$fontDirectory = dirname(__DIR__) . '/store/fonts';
 $homeViewSettingsRepository = new HomeViewSettingsRepository($pdo);
 $paypalService = new PayPalOrderService(
     $config['paypal']['client_id'],
@@ -123,7 +124,7 @@ $guidelineController = new GuidelineController($guidelineRepository, $notificati
 $newsController = new NewsController($newsRepository, $notificationRepository);
 $voucherController = new VoucherController($voucherRepository, $productRepository);
 $notificationController = new NotificationController($notificationRepository);
-$homeViewSettingsController = new HomeViewSettingsController($homeViewSettingsRepository);
+$homeViewSettingsController = new HomeViewSettingsController($homeViewSettingsRepository, $fontDirectory, $config['app']['api_base_url']);
 $testEmailController = new TestEmailController(
     $config['microsoft']['client_id'] ?? '',
     $config['microsoft']['tenant_id'] ?? '',
@@ -177,6 +178,9 @@ $router->delete('/api/news/{id}', [$newsController, 'destroy'], [$authMiddleware
 $router->get('/api/home-view', [$homeViewSettingsController, 'index']);
 $router->post('/api/home-view', [$homeViewSettingsController, 'store'], [$authMiddleware, $managerRoleMiddleware]);
 $router->patch('/api/home-view', [$homeViewSettingsController, 'update'], [$authMiddleware, $managerRoleMiddleware]);
+$router->post('/api/home-view/font-upload', [$homeViewSettingsController, 'uploadFont'], [$authMiddleware, $managerRoleMiddleware]);
+$router->delete('/api/home-view/font', [$homeViewSettingsController, 'destroyFont'], [$authMiddleware, $managerRoleMiddleware]);
+$router->get('/api/fonts/{filename}', [$homeViewSettingsController, 'serveFont']);
 
 $router->get('/api/categories', [$categoryController, 'index']);
 $router->get('/api/vouchers', [$voucherController, 'index'], [$authMiddleware, $managerRoleMiddleware]);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use PDO;
+use Throwable;
 
 final class HomeViewSettingsRepository
 {
@@ -14,11 +15,14 @@ final class HomeViewSettingsRepository
 
     public function getSettings(): ?array
     {
+        $this->ensureCustomFontColumns();
+
         $statement = $this->pdo->query(
             'SELECT id, hero_background_image, hero_kicker, hero_title, hero_copy,
                     hero_primary_button_text, hero_primary_button_link,
                     hero_secondary_button_text, hero_secondary_button_link,
-                    featured_title, featured_subtitle
+                    featured_title, featured_subtitle,
+                    custom_font_family, custom_font_url, custom_font_filename
              FROM home_view_settings
              ORDER BY id DESC
              LIMIT 1'
@@ -50,6 +54,7 @@ final class HomeViewSettingsRepository
 
     public function create(array $payload): array
     {
+        $this->ensureCustomFontColumns();
         $this->pdo->beginTransaction();
 
         try {
@@ -58,12 +63,16 @@ final class HomeViewSettingsRepository
                     hero_background_image, hero_kicker, hero_title, hero_copy,
                     hero_primary_button_text, hero_primary_button_link,
                     hero_secondary_button_text, hero_secondary_button_link,
-                    featured_title, featured_subtitle, created_at, updated_at
+                    featured_title, featured_subtitle,
+                    custom_font_family, custom_font_url, custom_font_filename,
+                    created_at, updated_at
                  ) VALUES (
                     :hero_background_image, :hero_kicker, :hero_title, :hero_copy,
                     :hero_primary_button_text, :hero_primary_button_link,
                     :hero_secondary_button_text, :hero_secondary_button_link,
-                    :featured_title, :featured_subtitle, NOW(), NOW()
+                    :featured_title, :featured_subtitle,
+                    :custom_font_family, :custom_font_url, :custom_font_filename,
+                    NOW(), NOW()
                  )'
             );
             $statement->execute($this->persistedSettings($payload));
@@ -110,6 +119,9 @@ final class HomeViewSettingsRepository
                     hero_secondary_button_link = :hero_secondary_button_link,
                     featured_title = :featured_title,
                     featured_subtitle = :featured_subtitle,
+                    custom_font_family = :custom_font_family,
+                    custom_font_url = :custom_font_url,
+                    custom_font_filename = :custom_font_filename,
                     updated_at = NOW()
                  WHERE id = :id'
             );
@@ -176,6 +188,9 @@ final class HomeViewSettingsRepository
             'hero_secondary_button_link' => $payload['heroSecondaryButtonLink'] ?? null,
             'featured_title' => $payload['featuredTitle'] ?? null,
             'featured_subtitle' => $payload['featuredSubtitle'] ?? null,
+            'custom_font_family' => $payload['customFontFamily'] ?? null,
+            'custom_font_url' => $payload['customFontUrl'] ?? null,
+            'custom_font_filename' => $payload['customFontFilename'] ?? null,
         ];
     }
 
@@ -193,7 +208,38 @@ final class HomeViewSettingsRepository
             'heroSecondaryButtonLink' => $row['hero_secondary_button_link'],
             'featuredTitle' => $row['featured_title'],
             'featuredSubtitle' => $row['featured_subtitle'],
+            'customFontFamily' => $row['custom_font_family'] ?? null,
+            'customFontUrl' => $row['custom_font_url'] ?? null,
+            'customFontFilename' => $row['custom_font_filename'] ?? null,
         ];
+    }
+
+    private function ensureCustomFontColumns(): void
+    {
+        try {
+            $columns = [];
+            $stmt = $this->pdo->query('SHOW COLUMNS FROM home_view_settings');
+            foreach ($stmt->fetchAll() as $col) {
+                $columns[] = $col['Field'] ?? $col[0] ?? '';
+            }
+
+            $adds = [];
+            if (!in_array('custom_font_family', $columns, true)) {
+                $adds[] = 'ADD COLUMN custom_font_family VARCHAR(120) NULL AFTER featured_subtitle';
+            }
+            if (!in_array('custom_font_url', $columns, true)) {
+                $adds[] = 'ADD COLUMN custom_font_url VARCHAR(500) NULL AFTER custom_font_family';
+            }
+            if (!in_array('custom_font_filename', $columns, true)) {
+                $adds[] = 'ADD COLUMN custom_font_filename VARCHAR(255) NULL AFTER custom_font_url';
+            }
+
+            if ($adds !== []) {
+                $this->pdo->exec('ALTER TABLE home_view_settings ' . implode(', ', $adds));
+            }
+        } catch (\Throwable) {
+            // Ignore migration errors — older schemas still work, font fields will be null.
+        }
     }
 
     private function mapFeaturedItem(array $row): array

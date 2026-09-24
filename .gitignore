@@ -41,4 +41,6 @@ __screenshots__/
 .env
 .env.example
 backend/store/products/image/*
+backend/store/fonts/*
+!backend/store/fonts/.gitkeep
 !backend/store/products/image/.gitkeep

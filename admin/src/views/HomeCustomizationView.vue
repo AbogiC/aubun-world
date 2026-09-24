@@ -258,6 +258,94 @@
           </div>
         </div>
       </div>
+      <!-- Typography / Global Font -->
+      <div class="col-12">
+        <div class="card surface">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h2 class="h5 mb-0">Typography — Global Font</h2>
+            <span class="badge text-bg-light border">.ttf only · replaces all storefront font</span>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-3">
+              Upload a <code>.ttf</code> file to replace the entire storefront font (body + headings).
+              Max 10&nbsp;MB. Save settings after uploading to apply it live. Remove to restore defaults.
+            </p>
+
+            <div class="row g-3 align-items-stretch">
+              <div class="col-lg-6">
+                <label class="form-label">Font family name</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  v-model="form.customFontFamily"
+                  placeholder="e.g. My Luxury Sans"
+                />
+                <div class="form-text">Used as the CSS font-family name on the storefront.</div>
+
+                <label class="form-label mt-3">Upload .ttf file</label>
+                <input
+                  ref="fontInputRef"
+                  type="file"
+                  class="form-control"
+                  accept=".ttf,font/ttf"
+                  @change="onFontFileSelected"
+                />
+                <div class="form-text">Only TrueType <code>.ttf</code> files are accepted.</div>
+
+                <div v-if="selectedFontName" class="alert alert-secondary mt-3 mb-0 py-2 px-3">
+                  <i class="bi bi-file-earmark-font me-2"></i>Selected: <strong>{{ selectedFontName }}</strong>
+                </div>
+
+                <div v-if="fontError" class="alert alert-danger mt-3 mb-0 py-2 px-3">
+                  <i class="bi bi-exclamation-triangle me-2"></i>{{ fontError }}
+                </div>
+
+                <div v-if="form.customFontUrl" class="alert alert-success mt-3 mb-0 py-2 px-3 text-break">
+                  <i class="bi bi-check-circle me-2"></i>Active font:
+                  <strong>{{ form.customFontFamily || 'Custom font' }}</strong><br />
+                  <small class="text-muted">{{ form.customFontUrl }}</small>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                  <button
+                    type="button"
+                    class="btn btn-luxury btn-sm"
+                    @click="uploadCustomFont"
+                    :disabled="!fontFile || uploadingFont"
+                  >
+                    <span v-if="uploadingFont" class="spinner-border spinner-border-sm me-2"></span>
+                    <i v-else class="bi bi-upload me-1"></i>
+                    {{ uploadingFont ? 'Uploading…' : 'Upload Font' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger btn-sm"
+                    @click="removeCustomFont"
+                    :disabled="(!form.customFontUrl && !form.customFontFilename) || uploadingFont || removingFont"
+                  >
+                    <span v-if="removingFont" class="spinner-border spinner-border-sm me-2"></span>
+                    <i v-else class="bi bi-trash me-1"></i>
+                    {{ removingFont ? 'Removing…' : 'Remove / Reset' }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="col-lg-6">
+                <div class="font-preview-box">
+                  <p class="section-kicker mb-2">Live preview</p>
+                  <p class="font-preview-big" :style="fontPreviewStyle">Aa Bb Cc Dd Ee</p>
+                  <p class="font-preview-sample" :style="fontPreviewStyle">
+                    The quick brown fox jumps over the lazy dog 0123456789
+                  </p>
+                  <p class="font-preview-meta mb-0">
+                    {{ form.customFontFamily || 'Default storefront font' }} · Body + Headings
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Save Button -->
@@ -274,12 +362,26 @@
         type="button"
         class="btn btn-luxury"
         @click="saveSettings"
-        :disabled="loading"
+        :disabled="loading || saving"
       >
-        <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+        <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
         Save Settings
       </button>
     </div>
+
+    <StatusModal
+      v-model="statusModal.show"
+      :type="statusModal.type"
+      :title="statusModal.title"
+      :message="statusModal.message"
+      :confirm-text="statusModal.confirmText"
+      :cancel-text="statusModal.cancelText"
+      :show-cancel="statusModal.showCancel"
+      :loading="statusModal.loading"
+      @confirm="onStatusConfirm"
+      @cancel="onStatusCancel"
+      @close="onStatusClose"
+    />
   </div>
 </template>
 
@@ -288,6 +390,7 @@ import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { api } from "../lib/api";
 import { useProductsStore } from "../stores/products";
+import StatusModal from "../components/StatusModal.vue";
 
 const router = useRouter();
 const productsStore = useProductsStore();
@@ -296,6 +399,71 @@ const loading = ref(false);
 const saving = ref(false);
 const availableCategories = ref([]);
 const products = ref([]);
+
+const fontInputRef = ref(null);
+const fontFile = ref(null);
+const selectedFontName = ref("");
+const uploadingFont = ref(false);
+const removingFont = ref(false);
+const fontError = ref("");
+
+const statusModal = ref({
+  show: false,
+  type: "success",
+  title: "",
+  message: "",
+  confirmText: "Got it",
+  cancelText: "Cancel",
+  showCancel: false,
+  loading: false,
+  pendingAction: null,
+});
+
+const showStatus = (type, title, message, options = {}) => {
+  statusModal.value = {
+    show: true,
+    type,
+    title,
+    message,
+    confirmText: options.confirmText || (type === "warning" ? "Confirm" : "Got it"),
+    cancelText: options.cancelText || "Cancel",
+    showCancel: options.showCancel || false,
+    loading: false,
+    pendingAction: options.onConfirm || null,
+  };
+};
+
+const showSuccess = (title, message, options = {}) =>
+  showStatus("success", title, message, options);
+
+const showError = (title, message, options = {}) =>
+  showStatus("error", title, message, options);
+
+const askConfirm = (title, message, options = {}) =>
+  showStatus("warning", title, message, {
+    showCancel: true,
+    confirmText: options.confirmText || "Confirm",
+    ...options,
+  });
+
+const onStatusConfirm = async () => {
+  const action = statusModal.value.pendingAction;
+  statusModal.value.pendingAction = null;
+  statusModal.value.show = false;
+  statusModal.value.loading = false;
+  if (!action) return;
+  await action();
+};
+
+const onStatusCancel = () => {
+  statusModal.value.pendingAction = null;
+  statusModal.value.show = false;
+};
+
+const onStatusClose = () => {
+  if (statusModal.value.loading) return;
+  statusModal.value.pendingAction = null;
+};
 
 const form = ref({
   heroBackgroundImage: "",
@@ -309,7 +477,29 @@ const form = ref({
   featuredTitle: "",
   featuredSubtitle: "",
   featuredItems: [],
+  customFontFamily: "",
+  customFontUrl: "",
+  customFontFilename: "",
 });
+
+const fontPreviewStyle = computed(() => {
+  if (form.value.customFontFamily && form.value.customFontUrl) {
+    return { fontFamily: `'${form.value.customFontFamily}', sans-serif` };
+  }
+  return {};
+});
+
+const loadFontForPreview = async (family, url) => {
+  if (!family || !url) return;
+  try {
+    if (!('FontFace' in window)) return;
+    const face = new FontFace(family, `url("${url}")`, { display: 'swap' });
+    const loaded = await face.load();
+    document.fonts.add(loaded);
+  } catch (err) {
+    console.warn('Font preview failed to load:', err);
+  }
+};
 
 const fetchInitialData = async () => {
   loading.value = true;
@@ -331,12 +521,19 @@ const fetchInitialData = async () => {
       form.value.heroSecondaryButtonLink = s.heroSecondaryButtonLink || "";
       form.value.featuredTitle = s.featuredTitle || "";
       form.value.featuredSubtitle = s.featuredSubtitle || "";
+      form.value.customFontFamily = s.customFontFamily || "";
+      form.value.customFontUrl = s.customFontUrl || "";
+      form.value.customFontFilename = s.customFontFilename || "";
       form.value.featuredItems = (settingsRes.featuredItems || []).map((item, idx) => ({
         ...item,
         id: item.id,
         sortOrder: item.sortOrder ?? idx,
         isActive: item.isActive ?? true,
       }));
+
+      if (form.value.customFontFamily && form.value.customFontUrl) {
+        loadFontForPreview(form.value.customFontFamily, form.value.customFontUrl);
+      }
     }
 
     availableCategories.value = [...new Set(productsStore.products.map(p => p.category))].sort();
@@ -382,7 +579,131 @@ const moveFeaturedItem = (index, direction) => {
   });
 };
 
-const saveSettings = async () => {
+const onFontFileSelected = (event) => {
+  fontError.value = "";
+  const file = event.target.files?.[0] || null;
+
+  if (!file) {
+    fontFile.value = null;
+    selectedFontName.value = "";
+    return;
+  }
+
+  const lower = file.name.toLowerCase();
+  if (!lower.endsWith(".ttf")) {
+    fontError.value = "Only .ttf files are allowed.";
+    fontFile.value = null;
+    selectedFontName.value = "";
+    if (fontInputRef.value) fontInputRef.value.value = "";
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    fontError.value = "Font must be 10 MB or smaller.";
+    fontFile.value = null;
+    selectedFontName.value = "";
+    if (fontInputRef.value) fontInputRef.value.value = "";
+    return;
+  }
+
+  fontFile.value = file;
+  selectedFontName.value = file.name;
+};
+
+const uploadCustomFont = async () => {
+  if (!fontFile.value) {
+    fontError.value = "Please choose a .ttf file first.";
+    showStatus(
+      "warning",
+      "No font selected",
+      "Please choose a .ttf file first, then click Upload Font."
+    );
+    return;
+  }
+
+  fontError.value = "";
+  uploadingFont.value = true;
+
+  try {
+    const data = new FormData();
+    data.append("font", fontFile.value);
+
+    const res = await api.post("/home-view/font-upload", data);
+
+    if (res.font) {
+      // Keep user-typed family name if present, otherwise use server-derived name.
+      if (!form.value.customFontFamily && res.font.family) {
+        form.value.customFontFamily = res.font.family;
+      }
+      form.value.customFontUrl = res.font.url || "";
+      form.value.customFontFilename = res.font.filename || "";
+
+      await loadFontForPreview(form.value.customFontFamily || res.font.family, form.value.customFontUrl);
+
+      fontFile.value = null;
+      selectedFontName.value = "";
+      if (fontInputRef.value) fontInputRef.value.value = "";
+
+      showSuccess(
+        "Font uploaded",
+        "Font uploaded successfully. Click “Save Settings” to apply it to the storefront."
+      );
+    }
+  } catch (error) {
+    console.error("Failed to upload font:", error);
+    fontError.value = error.message || "Failed to upload font.";
+    showError("Font upload failed", fontError.value);
+  } finally {
+    uploadingFont.value = false;
+  }
+};
+
+const doRemoveCustomFont = async () => {
+  fontError.value = "";
+  removingFont.value = true;
+
+  try {
+    const filename = form.value.customFontFilename || "";
+    if (filename) {
+      try {
+        await api.delete("/home-view/font", { filename });
+      } catch (err) {
+        // If backend has nothing saved yet, still clear locally.
+        console.warn("Font delete request failed, clearing locally:", err);
+      }
+    }
+
+    form.value.customFontFamily = "";
+    form.value.customFontUrl = "";
+    form.value.customFontFilename = "";
+    fontFile.value = null;
+    selectedFontName.value = "";
+    if (fontInputRef.value) fontInputRef.value.value = "";
+
+    showSuccess("Font removed", "Custom font removed. The storefront now uses the default fonts. Don’t forget to Save Settings.");
+  } catch (error) {
+    console.error("Failed to remove font:", error);
+    fontError.value = error.message || "Failed to remove font.";
+    showError("Remove failed", fontError.value);
+  } finally {
+    removingFont.value = false;
+  }
+};
+
+const removeCustomFont = () => {
+  if (!form.value.customFontUrl && !form.value.customFontFilename) return;
+
+  askConfirm(
+    "Remove custom font?",
+    "This will remove the uploaded font and restore the default storefront fonts after you save.",
+    {
+      confirmText: "Remove font",
+      onConfirm: doRemoveCustomFont,
+    }
+  );
+};
+
+const doSaveSettings = async () => {
   saving.value = true;
   try {
     const payload = {
@@ -396,6 +717,9 @@ const saveSettings = async () => {
       heroSecondaryButtonLink: form.value.heroSecondaryButtonLink,
       featuredTitle: form.value.featuredTitle,
       featuredSubtitle: form.value.featuredSubtitle,
+      customFontFamily: form.value.customFontFamily,
+      customFontUrl: form.value.customFontUrl,
+      customFontFilename: form.value.customFontFilename,
       featuredItems: form.value.featuredItems.map(item => ({
         label: item.label,
         routeCategory: item.routeCategory,
@@ -409,20 +733,38 @@ const saveSettings = async () => {
     };
 
     await api.patch("/home-view", payload);
-    alert("Settings saved successfully!");
     await fetchInitialData();
+    showSuccess("Settings saved", "Your homepage customization has been published successfully.");
   } catch (error) {
     console.error("Failed to save settings:", error);
-    alert(error.message || "Failed to save settings");
+    showError("Save failed", error.message || "Failed to save settings. Please try again.");
   } finally {
     saving.value = false;
   }
 };
 
-const resetForm = async () => {
-  if (confirm("Are you sure you want to reset the form to current saved settings?")) {
-    await fetchInitialData();
-  }
+const saveSettings = () => {
+  askConfirm(
+    "Save settings?",
+    "This will publish your homepage changes (hero, featured, typography) to the live storefront.",
+    {
+      confirmText: "Save settings",
+      onConfirm: doSaveSettings,
+    }
+  );
+};
+
+const resetForm = () => {
+  askConfirm(
+    "Discard changes?",
+    "This will reset the form to the last saved settings. Unsaved changes will be lost.",
+    {
+      confirmText: "Reset form",
+      onConfirm: async () => {
+        await fetchInitialData();
+      },
+    }
+  );
 };
 
 onMounted(() => {
@@ -473,6 +815,50 @@ onMounted(() => {
 
 .btn-group-sm .btn {
   padding: 0.25rem 0.5rem;
+}
+
+.font-preview-box {
+  height: 100%;
+  min-height: 16rem;
+  border-radius: var(--radius-lg);
+  border: 1px dashed rgba(77, 16, 24, 0.28);
+  background:
+    radial-gradient(circle at top, rgba(254, 181, 17, 0.18), transparent 55%),
+    rgba(255, 248, 228, 0.6);
+  padding: 1.25rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.font-preview-box .section-kicker {
+  font-size: 0.7rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.font-preview-big {
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.1;
+  margin-bottom: 0.6rem;
+  word-break: break-word;
+}
+
+.font-preview-sample {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: rgba(77, 16, 24, 0.82);
+  word-break: break-word;
+}
+
+.font-preview-meta {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(77, 16, 24, 0.6);
 }
 
 @media (max-width: 767.98px) {

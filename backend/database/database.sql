@@ -319,6 +319,9 @@ CREATE TABLE home_view_settings (
     hero_secondary_button_link VARCHAR(255) NULL,
     featured_title VARCHAR(120) NULL,
     featured_subtitle TEXT NULL,
+    custom_font_family VARCHAR(120) NULL,
+    custom_font_url VARCHAR(500) NULL,
+    custom_font_filename VARCHAR(255) NULL,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

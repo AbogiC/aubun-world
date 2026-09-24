@@ -25,6 +25,8 @@ import Navbar from "./components/Navbar.vue";
 import Footer from "./components/Footer.vue";
 import ToastContainer from "./components/ToastContainer.vue";
 import { resolveCustomerLocationOnLoad } from "./lib/location";
+import { api } from "./lib/api";
+import { applyCustomFont } from "./lib/customFont";
 import { useProductsStore } from "./stores/products";
 import { useCartStore } from "./stores/cart";
 import { useAuthStore } from "./stores/auth";
@@ -39,6 +41,15 @@ const isLoading = ref(true);
 
 onMounted(async () => {
   await resolveCustomerLocationOnLoad();
+
+  try {
+    const data = await api.get("/home-view");
+    if (data?.settings) {
+      applyCustomFont(data.settings);
+    }
+  } catch {
+    // Keep default fonts if custom font settings fail to load.
+  }
 
   if (!productsStore.loaded) {
     await productsStore.fetchProducts();

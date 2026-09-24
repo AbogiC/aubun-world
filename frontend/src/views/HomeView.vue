@@ -19,7 +19,7 @@
           <p class="text-muted">{{ homeSettings?.featuredSubtitle || 'Curated categories for effortless browsing.' }}</p>
         </div>
 
-        <div class="row g-4 section-content">
+        <div v-if="hasFeatured" class="row g-4 section-content">
           <div v-for="item in featuredCollections" :key="item.label" class="col-md-6 col-xl-4">
             <article class="feature-card surface h-100" @click="navigateToCategory(item.routeCategory)">
               <div class="feature-image-wrap">
@@ -41,6 +41,35 @@
                 <p class="mb-0">{{ item.description }}</p>
               </div>
             </article>
+          </div>
+        </div>
+
+        <div v-else class="section-content">
+          <div class="coming-soon-card">
+            <div class="coming-soon-inner">
+              <p class="coming-soon-kicker">The Atelier Is Preparing</p>
+              <h3 class="coming-soon-title"><span>Coming</span> <em>Soon</em></h3>
+              <div class="coming-soon-divider" aria-hidden="true">
+                <span class="line"></span>
+                <span class="diamond"></span>
+                <span class="line"></span>
+              </div>
+              <p class="coming-soon-copy">
+                Our stylists are curating something exceptional for this space.
+                A refined featured edit is on its way — please check back shortly.
+              </p>
+              <div class="coming-soon-actions">
+                <router-link to="/products" class="btn btn-luxury">Shop Collection</router-link>
+                <a href="#mix-match" class="btn btn-outline-gold">Explore Mix &amp; Match</a>
+              </div>
+              <div class="coming-soon-meta">
+                <span><i class="bi bi-gem"></i>Handpicked Edit</span>
+                <span class="dot" aria-hidden="true"></span>
+                <span><i class="bi bi-stars"></i>Elevated Essentials</span>
+                <span class="dot" aria-hidden="true"></span>
+                <span><i class="bi bi-bag-heart"></i>New Drop Imminent</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -208,49 +237,24 @@ const upperCategoryNames = ["Outerwear", "Shirts"];
 const lowerCategoryNames = ["Pants"];
 
 const featuredCollections = computed(() => {
-  if (homeSettings.value?.featuredItems?.length) {
-    return homeSettings.value.featuredItems
-      .filter(item => item.isActive)
-      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
-      .map(item => ({
-        label: item.label,
-        routeCategory: item.routeCategory,
-        title: item.title,
-        eyebrow: item.eyebrow,
-        description: item.description,
-        product: item.productId
-          ? productsStore.products.find(p => p.id === item.productId)
-          : productsStore.products.find(p => p.category === item.routeCategory),
-      }));
-  }
+  if (!homeSettings.value?.featuredItems?.length) return [];
 
-  return [
-    {
-      label: "Pants",
-      routeCategory: "Pants",
-      title: "Tailored Pants",
-      eyebrow: "Featured Essential",
-      description: "Clean structure and versatile cuts for everyday styling.",
-      product: productsStore.products.find((product) => product.category === "Pants"),
-    },
-    {
-      label: "Outers",
-      routeCategory: "Outerwear",
-      title: "Statement Outers",
-      eyebrow: "Layering Focus",
-      description: "Outer layers that keep the silhouette polished and confident.",
-      product: productsStore.products.find((product) => product.category === "Outerwear"),
-    },
-    {
-      label: "T-Shirts",
-      routeCategory: "Shirts",
-      title: "Premium T-Shirts",
-      eyebrow: "Daily Base Layer",
-      description: "Simple foundations that are easy to pair into a complete look.",
-      product: productsStore.products.find((product) => product.category === "Shirts"),
-    },
-  ];
+  return homeSettings.value.featuredItems
+    .filter(item => item.isActive)
+    .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+    .map(item => ({
+      label: item.label,
+      routeCategory: item.routeCategory,
+      title: item.title,
+      eyebrow: item.eyebrow,
+      description: item.description,
+      product: item.productId
+        ? productsStore.products.find(p => p.id === item.productId)
+        : productsStore.products.find(p => p.category === item.routeCategory),
+    }));
 });
+
+const hasFeatured = computed(() => featuredCollections.value.length > 0);
 
 const upperOptions = computed(() =>
   productsStore.products.filter((product) => upperCategoryNames.includes(product.category)),
@@ -567,6 +571,194 @@ onBeforeUnmount(() => {
   line-height: 1.7;
 }
 
+.coming-soon-card {
+  position: relative;
+  max-width: 58rem;
+  margin: 0 auto;
+  border-radius: var(--radius-xl);
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(254, 181, 17, 0.9), rgba(254, 181, 17, 0.15) 30%, rgba(254, 181, 17, 0.15) 70%, rgba(254, 181, 17, 0.9));
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+.coming-soon-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(254, 181, 17, 0.28), transparent 55%),
+    radial-gradient(circle at 88% 90%, rgba(254, 181, 17, 0.16), transparent 50%),
+    radial-gradient(circle at 8% 90%, rgba(255, 241, 184, 0.12), transparent 50%);
+  pointer-events: none;
+}
+
+.coming-soon-inner {
+  position: relative;
+  border-radius: calc(var(--radius-xl) - 1px);
+  background:
+    linear-gradient(180deg, rgba(108, 24, 35, 0.98), rgba(77, 16, 24, 0.99) 55%, rgba(46, 8, 13, 0.99));
+  color: var(--gold-light);
+  text-align: center;
+  padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.5rem, 5vw, 4rem);
+  overflow: hidden;
+}
+
+.coming-soon-inner::before,
+.coming-soon-inner::after {
+  content: "";
+  position: absolute;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 999px;
+  border: 1px solid rgba(254, 181, 17, 0.18);
+  pointer-events: none;
+}
+
+.coming-soon-inner::before {
+  top: -8rem;
+  left: -8rem;
+  background: radial-gradient(circle, rgba(254, 181, 17, 0.14), transparent 70%);
+}
+
+.coming-soon-inner::after {
+  bottom: -8rem;
+  right: -8rem;
+  background: radial-gradient(circle, rgba(254, 181, 17, 0.14), transparent 70%);
+}
+
+.coming-soon-kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: rgba(254, 181, 17, 0.9);
+  font-weight: 600;
+  margin-bottom: 1.1rem;
+}
+
+.coming-soon-title {
+  font-size: clamp(2.6rem, 7vw, 4.6rem);
+  line-height: 1.05;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+  color: var(--gold-light);
+  text-wrap: balance;
+}
+
+.coming-soon-title span {
+  font-weight: 400;
+}
+
+.coming-soon-title em {
+  font-style: normal;
+  background: linear-gradient(180deg, #fff6c8, var(--gold) 65%, #b57e06);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
+
+.coming-soon-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  margin: 1.4rem auto 1.3rem;
+  max-width: 22rem;
+}
+
+.coming-soon-divider .line {
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, rgba(254, 181, 17, 0.8), transparent);
+}
+
+.coming-soon-divider .diamond {
+  width: 0.6rem;
+  height: 0.6rem;
+  transform: rotate(45deg);
+  background: var(--gold);
+  box-shadow: 0 0 14px rgba(254, 181, 17, 0.9);
+  flex-shrink: 0;
+}
+
+.coming-soon-copy {
+  max-width: 34rem;
+  margin: 0 auto 2rem;
+  color: rgba(255, 241, 184, 0.82);
+  font-size: clamp(0.95rem, 1.6vw, 1.08rem);
+  line-height: 1.8;
+}
+
+.coming-soon-actions {
+  display: flex;
+  gap: 0.9rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.btn-outline-gold {
+  background: transparent;
+  color: var(--gold-light);
+  border: 1px solid rgba(254, 181, 17, 0.55);
+  padding: 0.95rem 2rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform var(--transition-base),
+    background var(--transition-base),
+    color var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.btn-outline-gold:hover {
+  transform: translateY(-2px);
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--primary-black);
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.3);
+}
+
+.coming-soon-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.9rem 1.1rem;
+  font-size: 0.74rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 241, 184, 0.66);
+}
+
+.coming-soon-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.coming-soon-meta i {
+  color: var(--gold);
+  font-size: 0.95rem;
+}
+
+.coming-soon-meta .dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(254, 181, 17, 0.5);
+  padding: 0;
+}
+
 .mix-stage,
 .mix-controls {
   border-radius: var(--radius-xl);
@@ -832,6 +1024,40 @@ onBeforeUnmount(() => {
     height: 18rem;
   }
 
+  .coming-soon-card {
+    border-radius: var(--radius-lg);
+  }
+
+  .coming-soon-inner {
+    border-radius: calc(var(--radius-lg) - 1px);
+  }
+
+  .coming-soon-kicker {
+    letter-spacing: 0.24em;
+  }
+
+  .coming-soon-title {
+    letter-spacing: 0.05em;
+  }
+
+  .coming-soon-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .coming-soon-actions .btn {
+    width: 100%;
+  }
+
+  .coming-soon-meta {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .coming-soon-meta .dot {
+    display: none;
+  }
+
   .mix-summary {
     grid-template-columns: 1fr;
   }
@@ -843,7 +1069,8 @@ onBeforeUnmount(() => {
 
 @media (prefers-reduced-motion: reduce) {
   .home-hero, .home-section, .section-heading, .section-content,
-  .feature-card, .feature-image, .mix-option {
+  .feature-card, .feature-image, .mix-option,
+  .coming-soon-card, .coming-soon-inner {
     animation: none !important;
     transition: none !important;
     transform: none !important;
