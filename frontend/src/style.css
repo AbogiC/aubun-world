@@ -1,16 +1,25 @@
 @font-face {
   font-family: 'Alcubierre';
   src: url('./assets/fonts/otf/Alcubierre.otf') format('opentype');
-  font-weight: normal;
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
+  ascent-override: 95%;
+  size-adjust: 102%;
 }
 
 @font-face {
   font-family: 'Sivana';
   src: url('./assets/fonts/ttf/Sivana.ttf') format('truetype');
-  font-weight: normal;
+  font-weight: 400 700;
   font-style: normal;
+  font-display: swap;
+  ascent-override: 92%;
+}
+
+/* Bootstrap Icons — ensure font-display swap to avoid FOIT (Est savings 140ms) */
+@font-face {
+  font-family: 'bootstrap-icons';
   font-display: swap;
 }
 
@@ -141,6 +150,8 @@ h6,
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(20px);
   transition: box-shadow var(--transition-base), border-color var(--transition-base);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
 }
 
 .surface:hover {

@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from "vue-router";
-import HomeView from "../views/HomeView.vue";
 import { useAuthStore } from "../stores/auth";
 
 const router = createRouter({
@@ -8,7 +7,9 @@ const router = createRouter({
     {
       path: "/",
       name: "home",
-      component: HomeView,
+      // Lazy-load HomeView as well — code-split initial chunk (saves unused JS)
+      // Vite will preload via <link rel="modulepreload"> only when needed
+      component: () => import("../views/HomeView.vue"),
     },
     {
       path: "/products",

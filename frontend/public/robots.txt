@@ -1,4 +1,37 @@
+# robots.txt for AUBUN WORLD — https://aubunworld.com
+# Allows all public pages, blocks private/app/API paths, and points to sitemap.
+
 User-agent: *
 Allow: /
 
+# Block private / app routes (no SEO value, require auth)
+Disallow: /cart
+Disallow: /checkout
+Disallow: /profile
+Disallow: /orders
+Disallow: /login
+Disallow: /register
+Disallow: /verify-email
+
+# Block API and admin
+Disallow: /api/
+Disallow: /admin/
+Disallow: /backend/
+
+# Allow static assets (explicit for strict crawlers)
+Allow: /assets/
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.webp$
+Allow: /*.avif$
+Allow: /*.svg$
+Allow: /*.woff2$
+
+# Crawl-delay (optional — be polite to origin)
+# Crawl-delay: 5
+
 Sitemap: https://aubunworld.com/sitemap.xml
+Host: https://aubunworld.com

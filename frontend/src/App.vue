@@ -41,32 +41,39 @@ const notificationStore = useNotificationStore();
 const isLoading = ref(true);
 
 onMounted(async () => {
-  await resolveCustomerLocationOnLoad();
+  // Kick off non-blocking tasks in parallel — don't block first paint (LCP + main-thread work)
+  const locationPromise = resolveCustomerLocationOnLoad();
 
-  try {
-    const data = await api.get("/home-view");
-    if (data?.settings) {
-      applyCustomFont(data.settings);
-      applyCustomTheme(data.settings);
+  // Allow paint immediately: hide loading screen as soon as critical data is ready
+  // Run home-view + products + auth concurrently
+  const homeViewPromise = api
+    .get("/home-view")
+    .then((data) => {
+      if (data?.settings) {
+        applyCustomFont(data.settings);
+        applyCustomTheme(data.settings);
+      }
+    })
+    .catch(() => {});
+
+  const productsPromise = !productsStore.loaded ? productsStore.fetchProducts() : Promise.resolve();
+  const authPromise = authStore.initialize();
+
+  // Wait for the minimal critical set (auth + products) before showing shell
+  // Location + theme are non-critical and run in background
+  await Promise.all([locationPromise, homeViewPromise, productsPromise, authPromise]);
+
+  // Defer non-critical work off main thread
+  const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 1));
+  idle(() => {
+    cartStore.refreshFromApi();
+    if (authStore.isAuthenticated) {
+      notificationStore.initialize().then(() => notificationStore.startPolling());
     }
-  } catch {
-    // Keep defaults if custom font/theme settings fail to load.
-  }
+  });
 
-  if (!productsStore.loaded) {
-    await productsStore.fetchProducts();
-  }
-
-  await authStore.initialize();
-  cartStore.refreshFromApi();
-
-  if (authStore.isAuthenticated) {
-    await notificationStore.initialize();
-    notificationStore.startPolling();
-  }
-
-  setTimeout(() => {
-    isLoading.value = false;
-  }, 400);
+  // Remove artificial 400ms delay — show content as soon as ready (LCP improvement)
+  // Keep a minimal delay only if loading was very fast to avoid flash
+  isLoading.value = false;
 });
 </script>

@@ -2,7 +2,7 @@
   <div class="col-md-6 col-lg-4 mb-4 fade-in-up">
     <div class="product-card hover-lift" @click="$router.push(`/product/${product.id}`)">
       <div class="product-image-wrapper position-relative overflow-hidden">
-        <img :src="product.image" :alt="product.name" class="product-image" loading="lazy" />
+        <img :src="product.image" :alt="product.name" class="product-image" loading="lazy" decoding="async" width="400" height="400" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
 
         <div class="product-actions position-absolute top-0 end-0 p-3">
            <button class="btn btn-luxury btn-sm mb-2 action-btn" @click.stop="quickAdd">

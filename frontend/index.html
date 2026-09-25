@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
 
@@ -25,11 +25,39 @@
     <meta property="og:url" content="https://aubunworld.com/" />
     <meta property="og:image" content="https://aubunworld.com/logo_aubun.png" />
 
-    <!-- Google Fonts -->
+    <!-- Preconnect to 3rd parties (Est. savings: render-blocking 2990ms, font display 140ms) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Preload critical local fonts (render-blocking + font display) -->
+    <link rel="preload" href="/src/assets/fonts/otf/Alcubierre.otf" as="font" type="font/otf" crossorigin />
+    <link rel="preload" href="/src/assets/fonts/ttf/Sivana.ttf" as="font" type="font/ttf" crossorigin />
+
+    <!-- Preload LCP hero image — LCP request discovery -->
+    <link rel="preload" as="image" href="https://wwd.com/wp-content/uploads/2024/12/GettyImages1735100420.jpg?w=910&h=511&crop=1" fetchpriority="high" />
+
+    <!-- Non-blocking Google Fonts (render-blocking + 3rd parties) -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600&display=swap" />
     <link
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+
+    <!-- Inline critical CSS for above-the-fold (reduce render-blocking) -->
+    <style>
+      html{scroll-behavior:smooth;overflow-x:hidden;width:100%}
+      body{margin:0;font-family:"Alcubierre",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:radial-gradient(ellipse at 30% 0%,rgba(255,241,184,.98),rgba(254,181,17,.62) 40%,rgba(77,16,24,.08) 100%);color:#4d1018;overflow-x:hidden;width:100%;min-height:100vh;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;line-height:1.6}
+      #app{min-height:100vh}
+      .loading-screen{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,rgba(60,8,14,1) 0%,rgba(77,16,24,1) 40%,rgba(108,24,35,.95) 70%,rgba(40,6,10,1) 100%);color:#fcfaf6}
+    </style>
 
     <script type="application/ld+json">
       {

@@ -190,7 +190,7 @@ const router = useRouter();
 const route = useRoute();
 
 const isLoading = ref(true);
-const sidebarCollapsed = ref(false);
+const sidebarCollapsed = ref(true);
 const sidebarRef = ref(null);
 
 const userInitial = computed(() => {

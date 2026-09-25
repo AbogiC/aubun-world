@@ -20,7 +20,7 @@
         </div>
 
         <div v-if="hasFeatured" class="row g-4 section-content">
-          <div v-for="item in featuredCollections" :key="item.label" class="col-md-6 col-xl-4">
+          <div v-for="(item, idx) in featuredCollections" :key="item.label" class="col-md-6 col-xl-4">
             <article class="feature-card surface h-100" @click="navigateToCategory(item.routeCategory)">
               <div class="feature-image-wrap">
                 <img
@@ -28,7 +28,12 @@
                   :src="item.product.image"
                   :alt="item.label"
                   class="feature-image"
-                  loading="lazy"
+                  :loading="idx === 0 ? 'eager' : 'lazy'"
+                  :fetchpriority="idx === 0 ? 'high' : 'auto'"
+                  decoding="async"
+                  width="600"
+                  height="352"
+                  :sizes="(idx === 0 ? '(max-width: 768px) 100vw, 33vw' : '(max-width: 768px) 100vw, 33vw')"
                 />
                 <div v-else class="feature-image feature-image-placeholder">
                   <span>{{ item.label }}</span>
@@ -97,6 +102,10 @@
                     :src="selectedUpper.image"
                     :alt="selectedUpper.name"
                     class="mix-image"
+                    loading="lazy"
+                    decoding="async"
+                    width="600"
+                    height="400"
                   />
                   <div v-else class="mix-empty">Choose upper wear</div>
                 </div>
@@ -106,6 +115,10 @@
                     :src="selectedLower.image"
                     :alt="selectedLower.name"
                     class="mix-image"
+                    loading="lazy"
+                    decoding="async"
+                    width="600"
+                    height="400"
                   />
                   <div v-else class="mix-empty">Choose lower wear</div>
                 </div>
@@ -144,7 +157,7 @@
                     :class="{ active: product.id === selectedUpperId }"
                     @click="selectedUpperId = product.id"
                   >
-                    <img :src="product.image" :alt="product.name" class="mix-option-thumb" loading="lazy" />
+                    <img :src="product.image" :alt="product.name" class="mix-option-thumb" loading="lazy" decoding="async" width="72" height="72" />
                     <span>
                       <strong>{{ product.name }}</strong>
                       <small>{{ product.category }}</small>
@@ -170,7 +183,7 @@
                     :class="{ active: product.id === selectedLowerId }"
                     @click="selectedLowerId = product.id"
                   >
-                    <img :src="product.image" :alt="product.name" class="mix-option-thumb" loading="lazy" />
+                    <img :src="product.image" :alt="product.name" class="mix-option-thumb" loading="lazy" decoding="async" width="72" height="72" />
                     <span>
                       <strong>{{ product.name }}</strong>
                       <small>{{ product.category }}</small>

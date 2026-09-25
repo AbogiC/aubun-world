@@ -15,7 +15,11 @@
             :src="product.image"
             :alt="product.name"
             class="product-image surface subtle-glow"
-            loading="lazy"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+            width="600"
+            height="600"
           />
         </div>
 
